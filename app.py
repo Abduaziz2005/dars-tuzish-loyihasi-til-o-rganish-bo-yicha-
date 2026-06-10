@@ -1,7 +1,7 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, session
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-import json, os, copy
+import json, os, copy, base64, zlib, hashlib, secrets
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -12,9 +12,45 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{BASE_DIR}/data/langlearn.db
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'langlearn-secret-2024'
 
-db = SQLAlchemy(app)
+# O'qituvchi paroli — SHA-256 hash of '200519992806'
+TEACHER_PASS_HASH = hashlib.sha256(b'200519992806').hexdigest()
+
+# .urok fayl magic bytes
+UROK_MAGIC   = b'UROKFILE'
+UROK_VERSION = 2
+
+# ─── Shifrlash yordamchilari ──────────────────────────────────────────────────
+
+def _xor_bytes(data: bytes, key: bytes) -> bytes:
+    return bytes(b ^ key[i % len(key)] for i, b in enumerate(data))
+
+def encode_urok(payload: dict) -> str:
+    """dict → shifrlangan base64 string (.urok fayl ichiga yoziladi)"""
+    raw        = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+    compressed = zlib.compress(raw, level=9)
+    key        = b'LangLearn2024xK9'
+    xored      = _xor_bytes(compressed, key)
+    final      = UROK_MAGIC + bytes([UROK_VERSION]) + xored
+    return base64.b64encode(final).decode('ascii')
+
+def decode_urok(b64_str: str) -> dict:
+    """shifrlangan base64 string → dict"""
+    try:
+        raw = base64.b64decode(b64_str.strip())
+    except Exception:
+        raise ValueError("Base64 decode xatosi")
+    if not raw.startswith(UROK_MAGIC):
+        raise ValueError("Noto'g'ri fayl formati (magic bytes mos emas)")
+    # version = raw[len(UROK_MAGIC)]  # kelajakda versiya farqlash uchun
+    data       = raw[len(UROK_MAGIC) + 1:]
+    key        = b'LangLearn2024xK9'
+    compressed = _xor_bytes(data, key)
+    jsonbytes  = zlib.decompress(compressed)
+    return json.loads(jsonbytes.decode('utf-8'))
 
 # ─── Models ───────────────────────────────────────────────────────────────────
+
+db = SQLAlchemy(app)
 
 class Lesson(db.Model):
     id         = db.Column(db.Integer, primary_key=True)
@@ -29,9 +65,9 @@ class Lesson(db.Model):
 class Block(db.Model):
     id         = db.Column(db.Integer, primary_key=True)
     lesson_id  = db.Column(db.Integer, db.ForeignKey('lesson.id'), nullable=False)
-    type       = db.Column(db.String(50), nullable=False)   # heading|vocab|exercise|image|hr|audio_text|crossword|match|fill_blank|quiz|dialog|table
+    type       = db.Column(db.String(50), nullable=False)
     order      = db.Column(db.Integer, default=0)
-    data       = db.Column(db.Text, default='{}')           # JSON payload
+    data       = db.Column(db.Text, default='{}')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
@@ -50,6 +86,16 @@ class StudentProgress(db.Model):
     score      = db.Column(db.Float, default=0)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+# .urok natijalar jadvali
+class StudentResult(db.Model):
+    id           = db.Column(db.Integer, primary_key=True)
+    student_name = db.Column(db.String(200), default='O\'quvchi')
+    lesson_title = db.Column(db.String(200), default='')
+    total_score  = db.Column(db.Float, default=0)
+    max_score    = db.Column(db.Float, default=0)
+    answers_json = db.Column(db.Text, default='{}')
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 # ─── Init DB ──────────────────────────────────────────────────────────────────
 
 def init_db():
@@ -65,82 +111,71 @@ def seed_demo():
     db.session.flush()
 
     blocks_data = [
-        (0, 'heading', {'text': 'ДНИ НЕДЕЛИ И ВРЕМЯ', 'level': 1,
-                        'color': '#e63946', 'bg': ''}),
+        (0, 'heading', {'text': 'ДНИ НЕДЕЛИ И ВРЕМЯ', 'level': 1, 'color': '#e63946', 'bg': ''}),
         (1, 'hr', {'color': '#e63946'}),
         (2, 'vocab', {
-            'title': 'Новые слова', 'title_color': '#1d3557',
-            'bar_color': '#457b9d',
+            'title': 'Новые слова', 'bar_color': '#457b9d',
             'items': [
-                {'ru': 'понедельник', 'uz': '', 'audio': ''},
-                {'ru': 'вторник',     'uz': '', 'audio': ''},
-                {'ru': 'среда',       'uz': '', 'audio': ''},
-                {'ru': 'четверг',     'uz': '', 'audio': ''},
-                {'ru': 'пятница',     'uz': '', 'audio': ''},
-                {'ru': 'суббота',     'uz': '', 'audio': ''},
-                {'ru': 'воскресенье', 'uz': '', 'audio': ''},
-                {'ru': 'сегодня',     'uz': '', 'audio': ''},
-                {'ru': 'вчера',       'uz': '', 'audio': ''},
-                {'ru': 'время',       'uz': '', 'audio': ''},
+                {'ru': 'понедельник', 'uz': 'dushanba',    'audio': ''},
+                {'ru': 'вторник',     'uz': 'seshanba',    'audio': ''},
+                {'ru': 'среда',       'uz': 'chorshanba',  'audio': ''},
+                {'ru': 'четверг',     'uz': 'payshanba',   'audio': ''},
+                {'ru': 'пятница',     'uz': 'juma',        'audio': ''},
+                {'ru': 'суббота',     'uz': 'shanba',      'audio': ''},
+                {'ru': 'воскресенье', 'uz': 'yakshanba',   'audio': ''},
+                {'ru': 'сегодня',     'uz': 'bugun',       'audio': ''},
+                {'ru': 'вчера',       'uz': 'kecha',       'audio': ''},
+                {'ru': 'время',       'uz': 'vaqt',        'audio': ''},
             ]
         }),
-        (3, 'hr', {'color': '#e63946'}),
-        (4, 'dialog', {
-            'title': 'Диалог 1',
-            'lines': [
-                {'speaker': 'A', 'text': '— Какой сегодня день недели?'},
-                {'speaker': 'B', 'text': '— Сегодня вторник.'},
-                {'speaker': 'A', 'text': '— Какой день недели был вчера?'},
-                {'speaker': 'B', 'text': '— Вчера был понедельник.'},
-            ]
-        }),
-        (5, 'fill_blank', {
-            'title': 'Упражнение 1',
-            'bar_color': '#2a9d8f',
+        (3, 'fill_blank', {
+            'title': 'Упражнение 1', 'bar_color': '#2a9d8f',
             'instruction': 'Поставьте слово «час» в подходящую форму',
             'items': [
-                {'pre': 'Сейчас четыре', 'answer': 'часа', 'post': 'дня.'},
-                {'pre': 'Сейчас восемь', 'answer': 'часов', 'post': 'вечера.'},
-                {'pre': 'Сейчас 1',      'answer': 'час',   'post': 'ночи.'},
-                {'pre': 'Сейчас десять', 'answer': 'часов', 'post': 'утра.'},
-                {'pre': 'Сейчас три',    'answer': 'часа',  'post': 'ночи.'},
+                {'pre': 'Сейчас четыре',  'answer': 'часа',   'post': 'дня.'},
+                {'pre': 'Сейчас восемь',  'answer': 'часов',  'post': 'вечера.'},
+                {'pre': 'Сейчас 1',       'answer': 'час',    'post': 'ночи.'},
+                {'pre': 'Сейчас десять',  'answer': 'часов',  'post': 'утра.'},
             ]
         }),
-        (6, 'match', {
-            'title': 'Упражнение: Соедини дни',
-            'bar_color': '#e76f51',
-            'pairs': [
-                {'left': 'понедельник', 'right': 'Monday'},
-                {'left': 'вторник',     'right': 'Tuesday'},
-                {'left': 'среда',       'right': 'Wednesday'},
-                {'left': 'четверг',     'right': 'Thursday'},
-                {'left': 'пятница',     'right': 'Friday'},
-                {'left': 'суббота',     'right': 'Saturday'},
-                {'left': 'воскресенье', 'right': 'Sunday'},
-            ]
-        }),
-        (7, 'quiz', {
-            'title': 'Мини-тест',
-            'bar_color': '#6a4c93',
+        (4, 'quiz', {
+            'title': 'Мини-тест', 'bar_color': '#6a4c93',
             'questions': [
                 {'q': 'Какой день идёт после среды?',
-                 'options': ['вторник','четверг','пятница','суббота'],
-                 'correct': 1},
-                {'q': 'Как сказать 8 часов вечера?',
-                 'options': ['8 часа вечера','8 часов вечера','8 час вечера','8 часов утра'],
-                 'correct': 1},
+                 'options': ['вторник','четверг','пятница','суббота'], 'correct': 1},
                 {'q': 'Первый день рабочей недели — это:',
-                 'options': ['воскресенье','суббота','понедельник','пятница'],
-                 'correct': 2},
+                 'options': ['воскресенье','суббота','понедельник','пятница'], 'correct': 2},
             ]
         }),
     ]
-
     for order, btype, bdata in blocks_data:
         b = Block(lesson_id=lesson.id, type=btype, order=order,
                   data=json.dumps(bdata, ensure_ascii=False))
         db.session.add(b)
     db.session.commit()
+
+# ─── API: Rol (session) ───────────────────────────────────────────────────────
+
+@app.route('/api/role', methods=['GET'])
+def get_role():
+    return jsonify({'role': session.get('role', None)})
+
+@app.route('/api/role/set', methods=['POST'])
+def set_role():
+    d = request.json or {}
+    role = d.get('role', 'student')
+    if role == 'teacher':
+        pwd = d.get('password', '')
+        if hashlib.sha256(pwd.encode()).hexdigest() != TEACHER_PASS_HASH:
+            return jsonify({'ok': False, 'error': 'Parol noto\'g\'ri'}), 401
+    session['role'] = role
+    session.permanent = True
+    return jsonify({'ok': True, 'role': role})
+
+@app.route('/api/role/logout', methods=['POST'])
+def logout():
+    session.pop('role', None)
+    return jsonify({'ok': True})
 
 # ─── API: Lessons ─────────────────────────────────────────────────────────────
 
@@ -156,8 +191,7 @@ def get_lessons():
 def create_lesson():
     d = request.json
     max_order = db.session.query(db.func.max(Lesson.order)).scalar() or 0
-    lesson = Lesson(title=d['title'], subtitle=d.get('subtitle',''),
-                    order=max_order+1)
+    lesson = Lesson(title=d['title'], subtitle=d.get('subtitle', ''), order=max_order + 1)
     db.session.add(lesson)
     db.session.commit()
     return jsonify({'id': lesson.id, 'title': lesson.title})
@@ -166,7 +200,7 @@ def create_lesson():
 def update_lesson(lid):
     lesson = Lesson.query.get_or_404(lid)
     d = request.json
-    if 'title' in d: lesson.title = d['title']
+    if 'title' in d:    lesson.title    = d['title']
     if 'subtitle' in d: lesson.subtitle = d['subtitle']
     db.session.commit()
     return jsonify({'ok': True})
@@ -182,8 +216,7 @@ def delete_lesson(lid):
 def duplicate_lesson(lid):
     orig = Lesson.query.get_or_404(lid)
     max_order = db.session.query(db.func.max(Lesson.order)).scalar() or 0
-    new_l = Lesson(title=orig.title + ' (копия)', subtitle=orig.subtitle,
-                   order=max_order+1)
+    new_l = Lesson(title=orig.title + ' (копия)', subtitle=orig.subtitle, order=max_order + 1)
     db.session.add(new_l)
     db.session.flush()
     for b in orig.blocks:
@@ -202,13 +235,13 @@ def get_blocks(lid):
 @app.route('/api/blocks', methods=['POST'])
 def create_block():
     d = request.json
-    max_order = db.session.query(db.func.max(Block.order))\
-                  .filter(Block.lesson_id==d['lesson_id']).scalar() or 0
+    max_order = db.session.query(db.func.max(Block.order)) \
+                    .filter(Block.lesson_id == d['lesson_id']).scalar() or 0
     block = Block(
-        lesson_id = d['lesson_id'],
-        type      = d['type'],
-        order     = d.get('order', max_order+1),
-        data      = json.dumps(d.get('data', {}), ensure_ascii=False)
+        lesson_id=d['lesson_id'],
+        type=d['type'],
+        order=d.get('order', max_order + 1),
+        data=json.dumps(d.get('data', {}), ensure_ascii=False)
     )
     db.session.add(block)
     db.session.commit()
@@ -218,10 +251,8 @@ def create_block():
 def update_block(bid):
     block = Block.query.get_or_404(bid)
     d = request.json
-    if 'data' in d:
-        block.data = json.dumps(d['data'], ensure_ascii=False)
-    if 'order' in d:
-        block.order = d['order']
+    if 'data' in d:  block.data  = json.dumps(d['data'], ensure_ascii=False)
+    if 'order' in d: block.order = d['order']
     db.session.commit()
     return jsonify(block.to_dict())
 
@@ -234,8 +265,7 @@ def delete_block(bid):
 
 @app.route('/api/blocks/reorder', methods=['POST'])
 def reorder_blocks():
-    items = request.json  # [{id, order}, ...]
-    for item in items:
+    for item in request.json:
         Block.query.filter_by(id=item['id']).update({'order': item['order']})
     db.session.commit()
     return jsonify({'ok': True})
@@ -260,7 +290,116 @@ def save_progress(bid):
     db.session.commit()
     return jsonify({'ok': True})
 
-# ─── Upload audio ─────────────────────────────────────────────────────────────
+# ─── API: .urok Export ────────────────────────────────────────────────────────
+
+@app.route('/api/lessons/<int:lid>/export', methods=['GET'])
+def export_lesson(lid):
+    """Darsni shifrlangan .urok fayl sifatida qaytaradi"""
+    lesson = Lesson.query.get_or_404(lid)
+    blocks = Block.query.filter_by(lesson_id=lid).order_by(Block.order).all()
+
+    payload = {
+        'format':    'urok',
+        'version':   UROK_VERSION,
+        'exported':  datetime.utcnow().isoformat(),
+        'lesson': {
+            'title':    lesson.title,
+            'subtitle': lesson.subtitle,
+        },
+        'blocks': [
+            {'type': b.type, 'order': b.order, 'data': json.loads(b.data or '{}')}
+            for b in blocks
+        ]
+    }
+
+    encoded = encode_urok(payload)
+    # Fayl nomi
+    safe_title = ''.join(c if c.isalnum() or c in '-_ ' else '_' for c in lesson.title)[:40]
+    fname = f"{safe_title}.urok"
+
+    from flask import Response
+    return Response(
+        encoded,
+        mimetype='application/octet-stream',
+        headers={'Content-Disposition': f'attachment; filename="{fname}"'}
+    )
+
+# ─── API: .urok Import (o'quvchi uchun) ─────────────────────────────────────
+
+@app.route('/api/urok/decode', methods=['POST'])
+def decode_urok_api():
+    """Frontend .urok faylni yuboradi, JSON payload qaytaradi (o'quvchi rejimi)"""
+    f = request.files.get('file')
+    if not f:
+        # JSON body orqali ham qabul qilish
+        d = request.json or {}
+        b64 = d.get('data', '')
+    else:
+        b64 = f.read().decode('ascii').strip()
+
+    try:
+        payload = decode_urok(b64)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+    return jsonify({'ok': True, 'payload': payload})
+
+@app.route('/api/urok/decode-teacher', methods=['POST'])
+def decode_urok_teacher():
+    """O'qituvchi uchun: parol tekshirib, keyin decode qiladi"""
+    d = request.json or {}
+    pwd = d.get('password', '')
+    if hashlib.sha256(pwd.encode()).hexdigest() != TEACHER_PASS_HASH:
+        return jsonify({'ok': False, 'error': 'Parol noto\'g\'ri'}), 401
+
+    b64 = d.get('data', '')
+    try:
+        payload = decode_urok(b64)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+    return jsonify({'ok': True, 'payload': payload})
+
+# ─── API: Natijalarni saqlash ─────────────────────────────────────────────────
+
+@app.route('/api/results', methods=['POST'])
+def save_result():
+    """O'quvchi .urok natija faylini serverga yuboradi"""
+    d = request.json or {}
+    result = StudentResult(
+        student_name = d.get('student_name', 'O\'quvchi'),
+        lesson_title = d.get('lesson_title', ''),
+        total_score  = d.get('total_score', 0),
+        max_score    = d.get('max_score', 0),
+        answers_json = json.dumps(d.get('answers', {}), ensure_ascii=False),
+    )
+    db.session.add(result)
+    db.session.commit()
+    return jsonify({'ok': True, 'id': result.id})
+
+@app.route('/api/results', methods=['GET'])
+def get_results():
+    """O'qituvchi barcha natijalarni ko'radi"""
+    results = StudentResult.query.order_by(StudentResult.submitted_at.desc()).all()
+    return jsonify([{
+        'id':           r.id,
+        'student_name': r.student_name,
+        'lesson_title': r.lesson_title,
+        'total_score':  r.total_score,
+        'max_score':    r.max_score,
+        'pct':          round(r.total_score / r.max_score * 100) if r.max_score else 0,
+        'answers':      json.loads(r.answers_json or '{}'),
+        'submitted_at': r.submitted_at.strftime('%Y-%m-%d %H:%M'),
+    } for r in results])
+
+@app.route('/api/results/<int:rid>', methods=['DELETE'])
+def delete_result(rid):
+    r = StudentResult.query.get_or_404(rid)
+    db.session.delete(r)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+# ─── Upload ───────────────────────────────────────────────────────────────────
 
 @app.route('/api/upload/audio', methods=['POST'])
 def upload_audio():

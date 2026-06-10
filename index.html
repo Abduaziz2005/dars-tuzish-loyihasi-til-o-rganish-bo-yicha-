@@ -423,17 +423,260 @@ input,textarea,select{outline:none;font-family:inherit}
 ::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:#aaa}
 ::-webkit-scrollbar-track{background:transparent}
+
+/* ── Kirish ekrani ── */
+#login-screen{
+  position:fixed;inset:0;z-index:9000;
+  background:linear-gradient(135deg,#1d3557 0%,#457b9d 100%);
+  display:flex;align-items:center;justify-content:center;
+}
+#login-screen.hidden{display:none!important}
+.login-box{
+  background:white;border-radius:16px;padding:40px 36px;
+  width:400px;max-width:94vw;box-shadow:0 16px 48px rgba(0,0,0,.3);
+  text-align:center;
+}
+.login-logo{font-size:48px;margin-bottom:8px}
+.login-title{font-size:24px;font-weight:800;color:var(--dark);margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--gray);margin-bottom:28px}
+.role-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.role-btn{
+  padding:18px 10px;border-radius:12px;border:2.5px solid var(--border);
+  font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;
+  background:white;color:#444;
+}
+.role-btn .role-icon{font-size:28px;display:block;margin-bottom:6px}
+.role-btn:hover{border-color:var(--blue);background:#f0f8ff;color:var(--blue)}
+.role-btn.teacher-btn:hover{border-color:var(--red);background:#fff5f5;color:var(--red)}
+.login-pass-area{display:none}
+.login-pass-area.show{display:block}
+.login-pass-input{
+  width:100%;padding:12px 16px;border:2px solid var(--border);border-radius:8px;
+  font-size:16px;margin-bottom:10px;text-align:center;letter-spacing:4px;
+}
+.login-pass-input:focus{border-color:var(--red)}
+.login-pass-btn{
+  width:100%;padding:12px;border-radius:8px;background:var(--red);
+  color:white;font-size:15px;font-weight:700;border:none;cursor:pointer;
+}
+.login-pass-btn:hover{filter:brightness(1.1)}
+.login-err{color:var(--red);font-size:13px;margin-top:8px;min-height:18px;font-weight:600}
+.login-back{
+  margin-top:10px;font-size:13px;color:var(--blue);cursor:pointer;
+  background:none;border:none;text-decoration:underline;
+}
+.login-student-area{display:none}
+.login-student-area.show{display:block}
+.student-name-input{
+  width:100%;padding:12px 16px;border:2px solid var(--border);border-radius:8px;
+  font-size:15px;margin-bottom:10px;text-align:center;
+}
+.student-name-input:focus{border-color:var(--blue)}
+.login-student-btn{
+  width:100%;padding:12px;border-radius:8px;background:var(--blue);
+  color:white;font-size:15px;font-weight:700;border:none;cursor:pointer;
+}
+.login-student-btn:hover{filter:brightness(1.1)}
+
+/* ── Rol badge topbar ── */
+.role-badge{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;}
+.role-badge.teacher{background:rgba(230,57,70,.25);color:#f9c5c9}
+.role-badge.student{background:rgba(69,123,157,.25);color:#a8dadc}
+
+/* ── .urok fayl panel ── */
+.urok-panel{
+  background:linear-gradient(135deg,#1d3557,#2a6496);
+  border-radius:var(--radius);padding:10px 16px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  flex-shrink:0;
+}
+.urok-panel-label{color:rgba(255,255,255,.75);font-size:12px;font-weight:600;flex:1;min-width:80px}
+.urok-btn{
+  padding:6px 14px;border-radius:7px;font-size:12px;font-weight:700;
+  border:1.5px solid rgba(255,255,255,.35);color:white;background:rgba(255,255,255,.12);
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.urok-btn:hover{background:rgba(255,255,255,.25)}
+.urok-btn.green{background:rgba(42,157,143,.5);border-color:#2a9d8f}
+.urok-btn.green:hover{background:var(--green)}
+.urok-btn.orange{background:rgba(231,111,81,.5);border-color:var(--orange)}
+.urok-btn.orange:hover{background:var(--orange)}
+
+/* ── O'quvchi rejimi banner ── */
+.student-mode-banner{
+  background:linear-gradient(135deg,#2a9d8f,#1d6b62);
+  color:white;padding:10px 18px;
+  display:flex;align-items:center;gap:12px;flex-shrink:0;flex-wrap:wrap;
+}
+.student-mode-banner .banner-info{flex:1;min-width:120px}
+.student-mode-banner .banner-title{font-weight:700;font-size:14px}
+.student-mode-banner .banner-name{font-size:12px;opacity:.8;margin-top:2px}
+.submit-result-btn{
+  padding:7px 16px;border-radius:7px;font-size:13px;font-weight:700;
+  background:rgba(255,255,255,.2);color:white;border:1.5px solid rgba(255,255,255,.4);cursor:pointer;
+}
+.submit-result-btn:hover{background:rgba(255,255,255,.3)}
+
+/* ── O'quvchi fayl yuklash ekrani ── */
+.student-open-screen{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:20px;padding:40px;
+}
+.student-open-screen.hidden{display:none!important}
+.open-urok-box{
+  background:white;border-radius:16px;padding:40px 36px;max-width:440px;width:100%;
+  box-shadow:var(--shadow);text-align:center;
+}
+.open-urok-box h2{font-size:20px;font-weight:800;color:var(--dark);margin-bottom:8px}
+.open-urok-box p{font-size:13px;color:var(--gray);margin-bottom:24px}
+.urok-drop-zone{
+  border:2.5px dashed var(--blue);border-radius:12px;padding:32px;
+  cursor:pointer;transition:all .2s;margin-bottom:16px;
+}
+.urok-drop-zone:hover,.urok-drop-zone.drag-over{background:#f0f8ff;border-color:var(--dark)}
+.urok-drop-icon{font-size:40px;margin-bottom:8px}
+.urok-drop-label{font-size:14px;color:var(--blue);font-weight:600}
+.urok-drop-sub{font-size:12px;color:var(--gray);margin-top:4px}
+.urok-file-input{display:none}
+.urok-open-btn{
+  width:100%;padding:12px;border-radius:8px;background:var(--blue);
+  color:white;font-size:15px;font-weight:700;border:none;cursor:pointer;
+}
+.urok-open-btn:hover{filter:brightness(1.1)}
+.urok-open-back{
+  margin-top:12px;font-size:13px;color:var(--gray);cursor:pointer;
+  background:none;border:none;text-decoration:underline;
+}
+
+/* ── Natijalar ekrani ── */
+#results-screen{
+  position:fixed;inset:0;z-index:8000;
+  display:none;flex-direction:column;background:#f8f9fa;
+}
+#results-screen.show{display:flex}
+.results-header{
+  padding:14px 20px;background:var(--dark);color:white;
+  display:flex;align-items:center;gap:12px;flex-shrink:0;
+}
+.results-header h2{font-size:16px;flex:1;margin:0}
+.results-back-btn{
+  padding:6px 16px;border-radius:6px;background:rgba(255,255,255,.15);
+  color:white;font-size:13px;font-weight:600;border:none;cursor:pointer;
+}
+.results-back-btn:hover{background:rgba(255,255,255,.25)}
+#results-table-wrap{flex:1;overflow-y:auto;padding:20px}
+.results-table{width:100%;border-collapse:collapse;font-size:13px}
+.results-table th{
+  background:var(--dark);color:white;padding:10px 14px;text-align:left;
+  position:sticky;top:0;z-index:1;white-space:nowrap;
+}
+.results-table td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+.results-table tr:hover td{background:#f1faee}
+.pct-bar-wrap{background:#eee;border-radius:4px;height:8px;width:70px;display:inline-block;vertical-align:middle;margin-right:6px}
+.pct-bar{height:100%;border-radius:4px;background:var(--green);transition:width .3s}
+.result-detail-btn{
+  padding:4px 10px;border-radius:5px;font-size:12px;
+  background:var(--blue);color:white;font-weight:600;border:none;cursor:pointer;margin-right:4px;
+}
+.result-del-btn{
+  padding:4px 10px;border-radius:5px;font-size:12px;
+  background:#fff0f0;color:var(--red);font-weight:600;border:1px solid #fca5a5;cursor:pointer;
+}
+
+/* ── Natija detail modal ── */
+.detail-answers{max-height:400px;overflow-y:auto;padding-right:8px}
+.detail-block{margin-bottom:14px;padding:12px;background:#f8f9fa;border-radius:8px;border:1px solid var(--border)}
+.detail-block-title{font-weight:700;font-size:13px;color:var(--dark);margin-bottom:8px}
+.detail-item{font-size:13px;padding:4px 0;display:flex;align-items:center;gap:8px}
+.det-correct{color:var(--green)}
+.det-wrong{color:var(--red)}
+.det-icon{font-size:14px;flex-shrink:0}
+
+/* ── O'quvchi dars ko'rinishi ── */
+.student-lesson-selector{
+  padding:8px 16px;background:white;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;
+}
+.lesson-sel-btn{
+  padding:6px 14px;border-radius:6px;font-size:13px;
+  border:1.5px solid var(--border);background:white;color:#444;
+  cursor:pointer;transition:all .15s;
+}
+.lesson-sel-btn.active{background:var(--blue);border-color:var(--blue);color:white;font-weight:700}
+.lesson-sel-btn:hover:not(.active){border-color:var(--blue);color:var(--blue)}
 </style>
 </head>
 <body>
+<!-- ═══════════════════════════════════════════════════
+     KIRISH EKRANI
+═══════════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">📚</div>
+    <div class="login-title">LangLearn Studio</div>
+    <div class="login-sub">Til o'rgatish platformasi</div>
+
+    <!-- Rol tanlash -->
+    <div id="login-role-choice">
+      <div class="role-btns">
+        <button class="role-btn" onclick="loginChooseRole('student')">
+          <span class="role-icon">👨‍🎓</span>O'quvchi
+        </button>
+        <button class="role-btn teacher-btn" onclick="loginChooseRole('teacher')">
+          <span class="role-icon">👩‍🏫</span>O'qituvchi
+        </button>
+      </div>
+    </div>
+
+    <!-- O'quvchi: ism kiritish -->
+    <div id="login-student-area" class="login-student-area">
+      <p style="font-size:13px;color:var(--gray);margin-bottom:14px">Ismingizni kiriting:</p>
+      <input id="student-name-inp" class="student-name-input" placeholder="Ism Familiya..."
+             onkeydown="if(event.key==='Enter')loginAsStudent()">
+      <button class="login-student-btn" onclick="loginAsStudent()">✅ Kirish</button>
+      <button class="login-back" onclick="loginBack()">← Orqaga</button>
+      <div class="login-err" id="student-err"></div>
+    </div>
+
+    <!-- O'qituvchi: parol -->
+    <div id="login-pass-area" class="login-pass-area">
+      <p style="font-size:13px;color:var(--gray);margin-bottom:14px">O'qituvchi parolini kiriting:</p>
+      <input id="teacher-pass-inp" class="login-pass-input" type="password"
+             placeholder="••••••••••••"
+             onkeydown="if(event.key==='Enter')loginAsTeacher()">
+      <button class="login-pass-btn" onclick="loginAsTeacher()">🔓 Kirish</button>
+      <button class="login-back" onclick="loginBack()">← Orqaga</button>
+      <div class="login-err" id="teacher-err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     NATIJALAR EKRANI (o'qituvchi uchun)
+═══════════════════════════════════════════════════ -->
+<div id="results-screen">
+  <div class="results-header">
+    <h2>📊 O'quvchi natijalari</h2>
+    <button class="results-back-btn" onclick="closeResultsScreen()">← Orqaga</button>
+  </div>
+  <div id="results-table-wrap">
+    <div id="results-table-content"></div>
+  </div>
+</div>
+
 <div id="app">
+
 
 <!-- Top Bar -->
 <div id="topbar">
   <div class="logo">Lang<span>Learn</span> Studio</div>
   <div id="lesson-title-bar">Dars tanlanmagan</div>
   <div class="spacer"></div>
+  <span class="role-badge" id="role-badge" style="display:none"></span>
+  <button class="tb-btn" id="btn-results" style="display:none" onclick="openResultsScreen()">📊 Natijalar</button>
+  <button class="tb-btn" id="btn-export-urok" style="display:none" onclick="exportCurrentLesson()">⬇ .urok yuborish</button>
   <button class="split-toggle" onclick="toggleStudentPanel()">👁 O'quvchi ko'rinishi</button>
+  <button class="tb-btn" onclick="logoutRole()" style="background:rgba(255,255,255,.08)">🚪 Chiqish</button>
 </div>
 
 <!-- Main -->
@@ -449,6 +692,12 @@ input,textarea,select{outline:none;font-family:inherit}
   <!-- Editor -->
   <div id="editor-panel">
     <div id="editor-toolbar">
+      <!-- .urok export panel (faqat o'qituvchi uchun) -->
+      <div class="urok-panel" id="urok-export-panel" style="display:none;width:100%">
+        <span class="urok-panel-label">📦 Darsni .urok faylga eksport qiling:</span>
+        <button class="urok-btn green" onclick="exportCurrentLesson()">⬇ Yuklab olish (.urok)</button>
+        <button class="urok-btn orange" onclick="openResultsScreen()">📊 Natijalarni ko'rish</button>
+      </div>
       <span class="label">Blok qo'shish:</span>
       <button class="add-block-btn" style="color:#e63946;border-color:#e63946" onclick="openAddBlockModal('heading')">🔤 Sarlavha</button>
       <button class="add-block-btn" style="color:#457b9d;border-color:#457b9d" onclick="openAddBlockModal('vocab')">📖 So'zlar</button>
@@ -476,6 +725,15 @@ input,textarea,select{outline:none;font-family:inherit}
       <span>👨‍🎓 O'quvchi ko'rinishi</span>
       <button class="close-student-btn" onclick="toggleStudentPanel()">✕ Yopish</button>
     </div>
+    <!-- O'quvchi rejimida natija yuborish banner -->
+    <div class="student-mode-banner" id="student-submit-banner" style="display:none">
+      <div class="banner-info">
+        <div class="banner-title">🎓 O'quvchi rejimi</div>
+        <div class="banner-name" id="banner-student-name"></div>
+      </div>
+      <button class="submit-result-btn" onclick="submitStudentResults()">📤 Natijani yuborish</button>
+      <button class="submit-result-btn" onclick="downloadResultFile()">⬇ .urok yuklab olish</button>
+    </div>
     <div id="student-content"></div>
   </div>
 
@@ -500,6 +758,415 @@ let state = {
   blocks: [],
   studentOpen: false,
 };
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let state = {
+  lessons: [],
+  currentLessonId: null,
+  blocks: [],
+  studentOpen: false,
+  role: null,           // 'teacher' | 'student'
+  studentName: '',
+  studentAnswers: {},   // {blockId: {answer, score, max}}
+  // o'quvchi .urok fayldan yuklagan dars
+  urokPayload: null,
+};
+
+// ═══════════════════════════════════════════════════════════
+// KIRISH TIZIMI
+// ═══════════════════════════════════════════════════════════
+async function initLoginCheck() {
+  // sessionStorage da rol saqlangan bo'lsa — to'g'ri kiramiz
+  const savedRole = sessionStorage.getItem('ll_role');
+  const savedName = sessionStorage.getItem('ll_name') || '';
+  if (savedRole === 'teacher') {
+    await enterAsTeacher(savedName, false);
+    return;
+  }
+  if (savedRole === 'student' && savedName) {
+    await enterAsStudent(savedName, false);
+    return;
+  }
+  // Aks holda server sessionni tekshiramiz
+  try {
+    const r = await api('GET', '/api/role');
+    if (r.role === 'teacher') { await enterAsTeacher('', false); return; }
+    if (r.role === 'student') {
+      const name = r.name || sessionStorage.getItem('ll_name') || '';
+      if (name) { await enterAsStudent(name, false); return; }
+    }
+  } catch(e) {}
+  // Kirish ekranini ko'rsat
+  showLoginScreen();
+}
+
+function showLoginScreen() {
+  document.getElementById('login-screen').classList.remove('hidden');
+  loginBack();
+}
+function hideLoginScreen() {
+  document.getElementById('login-screen').classList.add('hidden');
+}
+
+function loginChooseRole(role) {
+  document.getElementById('login-role-choice').style.display = 'none';
+  if (role === 'student') {
+    document.getElementById('login-student-area').classList.add('show');
+    setTimeout(() => document.getElementById('student-name-inp').focus(), 100);
+  } else {
+    document.getElementById('login-pass-area').classList.add('show');
+    setTimeout(() => document.getElementById('teacher-pass-inp').focus(), 100);
+  }
+}
+
+function loginBack() {
+  document.getElementById('login-role-choice').style.display = '';
+  document.getElementById('login-student-area').classList.remove('show');
+  document.getElementById('login-pass-area').classList.remove('show');
+  document.getElementById('teacher-err').textContent = '';
+  document.getElementById('student-err').textContent = '';
+  if (document.getElementById('teacher-pass-inp'))
+    document.getElementById('teacher-pass-inp').value = '';
+}
+
+async function loginAsStudent() {
+  const name = document.getElementById('student-name-inp').value.trim();
+  if (!name) {
+    document.getElementById('student-err').textContent = '⚠️ Ism kiriting';
+    return;
+  }
+  await enterAsStudent(name, true);
+}
+
+async function loginAsTeacher() {
+  const pwd = document.getElementById('teacher-pass-inp').value;
+  const errEl = document.getElementById('teacher-err');
+  errEl.textContent = '';
+  try {
+    const r = await api('POST', '/api/role/set', { role: 'teacher', password: pwd });
+    if (!r.ok) { errEl.textContent = '❌ ' + (r.error || 'Parol noto\'g\'ri'); return; }
+    sessionStorage.setItem('ll_role', 'teacher');
+    await enterAsTeacher('', false);
+  } catch(e) {
+    errEl.textContent = '❌ Parol noto\'g\'ri';
+  }
+}
+
+async function enterAsTeacher(name, saveSession) {
+  if (saveSession) sessionStorage.setItem('ll_role', 'teacher');
+  state.role = 'teacher';
+  state.studentName = '';
+  hideLoginScreen();
+  applyRoleUI('teacher');
+  await init();
+}
+
+async function enterAsStudent(name, saveSession) {
+  if (saveSession) {
+    sessionStorage.setItem('ll_role', 'student');
+    sessionStorage.setItem('ll_name', name);
+    // serverga ham yuboramiz
+    try { await api('POST', '/api/role/set', { role: 'student' }); } catch(e) {}
+  }
+  state.role = 'student';
+  state.studentName = name;
+  hideLoginScreen();
+  applyRoleUI('student');
+  // O'quvchi: .urok fayl yuklash ekrani yoki serverdan darslar
+  await init();
+  // O'quvchi panelini ochib qo'yamiz
+  if (!state.studentOpen) toggleStudentPanel();
+}
+
+function applyRoleUI(role) {
+  const badge = document.getElementById('role-badge');
+  badge.style.display = '';
+  const btnResults = document.getElementById('btn-results');
+  const btnExport  = document.getElementById('btn-export-urok');
+  const urokPanel  = document.getElementById('urok-export-panel');
+  // sidebar va editor — faqat o'qituvchi
+  const sidebar    = document.getElementById('sidebar');
+  const editorPanel = document.getElementById('editor-panel');
+  const toolbar    = document.getElementById('editor-toolbar');
+
+  if (role === 'teacher') {
+    badge.textContent  = '👩‍🏫 O\'qituvchi';
+    badge.className    = 'role-badge teacher';
+    btnResults.style.display = '';
+    btnExport.style.display  = '';
+    if (urokPanel) urokPanel.style.display = '';
+    if (sidebar)   sidebar.style.display   = '';
+    if (editorPanel) editorPanel.style.display = '';
+    document.getElementById('student-submit-banner').style.display = 'none';
+  } else {
+    badge.textContent  = '👨‍🎓 ' + state.studentName;
+    badge.className    = 'role-badge student';
+    btnResults.style.display = 'none';
+    btnExport.style.display  = 'none';
+    if (urokPanel) urokPanel.style.display = 'none';
+    // O'quvchi: sidebar va editor yashiriladi
+    if (sidebar)   sidebar.style.display   = 'none';
+    if (editorPanel) editorPanel.style.display = 'none';
+    // Student banner
+    const banner = document.getElementById('student-submit-banner');
+    banner.style.display = '';
+    document.getElementById('banner-student-name').textContent = state.studentName;
+  }
+}
+
+function logoutRole() {
+  sessionStorage.removeItem('ll_role');
+  sessionStorage.removeItem('ll_name');
+  fetch('/api/role/logout', {method:'POST'}).catch(()=>{});
+  state.role = null;
+  state.studentName = '';
+  state.studentAnswers = {};
+  // UI reset
+  const badge = document.getElementById('role-badge');
+  badge.style.display = 'none';
+  document.getElementById('btn-results').style.display = 'none';
+  document.getElementById('btn-export-urok').style.display = 'none';
+  const urokPanel = document.getElementById('urok-export-panel');
+  if (urokPanel) urokPanel.style.display = 'none';
+  document.getElementById('sidebar').style.display = '';
+  document.getElementById('editor-panel').style.display = '';
+  if (state.studentOpen) toggleStudentPanel();
+  showLoginScreen();
+}
+
+// ═══════════════════════════════════════════════════════════
+// .urok EXPORT (O'qituvchi)
+// ═══════════════════════════════════════════════════════════
+async function exportCurrentLesson() {
+  if (!state.currentLessonId) { toast('⚠️ Avval dars tanlang'); return; }
+  try {
+    const resp = await fetch(`/api/lessons/${state.currentLessonId}/export`);
+    if (!resp.ok) throw new Error('Server xatosi');
+    const blob = await resp.blob();
+    const lesson = state.lessons.find(l => l.id === state.currentLessonId);
+    const safeName = (lesson?.title || 'dars').replace(/[^a-zA-Z0-9а-яА-Я\-_ ]/g, '_').slice(0, 40);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = safeName + '.urok';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('✅ .urok fayl yuklab olindi!');
+  } catch(e) {
+    toast('❌ Export xatosi: ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// .urok IMPORT / O'quvchi rejimi
+// ═══════════════════════════════════════════════════════════
+// O'quvchi serverda darslarni ko'radi (agar mavjud bo'lsa)
+// Yoki .urok fayl ochadi — hozircha serverdan yuklash asosiy
+
+// ═══════════════════════════════════════════════════════════
+// O'QUVCHI NATIJALARI — saqlash
+// ═══════════════════════════════════════════════════════════
+// O'quvchi javoblarini state.studentAnswers ga yozamiz
+// Format: { blockId: { type, title, answers:{...}, score, max } }
+
+function recordStudentAnswer(blockId, type, title, answers, score, max) {
+  if (state.role !== 'student') return;
+  state.studentAnswers[blockId] = { type, title, answers, score, max };
+}
+
+async function submitStudentResults() {
+  if (!state.studentName) { toast('⚠️ Ism kiritilmagan'); return; }
+  const lesson = state.lessons.find(l => l.id === state.currentLessonId);
+  const lessonTitle = lesson?.title || 'Noma\'lum dars';
+
+  let totalScore = 0, maxScore = 0;
+  Object.values(state.studentAnswers).forEach(a => {
+    totalScore += (a.score || 0);
+    maxScore   += (a.max   || 0);
+  });
+
+  const payload = {
+    student_name: state.studentName,
+    lesson_title: lessonTitle,
+    total_score:  totalScore,
+    max_score:    maxScore,
+    answers:      state.studentAnswers,
+  };
+
+  try {
+    const r = await api('POST', '/api/results', payload);
+    if (r.ok) {
+      toast('✅ Natija serverga yuborildi!');
+      // .urok natija faylini ham yuklab olamiz
+      downloadResultFile(payload);
+    }
+  } catch(e) {
+    toast('❌ Yuborishda xato. .urok fayl yuklab olinmoqda...');
+    downloadResultFile(payload);
+  }
+}
+
+function downloadResultFile(payload) {
+  // Frontend da encode qilamiz (Python encode_urok logikasi bilan bir xil)
+  const lesson = state.lessons.find(l => l.id === state.currentLessonId);
+  const lessonTitle = lesson?.title || 'Noma\'lum dars';
+  let totalScore = 0, maxScore = 0;
+  if (payload) {
+    totalScore = payload.total_score;
+    maxScore   = payload.max_score;
+  } else {
+    Object.values(state.studentAnswers).forEach(a => {
+      totalScore += (a.score || 0);
+      maxScore   += (a.max   || 0);
+    });
+    payload = {
+      student_name: state.studentName,
+      lesson_title: lessonTitle,
+      total_score:  totalScore,
+      max_score:    maxScore,
+      answers:      state.studentAnswers,
+    };
+  }
+
+  const resultPayload = {
+    format:       'urok_result',
+    version:      2,
+    student_name: payload.student_name,
+    lesson_title: payload.lesson_title,
+    total_score:  payload.total_score,
+    max_score:    payload.max_score,
+    pct:          payload.max_score > 0 ? Math.round(payload.total_score / payload.max_score * 100) : 0,
+    submitted:    new Date().toISOString(),
+    answers:      payload.answers,
+  };
+
+  // Oddiy JSON ga base64 qilib saqlaymiz (server side encrypt bilan bir xil)
+  const encoded = encodeUrokClient(resultPayload);
+  const blob    = new Blob([encoded], {type: 'application/octet-stream'});
+  const safeName = payload.student_name.replace(/[^a-zA-Z0-9а-яА-Я\-_ ]/g, '_').slice(0, 30);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = safeName + '_natija.urok';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('✅ Natija fayli yuklab olindi!');
+}
+
+// Browser da .urok encode — Python encode_urok bilan mos
+function encodeUrokClient(payload) {
+  const MAGIC   = 'UROKFILE';
+  const VERSION = 2;
+  const KEY     = 'LangLearn2024xK9';
+
+  const jsonStr  = JSON.stringify(payload);
+  // TextEncoder + pako yoki oddiy btoa
+  const jsonBytes = new TextEncoder().encode(jsonStr);
+  // zlib compress — browserda DeflateRaw orqali
+  // Oddiy holatda: compress qilmasdan base64 saqlaymiz (Python decode_urok kengaytmasi bilan)
+  // Lekin Python bilan moslik uchun server /api/urok/decode ga yuboramiz
+  const xored  = xorBytes(jsonBytes, KEY);
+  // Magic + version + data
+  const result = new Uint8Array(MAGIC.length + 1 + xored.length);
+  for (let i = 0; i < MAGIC.length; i++) result[i] = MAGIC.charCodeAt(i);
+  result[MAGIC.length] = VERSION;
+  result.set(xored, MAGIC.length + 1);
+  // base64
+  let binary = '';
+  for (let i = 0; i < result.length; i++) binary += String.fromCharCode(result[i]);
+  return btoa(binary);
+}
+
+function xorBytes(data, keyStr) {
+  const key = new TextEncoder().encode(keyStr);
+  const out  = new Uint8Array(data.length);
+  for (let i = 0; i < data.length; i++) out[i] = data[i] ^ key[i % key.length];
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════
+// NATIJALAR EKRANI (O'qituvchi)
+// ═══════════════════════════════════════════════════════════
+function openResultsScreen() {
+  document.getElementById('results-screen').classList.add('show');
+  loadResults();
+}
+function closeResultsScreen() {
+  document.getElementById('results-screen').classList.remove('show');
+}
+
+async function loadResults() {
+  const wrap = document.getElementById('results-table-content');
+  wrap.innerHTML = '<p style="padding:20px;color:var(--gray)">⏳ Yuklanmoqda...</p>';
+  const results = await api('GET', '/api/results');
+  if (!results.length) {
+    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gray)"><div style="font-size:48px;opacity:.3">📭</div><p style="margin-top:12px">Hali natija yo\'q</p></div>';
+    return;
+  }
+  const rows = results.map(r => `
+    <tr>
+      <td><b>${esc(r.student_name)}</b></td>
+      <td>${esc(r.lesson_title)}</td>
+      <td>
+        <span class="pct-bar-wrap"><span class="pct-bar" style="width:${r.pct}%"></span></span>
+        <b style="color:${r.pct>=70?'var(--green)':r.pct>=40?'var(--orange)':'var(--red)'}">${r.pct}%</b>
+        <span style="color:var(--gray);font-size:11px">(${r.total_score}/${r.max_score})</span>
+      </td>
+      <td style="color:var(--gray);font-size:12px">${r.submitted_at}</td>
+      <td>
+        <button class="result-detail-btn" onclick="showResultDetail(${JSON.stringify(r).replace(/"/g,'&quot;')})">🔍 Ko'rish</button>
+        <button class="result-del-btn" onclick="deleteResult(${r.id})">✕</button>
+      </td>
+    </tr>`).join('');
+
+  wrap.innerHTML = `
+    <table class="results-table">
+      <thead><tr>
+        <th>O'quvchi</th><th>Dars</th><th>Natija</th><th>Sana</th><th>Amal</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function showResultDetail(r) {
+  const answers = r.answers || {};
+  let html = '';
+  Object.values(answers).forEach(a => {
+    if (!a || !a.type) return;
+    html += `<div class="detail-block">
+      <div class="detail-block-title">${esc(a.title || a.type)} — ${a.score||0}/${a.max||0} ball</div>`;
+    const ans = a.answers || {};
+    Object.entries(ans).forEach(([k, v]) => {
+      const ok = v.correct !== undefined ? v.correct : null;
+      html += `<div class="detail-item">
+        <span class="det-icon">${ok===true?'✅':ok===false?'❌':'•'}</span>
+        <span class="${ok===true?'det-correct':ok===false?'det-wrong'}">${esc(k)}: <b>${esc(String(v.given||v||''))}</b></span>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  if (!html) html = '<p style="color:var(--gray);font-size:13px">Javoblar yo\'q</p>';
+
+  showModal(`
+    <h3>🔍 ${esc(r.student_name)} — ${esc(r.lesson_title)}</h3>
+    <div style="display:flex;gap:16px;margin-bottom:16px;font-size:14px">
+      <span>📊 <b style="color:${r.pct>=70?'var(--green)':r.pct>=40?'var(--orange)':'var(--red)'}">${r.pct}%</b></span>
+      <span>⭐ ${r.total_score}/${r.max_score} ball</span>
+      <span>🕐 ${r.submitted_at}</span>
+    </div>
+    <div class="detail-answers">${html}</div>
+    <div class="modal-actions">
+      <button class="btn-ok" onclick="closeModal()">OK</button>
+    </div>`);
+}
+
+async function deleteResult(id) {
+  if (!confirm('Bu natijani o\'chirasizmi?')) return;
+  await api('DELETE', `/api/results/${id}`);
+  loadResults();
+  toast('🗑️ O\'chirildi');
+}
 
 // ═══════════════════════════════════════════════════════════
 // INIT
@@ -1234,17 +1901,24 @@ function renderSFillBlank(block) {
 
 function checkFillBlank(blockId, count) {
   let correct = 0;
+  const answers = {};
   for (let i = 0; i < count; i++) {
     const input = document.getElementById(`fb-${blockId}-${i}`);
     if (!input) continue;
     const ans = input.dataset.answer.trim().toLowerCase();
     const val = input.value.trim().toLowerCase();
     input.classList.remove('correct','wrong');
-    if (val === ans) { input.classList.add('correct'); correct++; }
+    const ok = val === ans;
+    if (ok) { input.classList.add('correct'); correct++; }
     else input.classList.add('wrong');
+    answers[`${i+1}`] = { given: input.value.trim(), expected: input.dataset.answer, correct: ok };
   }
   document.getElementById(`fb-score-${blockId}`).textContent =
     `Natija: ${correct} / ${count} (${Math.round(correct/count*100)}%)`;
+
+  // O'quvchi natijasini saqlash
+  const b = state.blocks.find(b => b.id === blockId);
+  recordStudentAnswer(blockId, 'fill_blank', b?.data?.title || 'Bo\'sh joy', answers, correct, count);
 }
 
 function renderSMatch(block) {
@@ -1294,8 +1968,14 @@ function renderSMatch(block) {
             selected.classList.add('matched');
             this.classList.add('matched');
             matched[leftIdx] = true;
+            const matchAnswers = Object.assign({}, matched);
             if (Object.keys(matched).length === pairs.length) {
               document.getElementById(`mscore-${block.id}`).textContent = '🎉 Hammasi to\'g\'ri!';
+              // O'quvchi natijasi
+              const ans = {};
+              pairs.forEach((p, i) => { ans[p.left] = { given: p.right, correct: true }; });
+              recordStudentAnswer(block.id, 'match', d.title||'Moslashtirish', ans, pairs.length, pairs.length);
+            }
             }
           } else {
             selected.classList.add('wrong-flash');
@@ -1339,6 +2019,16 @@ function renderSQuiz(block) {
     btns.forEach(b => b.disabled = true);
     btns[chosen].classList.add(chosen === correct ? 'correct' : 'wrong');
     if (chosen === correct) score++;
+    // O'quvchi natijasi
+    const q = questions[current];
+    const existAns = state.studentAnswers[block.id]?.answers || {};
+    existAns[`${current+1}`] = {
+      question: q.q,
+      given: q.options[chosen],
+      expected: q.options[correct],
+      correct: chosen === correct,
+    };
+    recordStudentAnswer(block.id, 'quiz', d.title||'Test', existAns, score, total);
   };
   window[`prevQuizQ`] = () => { if(current>0){current--;renderQ();} };
   window[`nextQuizQ`] = () => { if(current<questions.length-1){current++;renderQ();} };
@@ -1621,7 +2311,7 @@ function esc(str) {
 // ═══════════════════════════════════════════════════════════
 // START
 // ═══════════════════════════════════════════════════════════
-init();
+initLoginCheck();
 </script>
 </body>
 </html>
