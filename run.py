@@ -20,10 +20,18 @@ def open_browser():
 if __name__ == '__main__':
     check_deps()
     # change to script dir
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    os.makedirs('data', exist_ok=True)
-    os.makedirs('static/audio', exist_ok=True)
-    os.makedirs('static/img', exist_ok=True)
+    base = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(base)
+    os.makedirs(os.path.join(base, 'data'), exist_ok=True)
+    os.makedirs(os.path.join(base, 'static', 'audio'), exist_ok=True)
+    os.makedirs(os.path.join(base, 'static', 'img'), exist_ok=True)
+    os.makedirs(os.path.join(base, 'templates'), exist_ok=True)
+    # index.html ni templates/ ga ko'chirish (agar kerak bo'lsa)
+    src_html = os.path.join(base, 'index.html')
+    dst_html = os.path.join(base, 'templates', 'index.html')
+    if os.path.exists(src_html) and not os.path.exists(dst_html):
+        import shutil
+        shutil.copy2(src_html, dst_html)
 
     print("""
 ╔══════════════════════════════════════════╗

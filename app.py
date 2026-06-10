@@ -3,8 +3,11 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import json, os, copy
 
-app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(__name__,
+            template_folder=os.path.join(BASE_DIR, 'templates'),
+            static_folder=os.path.join(BASE_DIR, 'static'))
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{BASE_DIR}/data/langlearn.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'langlearn-secret-2024'
@@ -50,7 +53,7 @@ class StudentProgress(db.Model):
 # ─── Init DB ──────────────────────────────────────────────────────────────────
 
 def init_db():
-    os.makedirs('data', exist_ok=True)
+    os.makedirs(os.path.join(BASE_DIR, 'data'), exist_ok=True)
     with app.app_context():
         db.create_all()
         if Lesson.query.count() == 0:
@@ -263,31 +266,31 @@ def save_progress(bid):
 def upload_audio():
     f = request.files.get('file')
     if not f: return jsonify({'error': 'no file'}), 400
-    os.makedirs('static/audio', exist_ok=True)
+    audio_dir = os.path.join(BASE_DIR, 'static', 'audio')
+    os.makedirs(audio_dir, exist_ok=True)
     fname = f'{datetime.utcnow().timestamp()}_{f.filename}'
-    path = f'static/audio/{fname}'
-    f.save(path)
+    f.save(os.path.join(audio_dir, fname))
     return jsonify({'url': f'/static/audio/{fname}'})
 
 @app.route('/api/upload/image', methods=['POST'])
 def upload_image():
     f = request.files.get('file')
     if not f: return jsonify({'error': 'no file'}), 400
-    os.makedirs('static/img', exist_ok=True)
+    img_dir = os.path.join(BASE_DIR, 'static', 'img')
+    os.makedirs(img_dir, exist_ok=True)
     fname = f'{datetime.utcnow().timestamp()}_{f.filename}'
-    path = f'static/img/{fname}'
-    f.save(path)
+    f.save(os.path.join(img_dir, fname))
     return jsonify({'url': f'/static/img/{fname}'})
 
 # ─── Pages ────────────────────────────────────────────────────────────────────
 
 @app.route('/')
 def index():
-    return send_from_directory('templates', 'index.html')
+    return render_template('index.html')
 
 @app.route('/static/<path:filename>')
 def static_files(filename):
-    return send_from_directory('static', filename)
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), filename)
 
 if __name__ == '__main__':
     init_db()
