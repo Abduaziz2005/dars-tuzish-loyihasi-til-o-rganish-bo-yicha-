@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LangLearn Studio</title>
+<style>
+/* ── Reset & Base ── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#e63946;--blue:#457b9d;--dark:#1d3557;--light:#f1faee;
+  --green:#2a9d8f;--orange:#e76f51;--purple:#6a4c93;--gray:#6c757d;
+  --white:#ffffff;--border:#dee2e6;--shadow:0 2px 12px rgba(0,0,0,.1);
+  --radius:8px;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8f9fa;color:#212529;min-height:100vh}
+button{cursor:pointer;border:none;outline:none}
+input,textarea,select{outline:none;font-family:inherit}
+
+/* ── Layout ── */
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* ── Top Bar ── */
+#topbar{
+  display:flex;align-items:center;gap:12px;
+  padding:0 16px;height:52px;
+  background:var(--dark);color:white;
+  box-shadow:0 2px 8px rgba(0,0,0,.3);
+  z-index:100;flex-shrink:0;
+}
+#topbar .logo{font-weight:700;font-size:18px;letter-spacing:.5px;margin-right:8px}
+#topbar .logo span{color:#a8dadc}
+.tb-btn{
+  padding:6px 14px;border-radius:6px;font-size:13px;font-weight:600;
+  transition:all .15s;color:white;background:rgba(255,255,255,.12);
+}
+.tb-btn:hover{background:rgba(255,255,255,.22)}
+.tb-btn.active{background:var(--red)}
+#topbar .spacer{flex:1}
+#lesson-title-bar{
+  font-size:14px;color:#a8dadc;font-weight:500;
+  max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.split-toggle{
+  padding:6px 14px;border-radius:6px;font-size:13px;
+  background:var(--green);color:white;font-weight:600;
+}
+.split-toggle:hover{filter:brightness(1.1)}
+
+/* ── Main Area ── */
+#main{display:flex;flex:1;overflow:hidden}
+
+/* ── Sidebar ── */
+#sidebar{
+  width:240px;background:white;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;
+}
+#sidebar-header{
+  padding:12px 14px;background:var(--dark);color:white;
+  font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;
+}
+#lesson-list{flex:1;overflow-y:auto;padding:8px}
+.lesson-item{
+  padding:10px 12px;border-radius:var(--radius);cursor:pointer;
+  font-size:13px;border:1px solid transparent;margin-bottom:4px;
+  transition:all .15s;position:relative;
+}
+.lesson-item:hover{background:#f1faee;border-color:#a8dadc}
+.lesson-item.active{background:var(--light);border-color:var(--blue);font-weight:600}
+.lesson-item .lesson-badge{
+  font-size:10px;background:var(--blue);color:white;
+  border-radius:4px;padding:1px 5px;float:right;margin-top:2px;
+}
+.lesson-actions{display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);gap:4px}
+.lesson-item:hover .lesson-actions{display:flex}
+.lesson-act-btn{
+  width:22px;height:22px;border-radius:4px;font-size:11px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.08);color:#444;
+}
+.lesson-act-btn:hover{background:var(--red);color:white}
+#add-lesson-btn{
+  margin:8px;padding:10px;border-radius:var(--radius);
+  background:var(--light);border:2px dashed var(--blue);
+  color:var(--blue);font-size:13px;font-weight:600;
+  transition:all .15s;
+}
+#add-lesson-btn:hover{background:var(--blue);color:white}
+
+/* ── Editor Panel ── */
+#editor-panel{
+  flex:1;display:flex;flex-direction:column;overflow:hidden;
+  background:#f8f9fa;
+}
+#editor-toolbar{
+  padding:10px 16px;background:white;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;
+}
+#editor-toolbar span.label{font-size:12px;color:var(--gray);font-weight:600;margin-right:4px}
+.add-block-btn{
+  padding:5px 11px;border-radius:6px;font-size:12px;font-weight:600;
+  border:1.5px solid;transition:all .15s;
+}
+.add-block-btn:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(0,0,0,.15)}
+
+#blocks-container{
+  flex:1;overflow-y:auto;padding:16px;
+  display:flex;flex-direction:column;gap:12px;
+}
+#blocks-empty{
+  margin:auto;text-align:center;color:var(--gray);
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+}
+#blocks-empty .empty-icon{font-size:64px;opacity:.3}
+#blocks-empty p{font-size:15px}
+
+/* ── Block Card (editor) ── */
+.block-card{
+  background:white;border-radius:var(--radius);
+  border:1.5px solid var(--border);
+  box-shadow:var(--shadow);overflow:hidden;
+  transition:border-color .15s;
+}
+.block-card:hover{border-color:var(--blue)}
+.block-card.dragging{opacity:.5;border-color:var(--blue)}
+.block-header{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;background:#f8f9fa;border-bottom:1px solid var(--border);
+}
+.block-drag{cursor:grab;color:var(--gray);font-size:16px;line-height:1}
+.block-type-badge{
+  font-size:11px;font-weight:700;padding:2px 8px;
+  border-radius:4px;color:white;text-transform:uppercase;letter-spacing:.5px;
+}
+.block-header-title{flex:1;font-size:13px;font-weight:600;color:var(--dark)}
+.block-ctrl-btn{
+  width:28px;height:28px;border-radius:6px;font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  background:transparent;color:var(--gray);transition:all .15s;
+}
+.block-ctrl-btn:hover.del{background:#fff0f0;color:var(--red)}
+.block-ctrl-btn:hover.dup{background:#f0f8ff;color:var(--blue)}
+.block-ctrl-btn:hover.up,.block-ctrl-btn:hover.dn{background:#f5f5f5;color:var(--dark)}
+.block-body{padding:14px}
+
+/* Form fields inside block editors */
+.field-row{display:flex;gap:8px;margin-bottom:10px;align-items:center}
+.field-row label{font-size:12px;font-weight:600;color:var(--gray);min-width:80px}
+.f-input{
+  flex:1;padding:6px 10px;border:1.5px solid var(--border);
+  border-radius:6px;font-size:13px;transition:border-color .15s;
+}
+.f-input:focus{border-color:var(--blue)}
+.f-color{width:36px;height:32px;padding:2px;border:1.5px solid var(--border);border-radius:6px;cursor:pointer}
+.f-textarea{
+  width:100%;padding:8px 10px;border:1.5px solid var(--border);
+  border-radius:6px;font-size:13px;resize:vertical;min-height:70px;
+}
+.f-textarea:focus{border-color:var(--blue)}
+.f-select{
+  flex:1;padding:6px 10px;border:1.5px solid var(--border);
+  border-radius:6px;font-size:13px;background:white;
+}
+
+/* list items in vocab/quiz/match editor */
+.item-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.item-row{display:flex;gap:6px;align-items:center}
+.item-row .f-input{flex:1}
+.item-del{
+  width:26px;height:26px;border-radius:5px;font-size:13px;
+  background:#fff0f0;color:var(--red);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.add-item-btn{
+  margin-top:8px;padding:6px 12px;border-radius:6px;
+  font-size:12px;font-weight:600;border:1.5px dashed var(--blue);
+  color:var(--blue);background:transparent;width:100%;
+}
+.add-item-btn:hover{background:var(--blue);color:white}
+
+/* image preview */
+.img-preview{
+  max-width:100%;max-height:160px;border-radius:var(--radius);
+  border:1px solid var(--border);margin-top:8px;object-fit:contain;
+}
+
+/* ── Student Panel ── */
+#student-panel{
+  flex:1;display:flex;flex-direction:column;
+  background:white;border-left:3px solid var(--blue);
+  overflow:hidden;min-width:0;
+}
+#student-panel.hidden{display:none}
+#student-header{
+  padding:10px 16px;background:var(--dark);color:white;
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+#student-header span{font-weight:700;font-size:14px;flex:1}
+.close-student-btn{
+  padding:5px 12px;border-radius:6px;background:rgba(255,255,255,.15);
+  color:white;font-size:12px;font-weight:600;
+}
+.close-student-btn:hover{background:rgba(255,255,255,.25)}
+#student-content{
+  flex:1;overflow-y:auto;padding:24px 28px;
+  display:flex;flex-direction:column;gap:18px;
+}
+
+/* ── Student Block Renderers ── */
+.s-heading{
+  font-weight:900;line-height:1.2;
+  font-family:'Segoe UI',sans-serif;
+}
+.s-hr{height:3px;border:none;border-radius:2px;margin:4px 0}
+.s-section-title{
+  display:flex;align-items:center;gap:0;margin-bottom:10px;overflow:hidden;border-radius:var(--radius);
+}
+.s-section-bar{width:6px;min-height:32px;flex-shrink:0}
+.s-section-label{
+  flex:1;padding:7px 14px;font-size:14px;font-weight:700;
+  color:white;letter-spacing:.3px;
+}
+
+/* vocab */
+.vocab-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.vocab-item{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;
+  border:1.5px solid var(--border);border-radius:var(--radius);
+  font-size:14px;background:white;
+}
+.vocab-item .vnum{
+  font-size:11px;font-weight:700;color:white;background:var(--blue);
+  border-radius:4px;min-width:20px;text-align:center;padding:1px 4px;
+}
+.vocab-item .vru{font-weight:600;flex:1}
+.vocab-item .vuz{color:var(--gray);font-size:13px}
+.vocab-audio-btn{
+  width:26px;height:26px;border-radius:50%;background:var(--blue);
+  color:white;font-size:12px;display:flex;align-items:center;justify-content:center;
+}
+.vocab-audio-btn:hover{filter:brightness(1.1)}
+
+/* dialog */
+.dialog-box{background:#f8f9fa;border-radius:var(--radius);padding:14px;border:1px solid var(--border)}
+.dialog-box .d-title{font-size:14px;font-weight:700;color:var(--dark);margin-bottom:10px}
+.dialog-line{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start}
+.dialog-line .d-sp{
+  font-size:11px;font-weight:700;color:white;border-radius:4px;
+  padding:2px 6px;flex-shrink:0;margin-top:2px;
+}
+.dialog-line .d-sp.A{background:var(--blue)}
+.dialog-line .d-sp.B{background:var(--green)}
+.dialog-line .d-text{font-size:14px;line-height:1.5}
+
+/* table */
+.s-table{width:100%;border-collapse:collapse;font-size:13px}
+.s-table th{background:var(--dark);color:white;padding:8px 12px;text-align:left}
+.s-table td{padding:8px 12px;border-bottom:1px solid var(--border)}
+.s-table tr:hover td{background:#f1faee}
+
+/* fill blank */
+.fb-instruction{font-size:13px;color:var(--gray);margin-bottom:12px;font-style:italic}
+.fb-item{
+  display:flex;align-items:center;flex-wrap:wrap;gap:6px;
+  margin-bottom:10px;font-size:15px;
+}
+.fb-num{
+  font-size:12px;font-weight:700;color:white;background:var(--green);
+  border-radius:4px;padding:1px 6px;flex-shrink:0;
+}
+.fb-input{
+  border:none;border-bottom:2px solid var(--blue);
+  padding:2px 6px;font-size:15px;min-width:80px;text-align:center;
+  background:transparent;font-family:inherit;
+}
+.fb-input.correct{border-color:var(--green);color:var(--green)}
+.fb-input.wrong{border-color:var(--red);color:var(--red)}
+.fb-check-btn{
+  padding:6px 16px;border-radius:6px;background:var(--green);color:white;
+  font-size:13px;font-weight:600;margin-top:8px;
+}
+.fb-check-btn:hover{filter:brightness(1.1)}
+.fb-score{font-size:13px;font-weight:600;margin-top:8px;color:var(--dark)}
+
+/* match */
+.match-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.match-col{display:flex;flex-direction:column;gap:6px}
+.match-item{
+  padding:10px 14px;border-radius:var(--radius);font-size:14px;cursor:pointer;
+  border:2px solid var(--border);text-align:center;font-weight:600;
+  transition:all .15s;user-select:none;
+}
+.match-item:hover{border-color:var(--blue);background:#f0f8ff}
+.match-item.selected{border-color:var(--orange);background:#fff5f0}
+.match-item.matched{border-color:var(--green);background:#f0fff4;cursor:default;opacity:.7}
+.match-item.wrong-flash{border-color:var(--red);background:#fff0f0}
+
+/* quiz */
+.quiz-q{font-size:15px;font-weight:700;margin-bottom:10px;color:var(--dark)}
+.quiz-opts{display:flex;flex-direction:column;gap:7px}
+.quiz-opt{
+  padding:10px 16px;border-radius:var(--radius);border:2px solid var(--border);
+  font-size:14px;cursor:pointer;text-align:left;background:white;
+  transition:all .15s;
+}
+.quiz-opt:hover:not(:disabled){border-color:var(--blue);background:#f0f8ff}
+.quiz-opt.correct{border-color:var(--green);background:#f0fff4;color:var(--green);font-weight:600}
+.quiz-opt.wrong{border-color:var(--red);background:#fff0f0;color:var(--red)}
+.quiz-nav{display:flex;align-items:center;gap:10px;margin-top:12px}
+.quiz-nav button{padding:7px 18px;border-radius:6px;font-size:13px;font-weight:600;background:var(--blue);color:white}
+.quiz-nav button:hover{filter:brightness(1.1)}
+.quiz-nav button:disabled{opacity:.4;cursor:not-allowed}
+.quiz-progress{font-size:13px;color:var(--gray);flex:1;text-align:center}
+
+/* image */
+.s-image-wrap{text-align:center}
+.s-image{max-width:100%;border-radius:var(--radius);border:1px solid var(--border)}
+.s-image-caption{font-size:12px;color:var(--gray);margin-top:6px}
+
+/* audio text */
+.audio-text-box{
+  background:#f8f9fa;border-radius:var(--radius);padding:16px;
+  border-left:4px solid var(--blue);font-size:15px;line-height:1.7;
+  position:relative;
+}
+.play-text-btn{
+  position:absolute;top:10px;right:10px;
+  width:36px;height:36px;border-radius:50%;
+  background:var(--blue);color:white;font-size:16px;
+  display:flex;align-items:center;justify-content:center;
+}
+.play-text-btn:hover{filter:brightness(1.1)}
+.play-text-btn.playing{background:var(--orange)}
+
+/* crossword */
+.cw-grid{display:inline-grid;gap:2px;margin:10px 0}
+.cw-cell{
+  width:36px;height:36px;border:2px solid #ccc;
+  font-size:16px;font-weight:700;text-align:center;text-transform:uppercase;
+  background:white;border-radius:3px;
+  color:var(--dark);caret-color:var(--blue);
+}
+.cw-cell:focus{border-color:var(--blue);outline:none;background:#f0f8ff}
+.cw-cell.black{background:#333;border-color:#333;pointer-events:none}
+.cw-cell.correct{background:#f0fff4;border-color:var(--green);color:var(--green)}
+.cw-cell.wrong{background:#fff0f0;border-color:var(--red);color:var(--red)}
+.cw-clues{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.cw-clue-list h4{font-size:13px;font-weight:700;margin-bottom:6px;color:var(--dark)}
+.cw-clue{font-size:13px;margin-bottom:4px;color:#555}
+.cw-clue b{color:var(--blue)}
+
+/* modal */
+#modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);
+  z-index:1000;display:none;align-items:center;justify-content:center;
+}
+#modal-overlay.open{display:flex}
+.modal-box{
+  background:white;border-radius:12px;padding:24px;
+  width:420px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,.2);
+  max-height:80vh;overflow-y:auto;
+}
+.modal-box h3{font-size:17px;margin-bottom:16px;color:var(--dark)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.btn-cancel{padding:8px 18px;border-radius:6px;font-size:13px;background:#f8f9fa;border:1px solid var(--border);color:#555}
+.btn-ok{padding:8px 18px;border-radius:6px;font-size:13px;background:var(--blue);color:white;font-weight:600}
+.btn-ok:hover{filter:brightness(1.1)}
+
+/* block type picker */
+.block-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.btype-btn{
+  padding:12px 8px;border-radius:var(--radius);border:2px solid var(--border);
+  text-align:center;font-size:12px;font-weight:600;cursor:pointer;
+  transition:all .15s;color:#555;
+}
+.btype-btn .btype-icon{font-size:22px;display:block;margin-bottom:4px}
+.btype-btn:hover{border-color:var(--blue);background:#f0f8ff;color:var(--blue)}
+
+/* toast */
+#toast{
+  position:fixed;bottom:24px;right:24px;z-index:9999;
+  padding:12px 20px;border-radius:8px;background:var(--dark);color:white;
+  font-size:14px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.25);
+  transform:translateY(80px);opacity:0;transition:all .3s;pointer-events:none;
+}
+#toast.show{transform:translateY(0);opacity:1}
+
+/* scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#aaa}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- Top Bar -->
+<div id="topbar">
+  <div class="logo">Lang<span>Learn</span> Studio</div>
+  <div id="lesson-title-bar">Dars tanlanmagan</div>
+  <div class="spacer"></div>
+  <button class="split-toggle" onclick="toggleStudentPanel()">👁 O'quvchi ko'rinishi</button>
+</div>
+
+<!-- Main -->
+<div id="main">
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div id="sidebar-header">📚 Darslar</div>
+    <div id="lesson-list"></div>
+    <button id="add-lesson-btn" onclick="openNewLessonModal()">+ Yangi dars</button>
+  </div>
+
+  <!-- Editor -->
+  <div id="editor-panel">
+    <div id="editor-toolbar">
+      <span class="label">Blok qo'shish:</span>
+      <button class="add-block-btn" style="color:#e63946;border-color:#e63946" onclick="openAddBlockModal('heading')">🔤 Sarlavha</button>
+      <button class="add-block-btn" style="color:#457b9d;border-color:#457b9d" onclick="openAddBlockModal('vocab')">📖 So'zlar</button>
+      <button class="add-block-btn" style="color:#2a9d8f;border-color:#2a9d8f" onclick="openAddBlockModal('dialog')">💬 Dialog</button>
+      <button class="add-block-btn" style="color:#6a4c93;border-color:#6a4c93" onclick="openAddBlockModal('fill_blank')">✏️ Bo'sh joy</button>
+      <button class="add-block-btn" style="color:#e76f51;border-color:#e76f51" onclick="openAddBlockModal('match')">🔗 Moslashtir</button>
+      <button class="add-block-btn" style="color:#f4a261;border-color:#f4a261" onclick="openAddBlockModal('quiz')">🧠 Test</button>
+      <button class="add-block-btn" style="color:#264653;border-color:#264653" onclick="openAddBlockModal('crossword')">🔲 Krossvord</button>
+      <button class="add-block-btn" style="color:#333;border-color:#999" onclick="openAddBlockModal('image')">🖼️ Rasm</button>
+      <button class="add-block-btn" style="color:#555;border-color:#aaa" onclick="openAddBlockModal('audio_text')">🔊 Matn+Ovoz</button>
+      <button class="add-block-btn" style="color:#888;border-color:#ccc" onclick="openAddBlockModal('table')">📊 Jadval</button>
+      <button class="add-block-btn" style="color:#aaa;border-color:#ddd" onclick="openAddBlockModal('hr')">― Chiziq</button>
+    </div>
+    <div id="blocks-container">
+      <div id="blocks-empty">
+        <div class="empty-icon">📝</div>
+        <p>Chap paneldan dars tanlang<br>yoki yangi dars yarating</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Student Panel -->
+  <div id="student-panel" class="hidden">
+    <div id="student-header">
+      <span>👨‍🎓 O'quvchi ko'rinishi</span>
+      <button class="close-student-btn" onclick="toggleStudentPanel()">✕ Yopish</button>
+    </div>
+    <div id="student-content"></div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- Modal -->
+<div id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal-box" id="modal-box"></div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let state = {
+  lessons: [],
+  currentLessonId: null,
+  blocks: [],
+  studentOpen: false,
+};
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+async function init() {
+  await loadLessons();
+  if (state.lessons.length > 0) {
+    await selectLesson(state.lessons[0].id);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// API HELPERS
+// ═══════════════════════════════════════════════════════════
+async function api(method, url, body) {
+  const opts = { method, headers: {'Content-Type':'application/json'} };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  return r.json();
+}
+
+// ═══════════════════════════════════════════════════════════
+// LESSONS
+// ═══════════════════════════════════════════════════════════
+async function loadLessons() {
+  state.lessons = await api('GET', '/api/lessons');
+  renderSidebar();
+}
+
+function renderSidebar() {
+  const list = document.getElementById('lesson-list');
+  list.innerHTML = '';
+  state.lessons.forEach(l => {
+    const div = document.createElement('div');
+    div.className = 'lesson-item' + (l.id === state.currentLessonId ? ' active' : '');
+    div.onclick = () => selectLesson(l.id);
+    div.innerHTML = `
+      <span class="lesson-badge">${l.block_count}</span>
+      ${l.subtitle ? `<small style="color:#aaa;font-size:10px">${l.subtitle}</small><br>` : ''}
+      ${l.title}
+      <div class="lesson-actions">
+        <button class="lesson-act-btn" title="Nusxa" onclick="event.stopPropagation();duplicateLesson(${l.id})">⧉</button>
+        <button class="lesson-act-btn" title="O'chirish" onclick="event.stopPropagation();deleteLesson(${l.id})" style="color:var(--red)">✕</button>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+async function selectLesson(id) {
+  state.currentLessonId = id;
+  const l = state.lessons.find(x => x.id === id);
+  document.getElementById('lesson-title-bar').textContent = l ? l.title : '';
+  renderSidebar();
+  const blocks = await api('GET', `/api/lessons/${id}/blocks`);
+  state.blocks = blocks;
+  renderBlocks();
+  if (state.studentOpen) renderStudentView();
+}
+
+function openNewLessonModal() {
+  showModal(`
+    <h3>Yangi dars</h3>
+    <div class="field-row"><label>Sarlavha</label>
+      <input class="f-input" id="nl-title" placeholder="Урок 1: ..." style="flex:1">
+    </div>
+    <div class="field-row"><label>Daraja</label>
+      <input class="f-input" id="nl-sub" placeholder="A1, A2..." style="flex:1">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Bekor</button>
+      <button class="btn-ok" onclick="createLesson()">Yaratish</button>
+    </div>`);
+}
+
+async function createLesson() {
+  const title = document.getElementById('nl-title').value.trim();
+  if (!title) return;
+  const sub = document.getElementById('nl-sub').value.trim();
+  const l = await api('POST', '/api/lessons', {title, subtitle: sub});
+  closeModal();
+  await loadLessons();
+  await selectLesson(l.id);
+  toast('✅ Dars yaratildi');
+}
+
+async function deleteLesson(id) {
+  if (!confirm('Darsni o\'chirasizmi?')) return;
+  await api('DELETE', `/api/lessons/${id}`);
+  if (state.currentLessonId === id) {
+    state.currentLessonId = null;
+    state.blocks = [];
+    renderBlocks();
+  }
+  await loadLessons();
+  toast('🗑️ Dars o\'chirildi');
+}
+
+async function duplicateLesson(id) {
+  const l = await api('POST', `/api/lessons/${id}/duplicate`);
+  await loadLessons();
+  await selectLesson(l.id);
+  toast('⧉ Nusxa olindi');
+}
+
+// ═══════════════════════════════════════════════════════════
+// BLOCKS - EDITOR RENDER
+// ═══════════════════════════════════════════════════════════
+function renderBlocks() {
+  const container = document.getElementById('blocks-container');
+  container.innerHTML = '';
+  if (!state.currentLessonId || state.blocks.length === 0) {
+    const empty = document.createElement('div');
+    empty.id = 'blocks-empty';
+    empty.innerHTML = state.currentLessonId
+      ? '<div class="empty-icon">➕</div><p>Yuqoridagi tugmalar orqali blok qo\'shing</p>'
+      : '<div class="empty-icon">📝</div><p>Chap paneldan dars tanlang yoki yangi dars yarating</p>';
+    container.appendChild(empty);
+    return;
+  }
+  const sorted = [...state.blocks].sort((a,b) => a.order - b.order);
+  sorted.forEach((block, idx) => {
+    container.appendChild(buildBlockCard(block, idx, sorted.length));
+  });
+  initDragDrop();
+}
+
+function buildBlockCard(block, idx, total) {
+  const card = document.createElement('div');
+  card.className = 'block-card';
+  card.dataset.id = block.id;
+
+  const typeColors = {
+    heading:'#e63946', vocab:'#457b9d', dialog:'#2a9d8f',
+    fill_blank:'#2a9d8f', match:'#e76f51', quiz:'#6a4c93',
+    crossword:'#264653', image:'#555', audio_text:'#1d3557',
+    table:'#333', hr:'#aaa'
+  };
+  const typeNames = {
+    heading:'Sarlavha', vocab:'So\'zlar', dialog:'Dialog',
+    fill_blank:'Bo\'sh joy', match:'Moslashtir', quiz:'Test',
+    crossword:'Krossvord', image:'Rasm', audio_text:'Matn+Ovoz',
+    table:'Jadval', hr:'Chiziq'
+  };
+
+  card.innerHTML = `
+    <div class="block-header">
+      <span class="block-drag" draggable="true">⠿</span>
+      <span class="block-type-badge" style="background:${typeColors[block.type]||'#888'}">${typeNames[block.type]||block.type}</span>
+      <span class="block-header-title">${getBlockPreviewTitle(block)}</span>
+      <button class="block-ctrl-btn up" title="Yuqoriga" onclick="moveBlock(${block.id},-1)" ${idx===0?'disabled':''}>↑</button>
+      <button class="block-ctrl-btn dn" title="Pastga" onclick="moveBlock(${block.id},1)" ${idx===total-1?'disabled':''}>↓</button>
+      <button class="block-ctrl-btn dup" title="Nusxa" onclick="duplicateBlock(${block.id})">⧉</button>
+      <button class="block-ctrl-btn del" title="O'chirish" onclick="deleteBlock(${block.id})">✕</button>
+    </div>
+    <div class="block-body" id="block-body-${block.id}">
+      ${buildBlockEditor(block)}
+    </div>`;
+  return card;
+}
+
+function getBlockPreviewTitle(block) {
+  const d = block.data;
+  if (block.type === 'heading') return d.text || '';
+  if (block.type === 'vocab') return d.title || 'So\'zlar ro\'yxati';
+  if (block.type === 'dialog') return d.title || 'Dialog';
+  if (block.type === 'fill_blank') return d.title || 'Mashq';
+  if (block.type === 'match') return d.title || 'Moslashtirish';
+  if (block.type === 'quiz') return d.title || 'Test';
+  if (block.type === 'crossword') return d.title || 'Krossvord';
+  if (block.type === 'image') return d.caption || 'Rasm';
+  if (block.type === 'audio_text') return (d.text||'').slice(0,40)+'...';
+  if (block.type === 'table') return d.title || 'Jadval';
+  if (block.type === 'hr') return 'Ajratuvchi chiziq';
+  return '';
+}
+
+// ═══════════════════════════════════════════════════════════
+// BLOCK EDITORS (inline forms)
+// ═══════════════════════════════════════════════════════════
+function buildBlockEditor(block) {
+  const id = block.id; const d = block.data;
+  switch(block.type) {
+    case 'heading': return buildHeadingEditor(id, d);
+    case 'hr':      return buildHrEditor(id, d);
+    case 'vocab':   return buildVocabEditor(id, d);
+    case 'dialog':  return buildDialogEditor(id, d);
+    case 'fill_blank': return buildFillBlankEditor(id, d);
+    case 'match':   return buildMatchEditor(id, d);
+    case 'quiz':    return buildQuizEditor(id, d);
+    case 'crossword': return buildCrosswordEditor(id, d);
+    case 'image':   return buildImageEditor(id, d);
+    case 'audio_text': return buildAudioTextEditor(id, d);
+    case 'table':   return buildTableEditor(id, d);
+    default:        return `<p style="color:var(--gray);font-size:13px">Bu blok turi hali sozlanmagan.</p>`;
+  }
+}
+
+function buildHeadingEditor(id, d) {
+  return `
+  <div class="field-row"><label>Matn</label>
+    <input class="f-input" value="${esc(d.text||'')}" oninput="updateBlockField(${id},'text',this.value)" placeholder="Sarlavha matni...">
+  </div>
+  <div class="field-row"><label>Daraja</label>
+    <select class="f-select" onchange="updateBlockField(${id},'level',parseInt(this.value))">
+      ${[1,2,3,4].map(n=>`<option value="${n}" ${d.level==n?'selected':''}>H${n}</option>`).join('')}
+    </select>
+    <label style="margin-left:12px">Rang</label>
+    <input type="color" class="f-color" value="${d.color||'#e63946'}" oninput="updateBlockField(${id},'color',this.value)">
+  </div>`;
+}
+
+function buildHrEditor(id, d) {
+  return `<div class="field-row"><label>Rang</label>
+    <input type="color" class="f-color" value="${d.color||'#e63946'}" oninput="updateBlockField(${id},'color',this.value)">
+    <label style="margin-left:12px">Qalinlik</label>
+    <input type="number" class="f-input" style="width:60px" min="1" max="10" value="${d.height||3}" oninput="updateBlockField(${id},'height',parseInt(this.value))">px
+  </div>`;
+}
+
+function buildVocabEditor(id, d) {
+  const items = (d.items||[]).map((item,i) => `
+    <div class="item-row" id="vitem-${id}-${i}">
+      <input class="f-input" placeholder="Rus tili" value="${esc(item.ru||'')}" oninput="updateVocabItem(${id},${i},'ru',this.value)">
+      <input class="f-input" placeholder="Tarjima" value="${esc(item.uz||'')}" oninput="updateVocabItem(${id},${i},'uz',this.value)">
+      <button class="item-del" onclick="removeVocabItem(${id},${i})">✕</button>
+    </div>`).join('');
+  return `
+  <div class="field-row"><label>Sarlavha</label>
+    <input class="f-input" value="${esc(d.title||'Новые слова')}" oninput="updateBlockField(${id},'title',this.value)">
+    <label style="margin-left:8px">Rang</label>
+    <input type="color" class="f-color" value="${d.bar_color||'#457b9d'}" oninput="updateBlockField(${id},'bar_color',this.value)">
+  </div>
+  <div class="item-list" id="vlist-${id}">${items}</div>
+  <button class="add-item-btn" onclick="addVocabItem(${id})">+ So'z qo'shish</button>`;
+}
+
+function buildDialogEditor(id, d) {
+  const lines = (d.lines||[]).map((l,i) => `
+    <div class="item-row">
+      <select class="f-select" style="width:60px;flex:0" onchange="updateDialogLine(${id},${i},'speaker',this.value)">
+        <option ${l.speaker==='A'?'selected':''}>A</option>
+        <option ${l.speaker==='B'?'selected':''}>B</option>
+      </select>
+      <input class="f-input" value="${esc(l.text||'')}" oninput="updateDialogLine(${id},${i},'text',this.value)">
+      <button class="item-del" onclick="removeDialogLine(${id},${i})">✕</button>
+    </div>`).join('');
+  return `
+  <div class="field-row"><label>Sarlavha</label>
+    <input class="f-input" value="${esc(d.title||'Диалог')}" oninput="updateBlockField(${id},'title',this.value)">
+  </div>
+  <div class="item-list" id="dlist-${id}">${lines}</div>
+  <button class="add-item-btn" onclick="addDialogLine(${id})">+ Qator qo'shish</button>`;
+}
+
+function buildFillBlankEditor(id, d) {
+  const items = (d.items||[]).map((item,i) => `
+    <div class="item-row">
+      <input class="f-input" placeholder="Oldin" value="${esc(item.pre||'')}" oninput="updateFBItem(${id},${i},'pre',this.value)">
+      <input class="f-input" placeholder="Javob" value="${esc(item.answer||'')}" oninput="updateFBItem(${id},${i},'answer',this.value)" style="border-color:var(--green)">
+      <input class="f-input" placeholder="Keyin" value="${esc(item.post||'')}" oninput="updateFBItem(${id},${i},'post',this.value)">
+      <button class="item-del" onclick="removeFBItem(${id},${i})">✕</button>
+    </div>`).join('');
+  return `
+  <div class="field-row"><label>Sarlavha</label>
+    <input class="f-input" value="${esc(d.title||'Упражнение')}" oninput="updateBlockField(${id},'title',this.value)">
+    <label style="margin-left:8px">Rang</label>
+    <input type="color" class="f-color" value="${d.bar_color||'#2a9d8f'}" oninput="updateBlockField(${id},'bar_color',this.value)">
+  </div>
+  <div class="field-row"><label>Ko'rsatma</label>
+    <input class="f-input" value="${esc(d.instruction||'')}" oninput="updateBlockField(${id},'instruction',this.value)">
+  </div>
+  <div class="item-list" id="fblist-${id}">${items}</div>
+  <button class="add-item-btn" onclick="addFBItem(${id})">+ Satr qo'shish</button>`;
+}
+
+function buildMatchEditor(id, d) {
+  const pairs = (d.pairs||[]).map((p,i) => `
+    <div class="item-row">
+      <input class="f-input" placeholder="Chap" value="${esc(p.left||'')}" oninput="updateMatchPair(${id},${i},'left',this.value)">
+      <span style="color:var(--gray);flex-shrink:0">↔</span>
+      <input class="f-input" placeholder="O'ng" value="${esc(p.right||'')}" oninput="updateMatchPair(${id},${i},'right',this.value)">
+      <button class="item-del" onclick="removeMatchPair(${id},${i})">✕</button>
+    </div>`).join('');
+  return `
+  <div class="field-row"><label>Sarlavha</label>
+    <input class="f-input" value="${esc(d.title||'Moslashtiring')}" oninput="updateBlockField(${id},'title',this.value)">
+    <label style="margin-left:8px">Rang</label>
+    <input type="color" class="f-color" value="${d.bar_color||'#e76f51'}" oninput="updateBlockField(${id},'bar_color',this.value)">
+  </div>
+  <div class="item-list" id="mlist-${id}">${pairs}</div>
+  <button class="add-item-btn" onclick="addMatchPair(${id})">+ Juft qo'shish</button>`;
+}
+
+function buildQuizEditor(id, d) {
+  const qs = (d.questions||[]).map((q,qi) => `
+    <div style="border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px">
+      <div class="field-row">
+        <label>Savol ${qi+1}</label>
+        <input class="f-input" value="${esc(q.q||'')}" oninput="updateQuizQ(${id},${qi},'q',this.value)">
+        <button class="item-del" onclick="removeQuizQ(${id},${qi})">✕</button>
+      </div>
+      ${(q.options||[]).map((opt,oi) => `
+        <div class="item-row">
+          <input type="radio" name="qcorr-${id}-${qi}" ${q.correct===oi?'checked':''} onchange="updateQuizQ(${id},${qi},'correct',${oi})" style="flex-shrink:0">
+          <input class="f-input" value="${esc(opt)}" oninput="updateQuizOpt(${id},${qi},${oi},this.value)">
+          <button class="item-del" onclick="removeQuizOpt(${id},${qi},${oi})">✕</button>
+        </div>`).join('')}
+      <button class="add-item-btn" onclick="addQuizOpt(${id},${qi})" style="margin-top:4px">+ Variant qo'shish</button>
+    </div>`).join('');
+  return `
+  <div class="field-row"><label>Sarlavha</label>
+    <input class="f-input" value="${esc(d.title||'Test')}" oninput="updateBlockField(${id},'title',this.value)">
+    <label style="margin-left:8px">Rang</label>
+    <input type="color" class="f-color" value="${d.bar_color||'#6a4c93'}" oninput="updateBlockField(${id},'bar_color',this.value)">
+  </div>
+  <div id="qlist-${id}">${qs}</div>
+  <button class="add-item-btn" onclick="addQuizQ(${id})">+ Savol qo'shish</button>`;
+}
+
+function buildCrosswordEditor(id, d) {
+  const words = (d.words||[]).map((w,i) => `
+    <div class="item-row">
+      <input class="f-input" placeholder="So'z" value="${esc(w.word||'')}" oninput="updateCWWord(${id},${i},'word',this.value)" style="text-transform:uppercase">
+      <select class="f-select" style="width:80px;flex:0" onchange="updateCWWord(${id},${i},'dir',this.value)">
+        <option value="across" ${w.dir==='across'?'selected':''}>→</option>
+        <option value="down" ${w.dir==='down'?'selected':''}>↓</option>
+      </select>
+      <input type="number" class="f-input" style="width:50px" min="0" value="${w.row||0}" oninput="updateCWWord(${id},${i},'row',parseInt(this.value))" placeholder="R">
+      <input type="number" class="f-input" style="width:50px" min="0" value="${w.col||0}" oninput="updateCWWord(${id},${i},'col',parseInt(this.value))" placeholder="C">
+      <input class="f-input" placeholder="Izoh" value="${esc(w.clue||'')}" oninput="updateCWWord(${id},${i},'clue',this.value)">
+      <button class="item-del" onclick="removeCWWord(${id},${i})">✕</button>
+    </div>`).join('');
+  return `
+  <div class="field-row"><label>Sarlavha</label>
+    <input class="f-input" value="${esc(d.title||'Кроссворд')}" oninput="updateBlockField(${id},'title',this.value)">
+  </div>
+  <p style="font-size:12px;color:var(--gray);margin-bottom:8px">So'z, yo'nalish, boshlanish qatori (R) va ustuni (C) kiriting:</p>
+  <div id="cwlist-${id}">${words}</div>
+  <button class="add-item-btn" onclick="addCWWord(${id})">+ So'z qo'shish</button>`;
+}
+
+function buildImageEditor(id, d) {
+  return `
+  <div class="field-row"><label>Fayl</label>
+    <input type="file" accept="image/*" onchange="uploadImage(${id},this)" style="font-size:13px;flex:1">
+  </div>
+  <div class="field-row"><label>URL</label>
+    <input class="f-input" value="${esc(d.url||'')}" oninput="updateBlockField(${id},'url',this.value)" placeholder="yoki URL kiriting">
+  </div>
+  <div class="field-row"><label>Izoh</label>
+    <input class="f-input" value="${esc(d.caption||'')}" oninput="updateBlockField(${id},'caption',this.value)">
+  </div>
+  <div class="field-row"><label>Kenglik</label>
+    <input type="range" min="20" max="100" value="${d.width||100}" oninput="updateBlockField(${id},'width',parseInt(this.value));this.nextSibling.textContent=this.value+'%'">
+    <span style="font-size:12px;min-width:35px">${d.width||100}%</span>
+  </div>
+  ${d.url ? `<img src="${d.url}" class="img-preview">` : ''}`;
+}
+
+function buildAudioTextEditor(id, d) {
+  return `
+  <div class="field-row"><label>Matn</label></div>
+  <textarea class="f-textarea" placeholder="O'qiladigan matn..." oninput="updateBlockField(${id},'text',this.value)">${esc(d.text||'')}</textarea>
+  <div class="field-row" style="margin-top:8px"><label>Audio</label>
+    <input type="file" accept="audio/*" onchange="uploadAudio(${id},this)" style="font-size:13px;flex:1">
+  </div>
+  ${d.audio ? `<audio controls src="${d.audio}" style="width:100%;margin-top:6px"></audio>` : ''}`;
+}
+
+function buildTableEditor(id, d) {
+  const headers = d.headers || ['', ''];
+  const rows = d.rows || [['', '']];
+  const hrow = headers.map((h,i) => `
+    <input class="f-input" style="flex:1" value="${esc(h)}" placeholder="Ustun ${i+1}" oninput="updateTableHeader(${id},${i},this.value)">`).join('');
+  const trows = rows.map((row,ri) => `
+    <div class="item-row">
+      ${row.map((cell,ci) => `<input class="f-input" style="flex:1" value="${esc(cell)}" oninput="updateTableCell(${id},${ri},${ci},this.value)">`).join('')}
+      <button class="item-del" onclick="removeTableRow(${id},${ri})">✕</button>
+    </div>`).join('');
+  return `
+  <div class="field-row"><label>Sarlavha</label>
+    <input class="f-input" value="${esc(d.title||'')}" oninput="updateBlockField(${id},'title',this.value)">
+  </div>
+  <p style="font-size:12px;color:var(--gray);margin-bottom:6px">Ustun sarlavhalari:</p>
+  <div class="item-row" id="theaders-${id}">${hrow}
+    <button class="add-item-btn" style="width:auto;padding:4px 10px" onclick="addTableCol(${id})">+</button>
+  </div>
+  <div id="trows-${id}">${trows}</div>
+  <button class="add-item-btn" onclick="addTableRow(${id})">+ Qator qo'shish</button>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// BLOCK DATA UPDATERS
+// ═══════════════════════════════════════════════════════════
+function getBlock(id) { return state.blocks.find(b => b.id === id); }
+
+async function saveBlock(id) {
+  const b = getBlock(id);
+  if (!b) return;
+  await api('PUT', `/api/blocks/${id}`, {data: b.data});
+  if (state.studentOpen) renderStudentView();
+}
+
+function updateBlockField(id, field, value) {
+  const b = getBlock(id);
+  if (!b) return;
+  b.data[field] = value;
+  saveBlock(id);
+}
+
+// vocab
+function updateVocabItem(id, i, field, value) {
+  const b = getBlock(id); b.data.items[i][field] = value; saveBlock(id);
+}
+function addVocabItem(id) {
+  const b = getBlock(id);
+  b.data.items = b.data.items || [];
+  b.data.items.push({ru:'', uz:'', audio:''});
+  saveBlock(id); rerenderBlockEditor(id);
+}
+function removeVocabItem(id, i) {
+  const b = getBlock(id); b.data.items.splice(i,1); saveBlock(id); rerenderBlockEditor(id);
+}
+
+// dialog
+function updateDialogLine(id, i, field, value) {
+  const b = getBlock(id); b.data.lines[i][field] = value; saveBlock(id);
+}
+function addDialogLine(id) {
+  const b = getBlock(id);
+  b.data.lines = b.data.lines || [];
+  b.data.lines.push({speaker:'A', text:''});
+  saveBlock(id); rerenderBlockEditor(id);
+}
+function removeDialogLine(id, i) {
+  const b = getBlock(id); b.data.lines.splice(i,1); saveBlock(id); rerenderBlockEditor(id);
+}
+
+// fill blank
+function updateFBItem(id, i, field, value) {
+  const b = getBlock(id); b.data.items[i][field] = value; saveBlock(id);
+}
+function addFBItem(id) {
+  const b = getBlock(id);
+  b.data.items = b.data.items || [];
+  b.data.items.push({pre:'', answer:'', post:''});
+  saveBlock(id); rerenderBlockEditor(id);
+}
+function removeFBItem(id, i) {
+  const b = getBlock(id); b.data.items.splice(i,1); saveBlock(id); rerenderBlockEditor(id);
+}
+
+// match
+function updateMatchPair(id, i, field, value) {
+  const b = getBlock(id); b.data.pairs[i][field] = value; saveBlock(id);
+}
+function addMatchPair(id) {
+  const b = getBlock(id);
+  b.data.pairs = b.data.pairs || [];
+  b.data.pairs.push({left:'', right:''});
+  saveBlock(id); rerenderBlockEditor(id);
+}
+function removeMatchPair(id, i) {
+  const b = getBlock(id); b.data.pairs.splice(i,1); saveBlock(id); rerenderBlockEditor(id);
+}
+
+// quiz
+function updateQuizQ(id, qi, field, value) {
+  const b = getBlock(id); b.data.questions[qi][field] = value; saveBlock(id);
+}
+function updateQuizOpt(id, qi, oi, value) {
+  const b = getBlock(id); b.data.questions[qi].options[oi] = value; saveBlock(id);
+}
+function addQuizQ(id) {
+  const b = getBlock(id);
+  b.data.questions = b.data.questions || [];
+  b.data.questions.push({q:'', options:['',''], correct:0});
+  saveBlock(id); rerenderBlockEditor(id);
+}
+function removeQuizQ(id, qi) {
+  const b = getBlock(id); b.data.questions.splice(qi,1); saveBlock(id); rerenderBlockEditor(id);
+}
+function addQuizOpt(id, qi) {
+  const b = getBlock(id); b.data.questions[qi].options.push(''); saveBlock(id); rerenderBlockEditor(id);
+}
+function removeQuizOpt(id, qi, oi) {
+  const b = getBlock(id); b.data.questions[qi].options.splice(oi,1); saveBlock(id); rerenderBlockEditor(id);
+}
+
+// crossword
+function updateCWWord(id, i, field, value) {
+  const b = getBlock(id); b.data.words[i][field] = field==='word'?value.toUpperCase():value; saveBlock(id);
+}
+function addCWWord(id) {
+  const b = getBlock(id);
+  b.data.words = b.data.words || [];
+  b.data.words.push({word:'', dir:'across', row:0, col:0, clue:''});
+  saveBlock(id); rerenderBlockEditor(id);
+}
+function removeCWWord(id, i) {
+  const b = getBlock(id); b.data.words.splice(i,1); saveBlock(id); rerenderBlockEditor(id);
+}
+
+// table
+function updateTableHeader(id, i, value) {
+  const b = getBlock(id); b.data.headers[i] = value; saveBlock(id);
+}
+function updateTableCell(id, ri, ci, value) {
+  const b = getBlock(id); b.data.rows[ri][ci] = value; saveBlock(id);
+}
+function addTableRow(id) {
+  const b = getBlock(id);
+  const cols = (b.data.headers||[]).length || 2;
+  b.data.rows.push(Array(cols).fill(''));
+  saveBlock(id); rerenderBlockEditor(id);
+}
+function removeTableRow(id, ri) {
+  const b = getBlock(id); b.data.rows.splice(ri,1); saveBlock(id); rerenderBlockEditor(id);
+}
+function addTableCol(id) {
+  const b = getBlock(id);
+  b.data.headers.push('');
+  b.data.rows.forEach(r => r.push(''));
+  saveBlock(id); rerenderBlockEditor(id);
+}
+
+// uploads
+async function uploadImage(id, input) {
+  const f = input.files[0]; if (!f) return;
+  const fd = new FormData(); fd.append('file', f);
+  const r = await fetch('/api/upload/image', {method:'POST', body:fd});
+  const j = await r.json();
+  updateBlockField(id, 'url', j.url);
+  rerenderBlockEditor(id);
+}
+async function uploadAudio(id, input) {
+  const f = input.files[0]; if (!f) return;
+  const fd = new FormData(); fd.append('file', f);
+  const r = await fetch('/api/upload/audio', {method:'POST', body:fd});
+  const j = await r.json();
+  updateBlockField(id, 'audio', j.url);
+  rerenderBlockEditor(id);
+}
+
+function rerenderBlockEditor(id) {
+  const b = getBlock(id);
+  const el = document.getElementById(`block-body-${id}`);
+  if (el && b) el.innerHTML = buildBlockEditor(b);
+}
+
+// ═══════════════════════════════════════════════════════════
+// BLOCK OPERATIONS
+// ═══════════════════════════════════════════════════════════
+async function moveBlock(id, dir) {
+  const sorted = [...state.blocks].sort((a,b) => a.order - b.order);
+  const idx = sorted.findIndex(b => b.id === id);
+  const swapIdx = idx + dir;
+  if (swapIdx < 0 || swapIdx >= sorted.length) return;
+  const tmp = sorted[idx].order;
+  sorted[idx].order = sorted[swapIdx].order;
+  sorted[swapIdx].order = tmp;
+  await api('POST', '/api/blocks/reorder', sorted.map(b => ({id:b.id, order:b.order})));
+  state.blocks = sorted;
+  renderBlocks();
+  if (state.studentOpen) renderStudentView();
+}
+
+async function deleteBlock(id) {
+  await api('DELETE', `/api/blocks/${id}`);
+  state.blocks = state.blocks.filter(b => b.id !== id);
+  renderBlocks();
+  if (state.studentOpen) renderStudentView();
+  toast('🗑️ Blok o\'chirildi');
+}
+
+async function duplicateBlock(id) {
+  const b = getBlock(id);
+  if (!b) return;
+  const nb = await api('POST', '/api/blocks', {
+    lesson_id: b.lesson_id, type: b.type,
+    order: b.order + 0.5, data: b.data
+  });
+  state.blocks.push(nb);
+  state.blocks.sort((a,b) => a.order - b.order);
+  state.blocks.forEach((b,i) => b.order = i);
+  renderBlocks();
+  toast('⧉ Nusxa olindi');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADD BLOCK MODAL
+// ═══════════════════════════════════════════════════════════
+function openAddBlockModal(type) {
+  if (!state.currentLessonId) { toast('⚠️ Avval dars tanlang'); return; }
+  addBlock(type);
+}
+
+async function addBlock(type) {
+  const defaults = {
+    heading:    {text:'Yangi sarlavha', level:1, color:'#e63946'},
+    hr:         {color:'#e63946', height:3},
+    vocab:      {title:'Новые слова', bar_color:'#457b9d', items:[{ru:'',uz:'',audio:''}]},
+    dialog:     {title:'Диалог', lines:[{speaker:'A',text:''},{speaker:'B',text:''}]},
+    fill_blank: {title:'Упражнение', bar_color:'#2a9d8f', instruction:'', items:[{pre:'',answer:'',post:''}]},
+    match:      {title:'Соедините', bar_color:'#e76f51', pairs:[{left:'',right:''},{left:'',right:''}]},
+    quiz:       {title:'Тест', bar_color:'#6a4c93', questions:[{q:'',options:['',''],correct:0}]},
+    crossword:  {title:'Кроссворд', words:[]},
+    image:      {url:'', caption:'', width:100},
+    audio_text: {text:'', audio:''},
+    table:      {title:'', headers:['Ustun 1','Ustun 2'], rows:[['',''],['','']]},
+  };
+  const nb = await api('POST', '/api/blocks', {
+    lesson_id: state.currentLessonId,
+    type, data: defaults[type] || {}
+  });
+  state.blocks.push(nb);
+  renderBlocks();
+  if (state.studentOpen) renderStudentView();
+  // scroll to new block
+  setTimeout(() => {
+    const el = document.querySelector(`[data-id="${nb.id}"]`);
+    if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+  }, 100);
+  toast('✅ Blok qo\'shildi');
+}
+
+// ═══════════════════════════════════════════════════════════
+// STUDENT VIEW RENDER
+// ═══════════════════════════════════════════════════════════
+function toggleStudentPanel() {
+  state.studentOpen = !state.studentOpen;
+  const panel = document.getElementById('student-panel');
+  panel.classList.toggle('hidden', !state.studentOpen);
+  if (state.studentOpen) renderStudentView();
+}
+
+function renderStudentView() {
+  const content = document.getElementById('student-content');
+  content.innerHTML = '';
+  const sorted = [...state.blocks].sort((a,b) => a.order - b.order);
+  sorted.forEach(block => {
+    const el = renderStudentBlock(block);
+    if (el) content.appendChild(el);
+  });
+}
+
+function renderStudentBlock(block) {
+  const d = block.data;
+  switch(block.type) {
+    case 'heading': return renderSHeading(d);
+    case 'hr':      return renderSHr(d);
+    case 'vocab':   return renderSVocab(d);
+    case 'dialog':  return renderSDialog(d);
+    case 'fill_blank': return renderSFillBlank(block);
+    case 'match':   return renderSMatch(block);
+    case 'quiz':    return renderSQuiz(block);
+    case 'crossword': return renderSCrossword(block);
+    case 'image':   return renderSImage(d);
+    case 'audio_text': return renderSAudioText(d);
+    case 'table':   return renderSTable(d);
+    default: return null;
+  }
+}
+
+function renderSHeading(d) {
+  const el = document.createElement('div');
+  const size = {1:'28px',2:'22px',3:'18px',4:'15px'}[d.level||1];
+  el.innerHTML = `<div class="s-heading" style="font-size:${size};color:${d.color||'#e63946'}">${esc(d.text||'')}</div>`;
+  return el;
+}
+
+function renderSHr(d) {
+  const el = document.createElement('div');
+  el.innerHTML = `<hr class="s-hr" style="background:${d.color||'#e63946'};height:${d.height||3}px">`;
+  return el;
+}
+
+function renderSVocab(d) {
+  const el = document.createElement('div');
+  const items = (d.items||[]).map((item,i) => `
+    <div class="vocab-item">
+      <span class="vnum">${i+1}</span>
+      <span class="vru">${esc(item.ru||'')}</span>
+      ${item.uz ? `<span class="vuz">— ${esc(item.uz)}</span>` : ''}
+      ${item.audio ? `<button class="vocab-audio-btn" onclick="playAudio('${item.audio}')">▶</button>` : ''}
+    </div>`).join('');
+  el.innerHTML = `
+    <div class="s-section-title">
+      <div class="s-section-bar" style="background:${d.bar_color||'#457b9d'}"></div>
+      <div class="s-section-label" style="background:${d.bar_color||'#457b9d'}">${esc(d.title||'Новые слова')}</div>
+    </div>
+    <div class="vocab-grid">${items}</div>`;
+  return el;
+}
+
+function renderSDialog(d) {
+  const el = document.createElement('div');
+  const lines = (d.lines||[]).map(l => `
+    <div class="dialog-line">
+      <span class="d-sp ${l.speaker}">${l.speaker}</span>
+      <span class="d-text">${esc(l.text||'')}</span>
+    </div>`).join('');
+  el.innerHTML = `
+    <div class="dialog-box">
+      <div class="d-title">💬 ${esc(d.title||'Диалог')}</div>
+      ${lines}
+    </div>`;
+  return el;
+}
+
+function renderSFillBlank(block) {
+  const d = block.data;
+  const el = document.createElement('div');
+  const items = (d.items||[]).map((item,i) => `
+    <div class="fb-item">
+      <span class="fb-num">${i+1}</span>
+      <span>${esc(item.pre||'')}</span>
+      <input class="fb-input" id="fb-${block.id}-${i}" data-answer="${esc(item.answer||'')}" placeholder="...">
+      <span>${esc(item.post||'')}</span>
+    </div>`).join('');
+  el.innerHTML = `
+    <div class="s-section-title">
+      <div class="s-section-bar" style="background:${d.bar_color||'#2a9d8f'}"></div>
+      <div class="s-section-label" style="background:${d.bar_color||'#2a9d8f'}">${esc(d.title||'Упражнение')}</div>
+    </div>
+    ${d.instruction ? `<p class="fb-instruction">${esc(d.instruction)}</p>` : ''}
+    ${items}
+    <button class="fb-check-btn" onclick="checkFillBlank(${block.id},${(d.items||[]).length})">✔ Tekshirish</button>
+    <div class="fb-score" id="fb-score-${block.id}"></div>`;
+  return el;
+}
+
+function checkFillBlank(blockId, count) {
+  let correct = 0;
+  for (let i = 0; i < count; i++) {
+    const input = document.getElementById(`fb-${blockId}-${i}`);
+    if (!input) continue;
+    const ans = input.dataset.answer.trim().toLowerCase();
+    const val = input.value.trim().toLowerCase();
+    input.classList.remove('correct','wrong');
+    if (val === ans) { input.classList.add('correct'); correct++; }
+    else input.classList.add('wrong');
+  }
+  document.getElementById(`fb-score-${blockId}`).textContent =
+    `Natija: ${correct} / ${count} (${Math.round(correct/count*100)}%)`;
+}
+
+function renderSMatch(block) {
+  const d = block.data;
+  const pairs = [...(d.pairs||[])];
+  const el = document.createElement('div');
+  const rightShuffled = [...pairs].sort(() => Math.random()-.5);
+  let selected = null;
+  let matched = {};
+
+  const leftHTML  = pairs.map((p,i) => `<div class="match-item" id="ml-${block.id}-${i}" data-idx="${i}" data-side="left">${esc(p.left)}</div>`).join('');
+  const rightHTML = rightShuffled.map((p,ri) => {
+    const origIdx = pairs.findIndex(pp => pp.right === p.right);
+    return `<div class="match-item" id="mr-${block.id}-${ri}" data-orig="${origIdx}" data-side="right">${esc(p.right)}</div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="s-section-title">
+      <div class="s-section-bar" style="background:${d.bar_color||'#e76f51'}"></div>
+      <div class="s-section-label" style="background:${d.bar_color||'#e76f51'}">${esc(d.title||'Соедините')}</div>
+    </div>
+    <div class="match-grid">
+      <div class="match-col" id="mleft-${block.id}">${leftHTML}</div>
+      <div class="match-col" id="mright-${block.id}">${rightHTML}</div>
+    </div>
+    <div id="mscore-${block.id}" style="font-size:13px;font-weight:600;color:var(--green)"></div>`;
+
+  setTimeout(() => {
+    el.querySelectorAll('.match-item').forEach(item => {
+      item.addEventListener('click', function() {
+        if (this.classList.contains('matched')) return;
+        if (!selected) {
+          if (this.dataset.side !== 'left') return;
+          selected = this;
+          this.classList.add('selected');
+        } else {
+          if (this.dataset.side !== 'right') {
+            selected.classList.remove('selected');
+            selected = this;
+            selected.classList.add('selected');
+            return;
+          }
+          const leftIdx = parseInt(selected.dataset.idx);
+          const rightOrig = parseInt(this.dataset.orig);
+          selected.classList.remove('selected');
+          if (leftIdx === rightOrig) {
+            selected.classList.add('matched');
+            this.classList.add('matched');
+            matched[leftIdx] = true;
+            if (Object.keys(matched).length === pairs.length) {
+              document.getElementById(`mscore-${block.id}`).textContent = '🎉 Hammasi to\'g\'ri!';
+            }
+          } else {
+            selected.classList.add('wrong-flash');
+            this.classList.add('wrong-flash');
+            setTimeout(() => {
+              selected.classList.remove('wrong-flash');
+              this.classList.remove('wrong-flash');
+            }, 600);
+          }
+          selected = null;
+        }
+      });
+    });
+  }, 0);
+  return el;
+}
+
+function renderSQuiz(block) {
+  const d = block.data;
+  const questions = d.questions || [];
+  const el = document.createElement('div');
+  let current = 0; let score = 0; let answered = false;
+
+  function renderQ() {
+    const q = questions[current];
+    const opts = q.options.map((opt,i) => `
+      <button class="quiz-opt" id="qopt-${block.id}-${i}" onclick="answerQuiz(${block.id},${i},${q.correct},${questions.length})">${esc(opt)}</button>`).join('');
+    el.querySelector('.quiz-inner').innerHTML = `
+      <div class="quiz-q">${current+1}. ${esc(q.q)}</div>
+      <div class="quiz-opts">${opts}</div>
+      <div class="quiz-nav">
+        <button onclick="prevQuizQ()" ${current===0?'disabled':''}>← Oldingi</button>
+        <span class="quiz-progress">${current+1} / ${questions.length}</span>
+        <button onclick="nextQuizQ()" ${current===questions.length-1?'disabled':''}>Keyingi →</button>
+      </div>`;
+  }
+
+  window[`answerQuiz`] = function(bid, chosen, correct, total) {
+    if (bid !== block.id) return;
+    const btns = document.querySelectorAll(`[id^="qopt-${block.id}-"]`);
+    btns.forEach(b => b.disabled = true);
+    btns[chosen].classList.add(chosen === correct ? 'correct' : 'wrong');
+    if (chosen === correct) score++;
+  };
+  window[`prevQuizQ`] = () => { if(current>0){current--;renderQ();} };
+  window[`nextQuizQ`] = () => { if(current<questions.length-1){current++;renderQ();} };
+
+  el.innerHTML = `
+    <div class="s-section-title">
+      <div class="s-section-bar" style="background:${d.bar_color||'#6a4c93'}"></div>
+      <div class="s-section-label" style="background:${d.bar_color||'#6a4c93'}">${esc(d.title||'Тест')}</div>
+    </div>
+    <div class="quiz-inner"></div>`;
+
+  setTimeout(renderQ, 0);
+  return el;
+}
+
+function renderSCrossword(block) {
+  const d = block.data;
+  const words = d.words || [];
+  const el = document.createElement('div');
+
+  // build grid
+  let maxR = 0, maxC = 0;
+  words.forEach(w => {
+    const len = w.word.length;
+    if (w.dir === 'across') { maxR = Math.max(maxR, w.row+1); maxC = Math.max(maxC, w.col+len); }
+    else                    { maxR = Math.max(maxR, w.row+len); maxC = Math.max(maxC, w.col+1); }
+  });
+
+  const grid = Array.from({length:maxR}, () => Array(maxC).fill(null));
+  words.forEach((w,wi) => {
+    for (let k = 0; k < w.word.length; k++) {
+      const r = w.dir==='across' ? w.row : w.row+k;
+      const c = w.dir==='across' ? w.col+k : w.col;
+      grid[r][c] = {letter: w.word[k], wi, k};
+    }
+  });
+
+  const gridStyle = `grid-template-columns:repeat(${maxC},36px);grid-template-rows:repeat(${maxR},36px)`;
+  const cells = grid.flatMap((row,ri) => row.map((cell,ci) => {
+    if (!cell) return `<div class="cw-cell black"></div>`;
+    return `<input class="cw-cell" maxlength="1" data-r="${ri}" data-c="${ci}" data-letter="${cell.letter}" oninput="cwInput(this,${block.id})">`;
+  })).join('');
+
+  const across = words.filter(w=>w.dir==='across').map((w,i)=>`<div class="cw-clue"><b>${i+1}.</b> ${esc(w.clue||w.word)}</div>`).join('');
+  const down   = words.filter(w=>w.dir==='down').map((w,i)=>`<div class="cw-clue"><b>${i+1}.</b> ${esc(w.clue||w.word)}</div>`).join('');
+
+  el.innerHTML = `
+    <div class="s-section-title">
+      <div class="s-section-bar" style="background:#264653"></div>
+      <div class="s-section-label" style="background:#264653">${esc(d.title||'Кроссворд')}</div>
+    </div>
+    <div class="cw-grid" style="${gridStyle}">${cells}</div>
+    <div class="cw-clues">
+      <div class="cw-clue-list"><h4>→ Gorizontal</h4>${across}</div>
+      <div class="cw-clue-list"><h4>↓ Vertikal</h4>${down}</div>
+    </div>
+    <button class="fb-check-btn" onclick="checkCW(${block.id})">✔ Tekshirish</button>`;
+  return el;
+}
+
+window.cwInput = function(input) {
+  input.value = input.value.toUpperCase();
+};
+window.checkCW = function(blockId) {
+  const cells = document.querySelectorAll(`#student-content .cw-cell:not(.black)`);
+  cells.forEach(cell => {
+    cell.classList.remove('correct','wrong');
+    if (cell.value.toUpperCase() === cell.dataset.letter) cell.classList.add('correct');
+    else if (cell.value) cell.classList.add('wrong');
+  });
+};
+
+function renderSImage(d) {
+  if (!d.url) return null;
+  const el = document.createElement('div');
+  el.className = 's-image-wrap';
+  el.innerHTML = `<img src="${d.url}" class="s-image" style="width:${d.width||100}%">
+    ${d.caption ? `<p class="s-image-caption">${esc(d.caption)}</p>` : ''}`;
+  return el;
+}
+
+function renderSAudioText(d) {
+  const el = document.createElement('div');
+  const hasAudio = !!d.audio;
+  const bid = 'at-' + Math.random().toString(36).slice(2);
+  el.innerHTML = `
+    <div class="audio-text-box" id="${bid}">
+      ${hasAudio ? `<button class="play-text-btn" onclick="toggleAudioText('${bid}','${d.audio}')" id="pbtn-${bid}">▶</button>` : ''}
+      <div style="padding-right:${hasAudio?'44px':'0'}">${(d.text||'').replace(/\n/g,'<br>')}</div>
+    </div>`;
+  return el;
+}
+
+let _audioEl = null;
+window.toggleAudioText = function(bid, src) {
+  const btn = document.getElementById(`pbtn-${bid}`);
+  if (_audioEl) { _audioEl.pause(); _audioEl = null; btn.textContent='▶'; btn.classList.remove('playing'); return; }
+  _audioEl = new Audio(src);
+  _audioEl.play();
+  btn.textContent = '⏸'; btn.classList.add('playing');
+  _audioEl.onended = () => { btn.textContent='▶'; btn.classList.remove('playing'); _audioEl = null; };
+};
+
+window.playAudio = function(src) {
+  new Audio(src).play();
+};
+
+function renderSTable(d) {
+  const el = document.createElement('div');
+  const headers = (d.headers||[]).map(h => `<th>${esc(h)}</th>`).join('');
+  const rows = (d.rows||[]).map(row =>
+    `<tr>${row.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('');
+  el.innerHTML = `
+    ${d.title ? `<div class="s-section-title" style="margin-bottom:8px">
+      <div class="s-section-bar" style="background:var(--dark)"></div>
+      <div class="s-section-label" style="background:var(--dark)">${esc(d.title)}</div>
+    </div>` : ''}
+    <table class="s-table"><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
+  return el;
+}
+
+// ═══════════════════════════════════════════════════════════
+// DRAG & DROP
+// ═══════════════════════════════════════════════════════════
+function initDragDrop() {
+  const container = document.getElementById('blocks-container');
+  let dragEl = null;
+
+  container.querySelectorAll('.block-drag').forEach(handle => {
+    handle.addEventListener('mousedown', () => {
+      const card = handle.closest('.block-card');
+      card.setAttribute('draggable', 'true');
+    });
+  });
+
+  container.addEventListener('dragstart', e => {
+    dragEl = e.target.closest('.block-card');
+    if (dragEl) dragEl.classList.add('dragging');
+  });
+  container.addEventListener('dragend', async e => {
+    if (dragEl) { dragEl.classList.remove('dragging'); dragEl = null; }
+    // save new order
+    const cards = container.querySelectorAll('.block-card');
+    const updates = [];
+    cards.forEach((card, i) => {
+      const id = parseInt(card.dataset.id);
+      const b = state.blocks.find(b => b.id === id);
+      if (b) { b.order = i; updates.push({id, order: i}); }
+    });
+    await api('POST', '/api/blocks/reorder', updates);
+    if (state.studentOpen) renderStudentView();
+  });
+  container.addEventListener('dragover', e => {
+    e.preventDefault();
+    const after = getDragAfterElement(container, e.clientY);
+    if (!dragEl) return;
+    if (after == null) container.appendChild(dragEl);
+    else container.insertBefore(dragEl, after);
+  });
+}
+
+function getDragAfterElement(container, y) {
+  const els = [...container.querySelectorAll('.block-card:not(.dragging)')];
+  return els.reduce((closest, el) => {
+    const box = el.getBoundingClientRect();
+    const offset = y - box.top - box.height/2;
+    if (offset < 0 && offset > closest.offset) return {offset, element: el};
+    return closest;
+  }, {offset: Number.NEGATIVE_INFINITY}).element;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════════
+function showModal(html) {
+  document.getElementById('modal-box').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════
+let _toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ═══════════════════════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
