@@ -90,22 +90,27 @@ input,textarea,select{outline:none;font-family:inherit}
 /* ── Editor Panel ── */
 #editor-panel{
   flex:1;display:flex;flex-direction:column;overflow:hidden;
-  background:#f8f9fa;
+  background:#f8f9fa;min-width:0;
 }
 #editor-toolbar{
-  padding:10px 16px;background:white;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;
+  padding:8px 12px;background:white;border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;gap:6px;flex-wrap:wrap;flex-shrink:0;
+  overflow-y:auto;max-height:110px;
 }
-#editor-toolbar span.label{font-size:12px;color:var(--gray);font-weight:600;margin-right:4px}
+#editor-toolbar span.label{
+  font-size:12px;color:var(--gray);font-weight:600;
+  align-self:center;white-space:nowrap;
+}
 .add-block-btn{
-  padding:5px 11px;border-radius:6px;font-size:12px;font-weight:600;
-  border:1.5px solid;transition:all .15s;
+  padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;
+  border:1.5px solid;transition:all .15s;white-space:nowrap;flex-shrink:0;
 }
 .add-block-btn:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(0,0,0,.15)}
 
 #blocks-container{
-  flex:1;overflow-y:auto;padding:16px;
+  flex:1;overflow-y:auto;overflow-x:hidden;padding:16px;
   display:flex;flex-direction:column;gap:12px;
+  scroll-behavior:smooth;
 }
 #blocks-empty{
   margin:auto;text-align:center;color:var(--gray);
@@ -120,34 +125,47 @@ input,textarea,select{outline:none;font-family:inherit}
   border:1.5px solid var(--border);
   box-shadow:var(--shadow);overflow:hidden;
   transition:border-color .15s;
+  flex-shrink:0;
 }
 .block-card:hover{border-color:var(--blue)}
-.block-card.dragging{opacity:.5;border-color:var(--blue)}
+.block-card.dragging{opacity:.5;border-color:var(--blue);transform:scale(1.01)}
 .block-header{
   display:flex;align-items:center;gap:8px;
   padding:8px 12px;background:#f8f9fa;border-bottom:1px solid var(--border);
+  cursor:default;user-select:none;
 }
-.block-drag{cursor:grab;color:var(--gray);font-size:16px;line-height:1}
+.block-drag{
+  cursor:grab;color:var(--gray);font-size:16px;line-height:1;
+  padding:2px 4px;border-radius:4px;transition:background .15s;
+}
+.block-drag:hover{background:#e9ecef;color:var(--dark);}
+.block-drag:active{cursor:grabbing;}
 .block-type-badge{
   font-size:11px;font-weight:700;padding:2px 8px;
-  border-radius:4px;color:white;text-transform:uppercase;letter-spacing:.5px;
+  border-radius:4px;color:white;text-transform:uppercase;
+  letter-spacing:.5px;white-space:nowrap;
 }
-.block-header-title{flex:1;font-size:13px;font-weight:600;color:var(--dark)}
+.block-header-title{
+  flex:1;font-size:13px;font-weight:600;color:var(--dark);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .block-ctrl-btn{
   width:28px;height:28px;border-radius:6px;font-size:14px;
   display:flex;align-items:center;justify-content:center;
   background:transparent;color:var(--gray);transition:all .15s;
+  flex-shrink:0;
 }
 .block-ctrl-btn:hover.del{background:#fff0f0;color:var(--red)}
 .block-ctrl-btn:hover.dup{background:#f0f8ff;color:var(--blue)}
 .block-ctrl-btn:hover.up,.block-ctrl-btn:hover.dn{background:#f5f5f5;color:var(--dark)}
-.block-body{padding:14px}
+.block-body{padding:14px;overflow:visible;}
 
 /* Form fields inside block editors */
-.field-row{display:flex;gap:8px;margin-bottom:10px;align-items:center}
-.field-row label{font-size:12px;font-weight:600;color:var(--gray);min-width:80px}
+.field-row{display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
+.field-row label{font-size:12px;font-weight:600;color:var(--gray);min-width:60px;white-space:nowrap}
 .f-input{
-  flex:1;padding:6px 10px;border:1.5px solid var(--border);
+  flex:1;min-width:80px;padding:6px 10px;
+  border:1.5px solid var(--border);
   border-radius:6px;font-size:13px;transition:border-color .15s;
 }
 .f-input:focus{border-color:var(--blue)}
@@ -159,13 +177,19 @@ input,textarea,select{outline:none;font-family:inherit}
 .f-textarea:focus{border-color:var(--blue)}
 .f-select{
   flex:1;padding:6px 10px;border:1.5px solid var(--border);
-  border-radius:6px;font-size:13px;background:white;
+  border-radius:6px;font-size:13px;background:white;min-width:80px;
 }
 
 /* list items in vocab/quiz/match editor */
-.item-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
-.item-row{display:flex;gap:6px;align-items:center}
-.item-row .f-input{flex:1}
+.item-list{
+  display:flex;flex-direction:column;gap:6px;margin-top:8px;
+  max-height:320px;overflow-y:auto;overflow-x:hidden;
+  padding-right:4px;
+}
+.item-list::-webkit-scrollbar{width:4px}
+.item-list::-webkit-scrollbar-thumb{background:#ddd;border-radius:2px}
+.item-row{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.item-row .f-input{flex:1;min-width:60px}
 .item-del{
   width:26px;height:26px;border-radius:5px;font-size:13px;
   background:#fff0f0;color:var(--red);flex-shrink:0;
@@ -174,7 +198,7 @@ input,textarea,select{outline:none;font-family:inherit}
 .add-item-btn{
   margin-top:8px;padding:6px 12px;border-radius:6px;
   font-size:12px;font-weight:600;border:1.5px dashed var(--blue);
-  color:var(--blue);background:transparent;width:100%;
+  color:var(--blue);background:transparent;width:100%;flex-shrink:0;
 }
 .add-item-btn:hover{background:var(--blue);color:white}
 
@@ -186,9 +210,10 @@ input,textarea,select{outline:none;font-family:inherit}
 
 /* ── Student Panel ── */
 #student-panel{
-  flex:1;display:flex;flex-direction:column;
+  width:420px;min-width:320px;max-width:50vw;
+  display:flex;flex-direction:column;
   background:white;border-left:3px solid var(--blue);
-  overflow:hidden;min-width:0;
+  overflow:hidden;flex-shrink:0;
 }
 #student-panel.hidden{display:none}
 #student-header{
@@ -202,8 +227,10 @@ input,textarea,select{outline:none;font-family:inherit}
 }
 .close-student-btn:hover{background:rgba(255,255,255,.25)}
 #student-content{
-  flex:1;overflow-y:auto;padding:24px 28px;
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  padding:24px 20px;
   display:flex;flex-direction:column;gap:18px;
+  scroll-behavior:smooth;
 }
 
 /* ── Student Block Renderers ── */
@@ -385,10 +412,17 @@ input,textarea,select{outline:none;font-family:inherit}
 }
 #toast.show{transform:translateY(0);opacity:1}
 
-/* scrollbar */
+/* ─── drag-over indicator ─── */
+.drag-over-indicator{
+  height:3px;background:var(--blue);border-radius:2px;
+  margin:-6px 0;transition:opacity .15s;
+}
+
+/* ─── scrollbar global ─── */
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:#aaa}
+::-webkit-scrollbar-track{background:transparent}
 </style>
 </head>
 <body>
@@ -1427,53 +1461,130 @@ function renderSTable(d) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// DRAG & DROP
+// DRAG & DROP  (mouse + touch + auto-scroll)
 // ═══════════════════════════════════════════════════════════
 function initDragDrop() {
   const container = document.getElementById('blocks-container');
-  let dragEl = null;
 
-  container.querySelectorAll('.block-drag').forEach(handle => {
-    handle.addEventListener('mousedown', () => {
-      const card = handle.closest('.block-card');
-      card.setAttribute('draggable', 'true');
-    });
+  // ── pointer-based drag (works on touch too) ──
+  let dragEl    = null;
+  let ghostEl   = null;
+  let startY    = 0;
+  let offsetY   = 0;
+  let indicator = null; // drop-position line
+
+  function createGhost(card) {
+    const g = card.cloneNode(true);
+    const rect = card.getBoundingClientRect();
+    g.style.cssText = `
+      position:fixed;left:${rect.left}px;top:${rect.top}px;
+      width:${rect.width}px;opacity:.75;pointer-events:none;
+      z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);
+      border-radius:var(--radius);transition:none;transform:rotate(1deg);`;
+    document.body.appendChild(g);
+    return g;
+  }
+
+  function getIndicator() {
+    if (!indicator) {
+      indicator = document.createElement('div');
+      indicator.className = 'drag-over-indicator';
+    }
+    return indicator;
+  }
+
+  function removeIndicator() {
+    if (indicator && indicator.parentNode) indicator.parentNode.removeChild(indicator);
+  }
+
+  // auto-scroll when dragging near edges
+  let scrollRAF = null;
+  function autoScroll(clientY) {
+    const ZONE = 80, SPEED = 12;
+    const rect = container.getBoundingClientRect();
+    if (scrollRAF) cancelAnimationFrame(scrollRAF);
+    function step() {
+      if (!dragEl) return;
+      if (clientY - rect.top < ZONE)        container.scrollTop -= SPEED;
+      else if (rect.bottom - clientY < ZONE) container.scrollTop += SPEED;
+      scrollRAF = requestAnimationFrame(step);
+    }
+    scrollRAF = requestAnimationFrame(step);
+  }
+
+  // find where to insert
+  function getInsertTarget(clientY) {
+    const cards = [...container.querySelectorAll('.block-card:not(.dragging)')];
+    let best = null, bestDist = Infinity;
+    for (const c of cards) {
+      const rect = c.getBoundingClientRect();
+      const mid  = rect.top + rect.height / 2;
+      const dist = Math.abs(clientY - mid);
+      if (dist < bestDist) { bestDist = dist; best = { el: c, above: clientY < mid }; }
+    }
+    return best;
+  }
+
+  container.addEventListener('mousedown', e => {
+    const handle = e.target.closest('.block-drag');
+    if (!handle) return;
+    e.preventDefault();
+    dragEl = handle.closest('.block-card');
+    dragEl.classList.add('dragging');
+    const rect = dragEl.getBoundingClientRect();
+    offsetY = e.clientY - rect.top;
+    ghostEl = createGhost(dragEl);
+    startY  = e.clientY;
+    document.body.style.userSelect = 'none';
   });
 
-  container.addEventListener('dragstart', e => {
-    dragEl = e.target.closest('.block-card');
-    if (dragEl) dragEl.classList.add('dragging');
+  document.addEventListener('mousemove', e => {
+    if (!dragEl || !ghostEl) return;
+    ghostEl.style.top = (e.clientY - offsetY) + 'px';
+    autoScroll(e.clientY);
+
+    const target = getInsertTarget(e.clientY);
+    const ind    = getIndicator();
+    if (target) {
+      if (target.above) target.el.before(ind);
+      else              target.el.after(ind);
+    }
   });
-  container.addEventListener('dragend', async e => {
-    if (dragEl) { dragEl.classList.remove('dragging'); dragEl = null; }
+
+  document.addEventListener('mouseup', async e => {
+    if (!dragEl) return;
+    if (scrollRAF) cancelAnimationFrame(scrollRAF);
+
+    const target = getInsertTarget(e.clientY);
+    if (target) {
+      if (target.above) target.el.before(dragEl);
+      else              target.el.after(dragEl);
+    }
+
+    dragEl.classList.remove('dragging');
+    ghostEl.remove();
+    removeIndicator();
+    dragEl  = null;
+    ghostEl = null;
+    document.body.style.userSelect = '';
+
     // save new order
-    const cards = container.querySelectorAll('.block-card');
+    const cards   = container.querySelectorAll('.block-card');
     const updates = [];
     cards.forEach((card, i) => {
       const id = parseInt(card.dataset.id);
-      const b = state.blocks.find(b => b.id === id);
-      if (b) { b.order = i; updates.push({id, order: i}); }
+      const b  = state.blocks.find(b => b.id === id);
+      if (b) { b.order = i; updates.push({ id, order: i }); }
     });
     await api('POST', '/api/blocks/reorder', updates);
+    renderBlocks();
     if (state.studentOpen) renderStudentView();
   });
-  container.addEventListener('dragover', e => {
-    e.preventDefault();
-    const after = getDragAfterElement(container, e.clientY);
+}ner, e.clientY);
     if (!dragEl) return;
     if (after == null) container.appendChild(dragEl);
     else container.insertBefore(dragEl, after);
   });
-}
-
-function getDragAfterElement(container, y) {
-  const els = [...container.querySelectorAll('.block-card:not(.dragging)')];
-  return els.reduce((closest, el) => {
-    const box = el.getBoundingClientRect();
-    const offset = y - box.top - box.height/2;
-    if (offset < 0 && offset > closest.offset) return {offset, element: el};
-    return closest;
-  }, {offset: Number.NEGATIVE_INFINITY}).element;
 }
 
 // ═══════════════════════════════════════════════════════════
