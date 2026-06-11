@@ -752,46 +752,31 @@ input,textarea,select{outline:none;font-family:inherit}
 // ═══════════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════════
-let state = {
-  lessons: [],
-  currentLessonId: null,
-  blocks: [],
-  studentOpen: false,
-  role: null,           // 'teacher' | 'student'
-  studentName: '',
-  studentAnswers: {},   // {blockId: {answer, score, max}}
-  // o'quvchi .urok fayldan yuklagan dars
-  urokPayload: null,
+const state = {
+  lessons: [], currentLessonId: null, blocks: [],
+  studentOpen: false, role: null, studentName: '', studentAnswers: {}
 };
+
+// ═══════════════════════════════════════════════════════════
+// API
+// ═══════════════════════════════════════════════════════════
+async function api(method, url, body) {
+  const opts = {method, headers: {'Content-Type': 'application/json'}};
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  return r.json();
+}
 
 // ═══════════════════════════════════════════════════════════
 // KIRISH TIZIMI
 // ═══════════════════════════════════════════════════════════
-async function initLoginCheck() {
-  // sessionStorage da rol saqlangan bo'lsa — to'g'ri kiramiz
-  const savedRole = sessionStorage.getItem('ll_role');
-  const savedName = sessionStorage.getItem('ll_name') || '';
-  if (savedRole === 'teacher') {
-    await enterAsTeacher(savedName, false);
-    return;
-  }
-  if (savedRole === 'student' && savedName) {
-    await enterAsStudent(savedName, false);
-    return;
-  }
-  // Aks holda server sessionni tekshiramiz
-  try {
-    const r = await api('GET', '/api/role');
-    if (r.role === 'teacher') { await enterAsTeacher('', false); return; }
-    if (r.role === 'student') {
-      const name = r.name || sessionStorage.getItem('ll_name') || '';
-      if (name) { await enterAsStudent(name, false); return; }
-    }
-  } catch(e) {}
-  // Kirish ekranini ko'rsat
+function initLoginCheck() {
+  const role = sessionStorage.getItem('ll_role');
+  const name = sessionStorage.getItem('ll_name') || '';
+  if (role === 'teacher') { enterAsTeacher(); return; }
+  if (role === 'student' && name) { enterAsStudent(name); return; }
   showLoginScreen();
 }
-
 function showLoginScreen() {
   document.getElementById('login-screen').classList.remove('hidden');
   loginBack();
@@ -799,284 +784,171 @@ function showLoginScreen() {
 function hideLoginScreen() {
   document.getElementById('login-screen').classList.add('hidden');
 }
-
 function loginChooseRole(role) {
   document.getElementById('login-role-choice').style.display = 'none';
   if (role === 'student') {
     document.getElementById('login-student-area').classList.add('show');
-    setTimeout(() => document.getElementById('student-name-inp').focus(), 100);
+    setTimeout(() => document.getElementById('student-name-inp').focus(), 50);
   } else {
     document.getElementById('login-pass-area').classList.add('show');
-    setTimeout(() => document.getElementById('teacher-pass-inp').focus(), 100);
+    setTimeout(() => document.getElementById('teacher-pass-inp').focus(), 50);
   }
 }
-
 function loginBack() {
   document.getElementById('login-role-choice').style.display = '';
   document.getElementById('login-student-area').classList.remove('show');
   document.getElementById('login-pass-area').classList.remove('show');
   document.getElementById('teacher-err').textContent = '';
   document.getElementById('student-err').textContent = '';
-  if (document.getElementById('teacher-pass-inp'))
-    document.getElementById('teacher-pass-inp').value = '';
+  const pi = document.getElementById('teacher-pass-inp');
+  if (pi) pi.value = '';
 }
-
 async function loginAsStudent() {
   const name = document.getElementById('student-name-inp').value.trim();
-  if (!name) {
-    document.getElementById('student-err').textContent = '⚠️ Ism kiriting';
-    return;
-  }
-  await enterAsStudent(name, true);
+  if (!name) { document.getElementById('student-err').textContent = "⚠️ Ism kiriting"; return; }
+  sessionStorage.setItem('ll_role', 'student');
+  sessionStorage.setItem('ll_name', name);
+  enterAsStudent(name);
 }
-
 async function loginAsTeacher() {
   const pwd = document.getElementById('teacher-pass-inp').value;
   const errEl = document.getElementById('teacher-err');
   errEl.textContent = '';
   try {
-    const r = await api('POST', '/api/role/set', { role: 'teacher', password: pwd });
-    if (!r.ok) { errEl.textContent = '❌ ' + (r.error || 'Parol noto\'g\'ri'); return; }
+    const r = await api('POST', '/api/role/set', {role: 'teacher', password: pwd});
+    if (!r.ok) { errEl.textContent = '❌ ' + (r.error || "Parol noto'g'ri"); return; }
     sessionStorage.setItem('ll_role', 'teacher');
-    await enterAsTeacher('', false);
-  } catch(e) {
-    errEl.textContent = '❌ Parol noto\'g\'ri';
-  }
+    enterAsTeacher();
+  } catch(e) { errEl.textContent = "❌ Parol noto'g'ri"; }
 }
-
-async function enterAsTeacher(name, saveSession) {
-  if (saveSession) sessionStorage.setItem('ll_role', 'teacher');
+function enterAsTeacher() {
   state.role = 'teacher';
-  state.studentName = '';
   hideLoginScreen();
   applyRoleUI('teacher');
-  await init();
+  init();
 }
-
-async function enterAsStudent(name, saveSession) {
-  if (saveSession) {
-    sessionStorage.setItem('ll_role', 'student');
-    sessionStorage.setItem('ll_name', name);
-    // serverga ham yuboramiz
-    try { await api('POST', '/api/role/set', { role: 'student' }); } catch(e) {}
-  }
+function enterAsStudent(name) {
   state.role = 'student';
   state.studentName = name;
   hideLoginScreen();
   applyRoleUI('student');
-  // O'quvchi: .urok fayl yuklash ekrani yoki serverdan darslar
-  await init();
-  // O'quvchi panelini ochib qo'yamiz
-  if (!state.studentOpen) toggleStudentPanel();
+  init();
+  setTimeout(() => { if (!state.studentOpen) toggleStudentPanel(); }, 400);
 }
-
 function applyRoleUI(role) {
   const badge = document.getElementById('role-badge');
+  const btnRes = document.getElementById('btn-results');
+  const btnExp = document.getElementById('btn-export-urok');
+  const urokPnl = document.getElementById('urok-export-panel');
+  const sidebar = document.getElementById('sidebar');
+  const edPanel = document.getElementById('editor-panel');
+  const subBanner = document.getElementById('student-submit-banner');
   badge.style.display = '';
-  const btnResults = document.getElementById('btn-results');
-  const btnExport  = document.getElementById('btn-export-urok');
-  const urokPanel  = document.getElementById('urok-export-panel');
-  // sidebar va editor — faqat o'qituvchi
-  const sidebar    = document.getElementById('sidebar');
-  const editorPanel = document.getElementById('editor-panel');
-  const toolbar    = document.getElementById('editor-toolbar');
-
   if (role === 'teacher') {
-    badge.textContent  = '👩‍🏫 O\'qituvchi';
-    badge.className    = 'role-badge teacher';
-    btnResults.style.display = '';
-    btnExport.style.display  = '';
-    if (urokPanel) urokPanel.style.display = '';
-    if (sidebar)   sidebar.style.display   = '';
-    if (editorPanel) editorPanel.style.display = '';
-    document.getElementById('student-submit-banner').style.display = 'none';
+    badge.textContent = "👩‍🏫 O'qituvchi"; badge.className = 'role-badge teacher';
+    if (btnRes) btnRes.style.display = '';
+    if (btnExp) btnExp.style.display = '';
+    if (urokPnl) urokPnl.style.display = '';
+    if (sidebar) sidebar.style.display = '';
+    if (edPanel) edPanel.style.display = '';
+    if (subBanner) subBanner.style.display = 'none';
   } else {
-    badge.textContent  = '👨‍🎓 ' + state.studentName;
-    badge.className    = 'role-badge student';
-    btnResults.style.display = 'none';
-    btnExport.style.display  = 'none';
-    if (urokPanel) urokPanel.style.display = 'none';
-    // O'quvchi: sidebar va editor yashiriladi
-    if (sidebar)   sidebar.style.display   = 'none';
-    if (editorPanel) editorPanel.style.display = 'none';
-    // Student banner
-    const banner = document.getElementById('student-submit-banner');
-    banner.style.display = '';
-    document.getElementById('banner-student-name').textContent = state.studentName;
+    badge.textContent = '👨‍🎓 ' + state.studentName; badge.className = 'role-badge student';
+    if (btnRes) btnRes.style.display = 'none';
+    if (btnExp) btnExp.style.display = 'none';
+    if (urokPnl) urokPnl.style.display = 'none';
+    if (sidebar) sidebar.style.display = 'none';
+    if (edPanel) edPanel.style.display = 'none';
+    if (subBanner) {
+      subBanner.style.display = '';
+      document.getElementById('banner-student-name').textContent = state.studentName;
+    }
   }
 }
-
 function logoutRole() {
   sessionStorage.removeItem('ll_role');
   sessionStorage.removeItem('ll_name');
-  fetch('/api/role/logout', {method:'POST'}).catch(()=>{});
-  state.role = null;
-  state.studentName = '';
-  state.studentAnswers = {};
-  // UI reset
+  fetch('/api/role/logout', {method: 'POST'}).catch(() => {});
+  state.role = null; state.studentName = ''; state.studentAnswers = {};
   const badge = document.getElementById('role-badge');
-  badge.style.display = 'none';
-  document.getElementById('btn-results').style.display = 'none';
-  document.getElementById('btn-export-urok').style.display = 'none';
-  const urokPanel = document.getElementById('urok-export-panel');
-  if (urokPanel) urokPanel.style.display = 'none';
-  document.getElementById('sidebar').style.display = '';
-  document.getElementById('editor-panel').style.display = '';
+  if (badge) badge.style.display = 'none';
+  ['btn-results','btn-export-urok','urok-export-panel'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  ['sidebar','editor-panel'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = '';
+  });
+  const sb = document.getElementById('student-submit-banner');
+  if (sb) sb.style.display = 'none';
   if (state.studentOpen) toggleStudentPanel();
   showLoginScreen();
 }
 
 // ═══════════════════════════════════════════════════════════
-// .urok EXPORT (O'qituvchi)
+// .urok EXPORT
 // ═══════════════════════════════════════════════════════════
 async function exportCurrentLesson() {
   if (!state.currentLessonId) { toast('⚠️ Avval dars tanlang'); return; }
   try {
-    const resp = await fetch(`/api/lessons/${state.currentLessonId}/export`);
+    const resp = await fetch('/api/lessons/' + state.currentLessonId + '/export');
     if (!resp.ok) throw new Error('Server xatosi');
     const blob = await resp.blob();
     const lesson = state.lessons.find(l => l.id === state.currentLessonId);
-    const safeName = (lesson?.title || 'dars').replace(/[^a-zA-Z0-9а-яА-Я\-_ ]/g, '_').slice(0, 40);
+    const name = (lesson ? lesson.title : 'dars').replace(/[^\w\- ]/g, '_').slice(0, 40);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = safeName + '.urok';
-    a.click();
+    a.href = URL.createObjectURL(blob); a.download = name + '.urok'; a.click();
     URL.revokeObjectURL(a.href);
     toast('✅ .urok fayl yuklab olindi!');
-  } catch(e) {
-    toast('❌ Export xatosi: ' + e.message);
-  }
+  } catch(e) { toast('❌ Export xatosi: ' + e.message); }
 }
 
 // ═══════════════════════════════════════════════════════════
-// .urok IMPORT / O'quvchi rejimi
+// NATIJALAR
 // ═══════════════════════════════════════════════════════════
-// O'quvchi serverda darslarni ko'radi (agar mavjud bo'lsa)
-// Yoki .urok fayl ochadi — hozircha serverdan yuklash asosiy
-
-// ═══════════════════════════════════════════════════════════
-// O'QUVCHI NATIJALARI — saqlash
-// ═══════════════════════════════════════════════════════════
-// O'quvchi javoblarini state.studentAnswers ga yozamiz
-// Format: { blockId: { type, title, answers:{...}, score, max } }
-
 function recordStudentAnswer(blockId, type, title, answers, score, max) {
   if (state.role !== 'student') return;
-  state.studentAnswers[blockId] = { type, title, answers, score, max };
+  state.studentAnswers[blockId] = {type, title, answers, score, max};
 }
-
 async function submitStudentResults() {
   if (!state.studentName) { toast('⚠️ Ism kiritilmagan'); return; }
   const lesson = state.lessons.find(l => l.id === state.currentLessonId);
-  const lessonTitle = lesson?.title || 'Noma\'lum dars';
-
+  const lessonTitle = lesson ? lesson.title : "Noma'lum dars";
   let totalScore = 0, maxScore = 0;
-  Object.values(state.studentAnswers).forEach(a => {
-    totalScore += (a.score || 0);
-    maxScore   += (a.max   || 0);
-  });
-
-  const payload = {
-    student_name: state.studentName,
-    lesson_title: lessonTitle,
-    total_score:  totalScore,
-    max_score:    maxScore,
-    answers:      state.studentAnswers,
-  };
-
+  Object.values(state.studentAnswers).forEach(a => { totalScore += (a.score || 0); maxScore += (a.max || 0); });
+  const payload = {student_name: state.studentName, lesson_title: lessonTitle, total_score: totalScore, max_score: maxScore, answers: state.studentAnswers};
   try {
     const r = await api('POST', '/api/results', payload);
-    if (r.ok) {
-      toast('✅ Natija serverga yuborildi!');
-      // .urok natija faylini ham yuklab olamiz
-      downloadResultFile(payload);
-    }
-  } catch(e) {
-    toast('❌ Yuborishda xato. .urok fayl yuklab olinmoqda...');
-    downloadResultFile(payload);
-  }
+    if (r.ok) { toast('✅ Natija serverga yuborildi!'); downloadResultFile(payload); }
+  } catch(e) { downloadResultFile(payload); }
 }
-
 function downloadResultFile(payload) {
-  // Frontend da encode qilamiz (Python encode_urok logikasi bilan bir xil)
   const lesson = state.lessons.find(l => l.id === state.currentLessonId);
-  const lessonTitle = lesson?.title || 'Noma\'lum dars';
-  let totalScore = 0, maxScore = 0;
-  if (payload) {
-    totalScore = payload.total_score;
-    maxScore   = payload.max_score;
-  } else {
-    Object.values(state.studentAnswers).forEach(a => {
-      totalScore += (a.score || 0);
-      maxScore   += (a.max   || 0);
-    });
-    payload = {
-      student_name: state.studentName,
-      lesson_title: lessonTitle,
-      total_score:  totalScore,
-      max_score:    maxScore,
-      answers:      state.studentAnswers,
-    };
+  if (!payload) {
+    let t = 0, m = 0;
+    Object.values(state.studentAnswers).forEach(a => { t += a.score || 0; m += a.max || 0; });
+    payload = {student_name: state.studentName, lesson_title: lesson ? lesson.title : '', total_score: t, max_score: m, answers: state.studentAnswers};
   }
-
-  const resultPayload = {
-    format:       'urok_result',
-    version:      2,
-    student_name: payload.student_name,
-    lesson_title: payload.lesson_title,
-    total_score:  payload.total_score,
-    max_score:    payload.max_score,
-    pct:          payload.max_score > 0 ? Math.round(payload.total_score / payload.max_score * 100) : 0,
-    submitted:    new Date().toISOString(),
-    answers:      payload.answers,
-  };
-
-  // Oddiy JSON ga base64 qilib saqlaymiz (server side encrypt bilan bir xil)
-  const encoded = encodeUrokClient(resultPayload);
-  const blob    = new Blob([encoded], {type: 'application/octet-stream'});
-  const safeName = payload.student_name.replace(/[^a-zA-Z0-9а-яА-Я\-_ ]/g, '_').slice(0, 30);
+  const obj = {format: 'urok_result', version: 2, student_name: payload.student_name, lesson_title: payload.lesson_title, total_score: payload.total_score, max_score: payload.max_score, pct: payload.max_score > 0 ? Math.round(payload.total_score / payload.max_score * 100) : 0, submitted: new Date().toISOString(), answers: payload.answers};
+  const json = JSON.stringify(obj);
+  const MAGIC = 'UROKFILE', KEY = 'LangLearn2024xK9';
+  const jb = new TextEncoder().encode(json);
+  const kb = new TextEncoder().encode(KEY);
+  const xored = new Uint8Array(jb.length);
+  for (let i = 0; i < jb.length; i++) xored[i] = jb[i] ^ kb[i % kb.length];
+  const out = new Uint8Array(MAGIC.length + 1 + xored.length);
+  for (let i = 0; i < MAGIC.length; i++) out[i] = MAGIC.charCodeAt(i);
+  out[MAGIC.length] = 2;
+  out.set(xored, MAGIC.length + 1);
+  let bin = '';
+  for (let i = 0; i < out.length; i++) bin += String.fromCharCode(out[i]);
+  const b64 = btoa(bin);
+  const blob = new Blob([b64], {type: 'application/octet-stream'});
+  const safeName = payload.student_name.replace(/[^\w\- ]/g, '_').slice(0, 30);
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = safeName + '_natija.urok';
-  a.click();
+  a.href = URL.createObjectURL(blob); a.download = safeName + '_natija.urok'; a.click();
   URL.revokeObjectURL(a.href);
   toast('✅ Natija fayli yuklab olindi!');
 }
-
-// Browser da .urok encode — Python encode_urok bilan mos
-function encodeUrokClient(payload) {
-  const MAGIC   = 'UROKFILE';
-  const VERSION = 2;
-  const KEY     = 'LangLearn2024xK9';
-
-  const jsonStr  = JSON.stringify(payload);
-  // TextEncoder + pako yoki oddiy btoa
-  const jsonBytes = new TextEncoder().encode(jsonStr);
-  // zlib compress — browserda DeflateRaw orqali
-  // Oddiy holatda: compress qilmasdan base64 saqlaymiz (Python decode_urok kengaytmasi bilan)
-  // Lekin Python bilan moslik uchun server /api/urok/decode ga yuboramiz
-  const xored  = xorBytes(jsonBytes, KEY);
-  // Magic + version + data
-  const result = new Uint8Array(MAGIC.length + 1 + xored.length);
-  for (let i = 0; i < MAGIC.length; i++) result[i] = MAGIC.charCodeAt(i);
-  result[MAGIC.length] = VERSION;
-  result.set(xored, MAGIC.length + 1);
-  // base64
-  let binary = '';
-  for (let i = 0; i < result.length; i++) binary += String.fromCharCode(result[i]);
-  return btoa(binary);
-}
-
-function xorBytes(data, keyStr) {
-  const key = new TextEncoder().encode(keyStr);
-  const out  = new Uint8Array(data.length);
-  for (let i = 0; i < data.length; i++) out[i] = data[i] ^ key[i % key.length];
-  return out;
-}
-
-// ═══════════════════════════════════════════════════════════
-// NATIJALAR EKRANI (O'qituvchi)
-// ═══════════════════════════════════════════════════════════
 function openResultsScreen() {
   document.getElementById('results-screen').classList.add('show');
   loadResults();
@@ -1084,7 +956,6 @@ function openResultsScreen() {
 function closeResultsScreen() {
   document.getElementById('results-screen').classList.remove('show');
 }
-
 async function loadResults() {
   const wrap = document.getElementById('results-table-content');
   wrap.innerHTML = '<p style="padding:20px;color:var(--gray)">⏳ Yuklanmoqda...</p>';
@@ -1093,1214 +964,294 @@ async function loadResults() {
     wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gray)"><div style="font-size:48px;opacity:.3">📭</div><p style="margin-top:12px">Hali natija yo\'q</p></div>';
     return;
   }
-  const rows = results.map(r => `
-    <tr>
-      <td><b>${esc(r.student_name)}</b></td>
-      <td>${esc(r.lesson_title)}</td>
-      <td>
-        <span class="pct-bar-wrap"><span class="pct-bar" style="width:${r.pct}%"></span></span>
-        <b style="color:${r.pct>=70?'var(--green)':r.pct>=40?'var(--orange)':'var(--red)'}">${r.pct}%</b>
-        <span style="color:var(--gray);font-size:11px">(${r.total_score}/${r.max_score})</span>
-      </td>
-      <td style="color:var(--gray);font-size:12px">${r.submitted_at}</td>
-      <td>
-        <button class="result-detail-btn" onclick="showResultDetail(${JSON.stringify(r).replace(/"/g,'&quot;')})">🔍 Ko'rish</button>
-        <button class="result-del-btn" onclick="deleteResult(${r.id})">✕</button>
-      </td>
-    </tr>`).join('');
-
-  wrap.innerHTML = `
-    <table class="results-table">
-      <thead><tr>
-        <th>O'quvchi</th><th>Dars</th><th>Natija</th><th>Sana</th><th>Amal</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
+  const rows = results.map(r => {
+    const rJson = JSON.stringify(r).replace(/"/g, '&quot;');
+    return '<tr><td><b>' + esc(r.student_name) + '</b></td><td>' + esc(r.lesson_title) + '</td><td><span class="pct-bar-wrap"><span class="pct-bar" style="width:' + r.pct + '%"></span></span><b style="color:' + (r.pct >= 70 ? 'var(--green)' : r.pct >= 40 ? 'var(--orange)' : 'var(--red)') + '">' + r.pct + '%</b> <span style="color:var(--gray);font-size:11px">(' + r.total_score + '/' + r.max_score + ')</span></td><td style="color:var(--gray);font-size:12px">' + r.submitted_at + '</td><td><button class="result-detail-btn" onclick="showResultDetail(' + rJson + ')">🔍</button> <button class="result-del-btn" onclick="deleteResult(' + r.id + ')">✕</button></td></tr>';
+  }).join('');
+  wrap.innerHTML = '<table class="results-table"><thead><tr><th>O\'quvchi</th><th>Dars</th><th>Natija</th><th>Sana</th><th>Amal</th></tr></thead><tbody>' + rows + '</tbody></table>';
 }
-
 function showResultDetail(r) {
   const answers = r.answers || {};
   let html = '';
   Object.values(answers).forEach(a => {
     if (!a || !a.type) return;
-    html += `<div class="detail-block">
-      <div class="detail-block-title">${esc(a.title || a.type)} — ${a.score||0}/${a.max||0} ball</div>`;
+    html += '<div class="detail-block"><div class="detail-block-title">' + esc(a.title || a.type) + ' — ' + (a.score || 0) + '/' + (a.max || 0) + ' ball</div>';
     const ans = a.answers || {};
-    Object.entries(ans).forEach(([k, v]) => {
-      const ok = v.correct !== undefined ? v.correct : null;
-      html += `<div class="detail-item">
-        <span class="det-icon">${ok===true?'✅':ok===false?'❌':'•'}</span>
-        <span class="${ok===true?'det-correct':ok===false?'det-wrong'}">${esc(k)}: <b>${esc(String(v.given||v||''))}</b></span>
-      </div>`;
+    Object.entries(ans).forEach(function(kv) {
+      const k = kv[0], v = kv[1];
+      const ok = v && v.correct !== undefined ? v.correct : null;
+      const given = v && v.given !== undefined ? v.given : (typeof v === 'string' ? v : '');
+      html += '<div class="detail-item"><span class="det-icon">' + (ok === true ? '✅' : ok === false ? '❌' : '•') + '</span><span class="' + (ok === true ? 'det-correct' : ok === false ? 'det-wrong' : '') + '">' + esc(k) + ': <b>' + esc(String(given)) + '</b></span></div>';
     });
     html += '</div>';
   });
   if (!html) html = '<p style="color:var(--gray);font-size:13px">Javoblar yo\'q</p>';
-
-  showModal(`
-    <h3>🔍 ${esc(r.student_name)} — ${esc(r.lesson_title)}</h3>
-    <div style="display:flex;gap:16px;margin-bottom:16px;font-size:14px">
-      <span>📊 <b style="color:${r.pct>=70?'var(--green)':r.pct>=40?'var(--orange)':'var(--red)'}">${r.pct}%</b></span>
-      <span>⭐ ${r.total_score}/${r.max_score} ball</span>
-      <span>🕐 ${r.submitted_at}</span>
-    </div>
-    <div class="detail-answers">${html}</div>
-    <div class="modal-actions">
-      <button class="btn-ok" onclick="closeModal()">OK</button>
-    </div>`);
+  showModal('<h3>🔍 ' + esc(r.student_name) + ' — ' + esc(r.lesson_title) + '</h3><div style="display:flex;gap:16px;margin-bottom:16px;font-size:14px"><span>📊 <b>' + r.pct + '%</b></span><span>⭐ ' + r.total_score + '/' + r.max_score + '</span><span>🕐 ' + r.submitted_at + '</span></div><div class="detail-answers">' + html + '</div><div class="modal-actions"><button class="btn-ok" onclick="closeModal()">OK</button></div>');
 }
-
 async function deleteResult(id) {
-  if (!confirm('Bu natijani o\'chirasizmi?')) return;
-  await api('DELETE', `/api/results/${id}`);
-  loadResults();
-  toast('🗑️ O\'chirildi');
+  if (!confirm("Bu natijani o'chirasizmi?")) return;
+  await api('DELETE', '/api/results/' + id);
+  loadResults(); toast("🗑️ O'chirildi");
 }
 
 // ═══════════════════════════════════════════════════════════
-// INIT
+// INIT & LESSONS
 // ═══════════════════════════════════════════════════════════
 async function init() {
   await loadLessons();
-  if (state.lessons.length > 0) {
-    await selectLesson(state.lessons[0].id);
-  }
+  if (state.lessons.length > 0) await selectLesson(state.lessons[0].id);
 }
-
-// ═══════════════════════════════════════════════════════════
-// API HELPERS
-// ═══════════════════════════════════════════════════════════
-async function api(method, url, body) {
-  const opts = { method, headers: {'Content-Type':'application/json'} };
-  if (body) opts.body = JSON.stringify(body);
-  const r = await fetch(url, opts);
-  return r.json();
-}
-
-// ═══════════════════════════════════════════════════════════
-// LESSONS
-// ═══════════════════════════════════════════════════════════
 async function loadLessons() {
   state.lessons = await api('GET', '/api/lessons');
   renderSidebar();
 }
-
 function renderSidebar() {
   const list = document.getElementById('lesson-list');
   list.innerHTML = '';
   state.lessons.forEach(l => {
     const div = document.createElement('div');
     div.className = 'lesson-item' + (l.id === state.currentLessonId ? ' active' : '');
-    div.onclick = () => selectLesson(l.id);
-    div.innerHTML = `
-      <span class="lesson-badge">${l.block_count}</span>
-      ${l.subtitle ? `<small style="color:#aaa;font-size:10px">${l.subtitle}</small><br>` : ''}
-      ${l.title}
-      <div class="lesson-actions">
-        <button class="lesson-act-btn" title="Nusxa" onclick="event.stopPropagation();duplicateLesson(${l.id})">⧉</button>
-        <button class="lesson-act-btn" title="O'chirish" onclick="event.stopPropagation();deleteLesson(${l.id})" style="color:var(--red)">✕</button>
-      </div>`;
+    div.onclick = function() { selectLesson(l.id); };
+    div.innerHTML = '<span class="lesson-badge">' + l.block_count + '</span>' + (l.subtitle ? '<small style="color:#aaa;font-size:10px">' + l.subtitle + '</small><br>' : '') + l.title + '<div class="lesson-actions"><button class="lesson-act-btn" onclick="event.stopPropagation();duplicateLesson(' + l.id + ')">⧉</button><button class="lesson-act-btn" onclick="event.stopPropagation();deleteLesson(' + l.id + ')" style="color:var(--red)">✕</button></div>';
     list.appendChild(div);
   });
 }
-
 async function selectLesson(id) {
   state.currentLessonId = id;
   const l = state.lessons.find(x => x.id === id);
   document.getElementById('lesson-title-bar').textContent = l ? l.title : '';
   renderSidebar();
-  const blocks = await api('GET', `/api/lessons/${id}/blocks`);
-  state.blocks = blocks;
+  state.blocks = await api('GET', '/api/lessons/' + id + '/blocks');
   renderBlocks();
   if (state.studentOpen) renderStudentView();
 }
-
 function openNewLessonModal() {
-  showModal(`
-    <h3>Yangi dars</h3>
-    <div class="field-row"><label>Sarlavha</label>
-      <input class="f-input" id="nl-title" placeholder="Урок 1: ..." style="flex:1">
-    </div>
-    <div class="field-row"><label>Daraja</label>
-      <input class="f-input" id="nl-sub" placeholder="A1, A2..." style="flex:1">
-    </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal()">Bekor</button>
-      <button class="btn-ok" onclick="createLesson()">Yaratish</button>
-    </div>`);
+  showModal('<h3>Yangi dars</h3><div class="field-row"><label>Sarlavha</label><input class="f-input" id="nl-title" placeholder="Урок 1: ..." style="flex:1"></div><div class="field-row"><label>Daraja</label><input class="f-input" id="nl-sub" placeholder="A1, A2..." style="flex:1"></div><div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">Bekor</button><button class="btn-ok" onclick="createLesson()">Yaratish</button></div>');
 }
-
 async function createLesson() {
   const title = document.getElementById('nl-title').value.trim();
   if (!title) return;
-  const sub = document.getElementById('nl-sub').value.trim();
-  const l = await api('POST', '/api/lessons', {title, subtitle: sub});
-  closeModal();
-  await loadLessons();
-  await selectLesson(l.id);
-  toast('✅ Dars yaratildi');
+  const l = await api('POST', '/api/lessons', {title, subtitle: document.getElementById('nl-sub').value.trim()});
+  closeModal(); await loadLessons(); await selectLesson(l.id); toast('✅ Dars yaratildi');
 }
-
 async function deleteLesson(id) {
-  if (!confirm('Darsni o\'chirasizmi?')) return;
-  await api('DELETE', `/api/lessons/${id}`);
-  if (state.currentLessonId === id) {
-    state.currentLessonId = null;
-    state.blocks = [];
-    renderBlocks();
-  }
-  await loadLessons();
-  toast('🗑️ Dars o\'chirildi');
+  if (!confirm("Darsni o'chirasizmi?")) return;
+  await api('DELETE', '/api/lessons/' + id);
+  if (state.currentLessonId === id) { state.currentLessonId = null; state.blocks = []; renderBlocks(); }
+  await loadLessons(); toast("🗑️ Dars o'chirildi");
 }
-
 async function duplicateLesson(id) {
-  const l = await api('POST', `/api/lessons/${id}/duplicate`);
-  await loadLessons();
-  await selectLesson(l.id);
-  toast('⧉ Nusxa olindi');
+  const l = await api('POST', '/api/lessons/' + id + '/duplicate');
+  await loadLessons(); await selectLesson(l.id); toast('⧉ Nusxa olindi');
 }
 
 // ═══════════════════════════════════════════════════════════
-// BLOCKS - EDITOR RENDER
+// BLOCKS
 // ═══════════════════════════════════════════════════════════
 function renderBlocks() {
   const container = document.getElementById('blocks-container');
   container.innerHTML = '';
-  if (!state.currentLessonId || state.blocks.length === 0) {
+  if (!state.currentLessonId || !state.blocks.length) {
     const empty = document.createElement('div');
     empty.id = 'blocks-empty';
-    empty.innerHTML = state.currentLessonId
-      ? '<div class="empty-icon">➕</div><p>Yuqoridagi tugmalar orqali blok qo\'shing</p>'
-      : '<div class="empty-icon">📝</div><p>Chap paneldan dars tanlang yoki yangi dars yarating</p>';
-    container.appendChild(empty);
-    return;
+    empty.innerHTML = state.currentLessonId ? '<div class="empty-icon">➕</div><p>Yuqoridagi tugmalar orqali blok qo\'shing</p>' : '<div class="empty-icon">📝</div><p>Chap paneldan dars tanlang yoki yangi dars yarating</p>';
+    container.appendChild(empty); return;
   }
-  const sorted = [...state.blocks].sort((a,b) => a.order - b.order);
-  sorted.forEach((block, idx) => {
-    container.appendChild(buildBlockCard(block, idx, sorted.length));
-  });
+  const sorted = [...state.blocks].sort((a, b) => a.order - b.order);
+  sorted.forEach((block, idx) => container.appendChild(buildBlockCard(block, idx, sorted.length)));
   initDragDrop();
 }
-
 function buildBlockCard(block, idx, total) {
   const card = document.createElement('div');
-  card.className = 'block-card';
-  card.dataset.id = block.id;
-
-  const typeColors = {
-    heading:'#e63946', vocab:'#457b9d', dialog:'#2a9d8f',
-    fill_blank:'#2a9d8f', match:'#e76f51', quiz:'#6a4c93',
-    crossword:'#264653', image:'#555', audio_text:'#1d3557',
-    table:'#333', hr:'#aaa'
-  };
-  const typeNames = {
-    heading:'Sarlavha', vocab:'So\'zlar', dialog:'Dialog',
-    fill_blank:'Bo\'sh joy', match:'Moslashtir', quiz:'Test',
-    crossword:'Krossvord', image:'Rasm', audio_text:'Matn+Ovoz',
-    table:'Jadval', hr:'Chiziq'
-  };
-
-  card.innerHTML = `
-    <div class="block-header">
-      <span class="block-drag" draggable="true">⠿</span>
-      <span class="block-type-badge" style="background:${typeColors[block.type]||'#888'}">${typeNames[block.type]||block.type}</span>
-      <span class="block-header-title">${getBlockPreviewTitle(block)}</span>
-      <button class="block-ctrl-btn up" title="Yuqoriga" onclick="moveBlock(${block.id},-1)" ${idx===0?'disabled':''}>↑</button>
-      <button class="block-ctrl-btn dn" title="Pastga" onclick="moveBlock(${block.id},1)" ${idx===total-1?'disabled':''}>↓</button>
-      <button class="block-ctrl-btn dup" title="Nusxa" onclick="duplicateBlock(${block.id})">⧉</button>
-      <button class="block-ctrl-btn del" title="O'chirish" onclick="deleteBlock(${block.id})">✕</button>
-    </div>
-    <div class="block-body" id="block-body-${block.id}">
-      ${buildBlockEditor(block)}
-    </div>`;
+  card.className = 'block-card'; card.dataset.id = block.id;
+  const typeColors = {heading:'#e63946',vocab:'#457b9d',dialog:'#2a9d8f',fill_blank:'#2a9d8f',match:'#e76f51',quiz:'#6a4c93',crossword:'#264653',image:'#555',audio_text:'#1d3557',table:'#333',hr:'#aaa'};
+  const typeNames = {heading:'Sarlavha',vocab:"So'zlar",dialog:'Dialog',fill_blank:"Bo'sh joy",match:'Moslashtir',quiz:'Test',crossword:'Krossvord',image:'Rasm',audio_text:'Matn+Ovoz',table:'Jadval',hr:'Chiziq'};
+  card.innerHTML = '<div class="block-header"><span class="block-drag">⠿</span><span class="block-type-badge" style="background:' + (typeColors[block.type] || '#888') + '">' + (typeNames[block.type] || block.type) + '</span><span class="block-header-title">' + getBlockPreviewTitle(block) + '</span><button class="block-ctrl-btn up" title="Yuqoriga" onclick="moveBlock(' + block.id + ',-1)"' + (idx === 0 ? ' disabled' : '') + '>↑</button><button class="block-ctrl-btn dn" title="Pastga" onclick="moveBlock(' + block.id + ',1)"' + (idx === total - 1 ? ' disabled' : '') + '>↓</button><button class="block-ctrl-btn dup" title="Nusxa" onclick="duplicateBlock(' + block.id + ')">⧉</button><button class="block-ctrl-btn del" title="O\'chirish" onclick="deleteBlock(' + block.id + ')">✕</button></div><div class="block-body" id="block-body-' + block.id + '">' + buildBlockEditor(block) + '</div>';
   return card;
 }
-
 function getBlockPreviewTitle(block) {
   const d = block.data;
   if (block.type === 'heading') return d.text || '';
-  if (block.type === 'vocab') return d.title || 'So\'zlar ro\'yxati';
+  if (block.type === 'vocab') return d.title || "So'zlar ro'yxati";
   if (block.type === 'dialog') return d.title || 'Dialog';
   if (block.type === 'fill_blank') return d.title || 'Mashq';
   if (block.type === 'match') return d.title || 'Moslashtirish';
   if (block.type === 'quiz') return d.title || 'Test';
   if (block.type === 'crossword') return d.title || 'Krossvord';
   if (block.type === 'image') return d.caption || 'Rasm';
-  if (block.type === 'audio_text') return (d.text||'').slice(0,40)+'...';
+  if (block.type === 'audio_text') return (d.text || '').slice(0, 40) + '...';
   if (block.type === 'table') return d.title || 'Jadval';
   if (block.type === 'hr') return 'Ajratuvchi chiziq';
   return '';
 }
-
-// ═══════════════════════════════════════════════════════════
-// BLOCK EDITORS (inline forms)
-// ═══════════════════════════════════════════════════════════
 function buildBlockEditor(block) {
-  const id = block.id; const d = block.data;
-  switch(block.type) {
+  const id = block.id, d = block.data;
+  switch (block.type) {
     case 'heading': return buildHeadingEditor(id, d);
-    case 'hr':      return buildHrEditor(id, d);
-    case 'vocab':   return buildVocabEditor(id, d);
-    case 'dialog':  return buildDialogEditor(id, d);
+    case 'hr': return buildHrEditor(id, d);
+    case 'vocab': return buildVocabEditor(id, d);
+    case 'dialog': return buildDialogEditor(id, d);
     case 'fill_blank': return buildFillBlankEditor(id, d);
-    case 'match':   return buildMatchEditor(id, d);
-    case 'quiz':    return buildQuizEditor(id, d);
+    case 'match': return buildMatchEditor(id, d);
+    case 'quiz': return buildQuizEditor(id, d);
     case 'crossword': return buildCrosswordEditor(id, d);
-    case 'image':   return buildImageEditor(id, d);
+    case 'image': return buildImageEditor(id, d);
     case 'audio_text': return buildAudioTextEditor(id, d);
-    case 'table':   return buildTableEditor(id, d);
-    default:        return `<p style="color:var(--gray);font-size:13px">Bu blok turi hali sozlanmagan.</p>`;
+    case 'table': return buildTableEditor(id, d);
+    default: return '<p style="color:var(--gray);font-size:13px">Sozlanmagan</p>';
   }
 }
-
 function buildHeadingEditor(id, d) {
-  return `
-  <div class="field-row"><label>Matn</label>
-    <input class="f-input" value="${esc(d.text||'')}" oninput="updateBlockField(${id},'text',this.value)" placeholder="Sarlavha matni...">
-  </div>
-  <div class="field-row"><label>Daraja</label>
-    <select class="f-select" onchange="updateBlockField(${id},'level',parseInt(this.value))">
-      ${[1,2,3,4].map(n=>`<option value="${n}" ${d.level==n?'selected':''}>H${n}</option>`).join('')}
-    </select>
-    <label style="margin-left:12px">Rang</label>
-    <input type="color" class="f-color" value="${d.color||'#e63946'}" oninput="updateBlockField(${id},'color',this.value)">
-  </div>`;
+  return '<div class="field-row"><label>Matn</label><input class="f-input" value="' + esc(d.text || '') + '" oninput="updateBlockField(' + id + ',\'text\',this.value)"></div><div class="field-row"><label>Daraja</label><select class="f-select" onchange="updateBlockField(' + id + ',\'level\',parseInt(this.value))">' + [1,2,3,4].map(n => '<option value="' + n + '"' + (d.level == n ? ' selected' : '') + '>H' + n + '</option>').join('') + '</select><label style="margin-left:12px">Rang</label><input type="color" class="f-color" value="' + (d.color || '#e63946') + '" oninput="updateBlockField(' + id + ',\'color\',this.value)"></div>';
 }
-
 function buildHrEditor(id, d) {
-  return `<div class="field-row"><label>Rang</label>
-    <input type="color" class="f-color" value="${d.color||'#e63946'}" oninput="updateBlockField(${id},'color',this.value)">
-    <label style="margin-left:12px">Qalinlik</label>
-    <input type="number" class="f-input" style="width:60px" min="1" max="10" value="${d.height||3}" oninput="updateBlockField(${id},'height',parseInt(this.value))">px
-  </div>`;
+  return '<div class="field-row"><label>Rang</label><input type="color" class="f-color" value="' + (d.color || '#e63946') + '" oninput="updateBlockField(' + id + ',\'color\',this.value)"><label style="margin-left:12px">Qalinlik</label><input type="number" class="f-input" style="width:60px" min="1" max="10" value="' + (d.height || 3) + '" oninput="updateBlockField(' + id + ',\'height\',parseInt(this.value))">px</div>';
 }
-
 function buildVocabEditor(id, d) {
-  const items = (d.items||[]).map((item,i) => `
-    <div class="item-row" id="vitem-${id}-${i}">
-      <input class="f-input" placeholder="Rus tili" value="${esc(item.ru||'')}" oninput="updateVocabItem(${id},${i},'ru',this.value)">
-      <input class="f-input" placeholder="Tarjima" value="${esc(item.uz||'')}" oninput="updateVocabItem(${id},${i},'uz',this.value)">
-      <button class="item-del" onclick="removeVocabItem(${id},${i})">✕</button>
-    </div>`).join('');
-  return `
-  <div class="field-row"><label>Sarlavha</label>
-    <input class="f-input" value="${esc(d.title||'Новые слова')}" oninput="updateBlockField(${id},'title',this.value)">
-    <label style="margin-left:8px">Rang</label>
-    <input type="color" class="f-color" value="${d.bar_color||'#457b9d'}" oninput="updateBlockField(${id},'bar_color',this.value)">
-  </div>
-  <div class="item-list" id="vlist-${id}">${items}</div>
-  <button class="add-item-btn" onclick="addVocabItem(${id})">+ So'z qo'shish</button>`;
+  const items = (d.items || []).map((item, i) => '<div class="item-row"><input class="f-input" placeholder="Rus tili" value="' + esc(item.ru || '') + '" oninput="updateVocabItem(' + id + ',' + i + ',\'ru\',this.value)"><input class="f-input" placeholder="Tarjima" value="' + esc(item.uz || '') + '" oninput="updateVocabItem(' + id + ',' + i + ',\'uz\',this.value)"><button class="item-del" onclick="removeVocabItem(' + id + ',' + i + ')">✕</button></div>').join('');
+  return '<div class="field-row"><label>Sarlavha</label><input class="f-input" value="' + esc(d.title || 'Новые слова') + '" oninput="updateBlockField(' + id + ',\'title\',this.value)"><label style="margin-left:8px">Rang</label><input type="color" class="f-color" value="' + (d.bar_color || '#457b9d') + '" oninput="updateBlockField(' + id + ',\'bar_color\',this.value)"></div><div class="item-list" id="vlist-' + id + '">' + items + '</div><button class="add-item-btn" onclick="addVocabItem(' + id + ')">+ So\'z qo\'shish</button>';
 }
-
 function buildDialogEditor(id, d) {
-  const lines = (d.lines||[]).map((l,i) => `
-    <div class="item-row">
-      <select class="f-select" style="width:60px;flex:0" onchange="updateDialogLine(${id},${i},'speaker',this.value)">
-        <option ${l.speaker==='A'?'selected':''}>A</option>
-        <option ${l.speaker==='B'?'selected':''}>B</option>
-      </select>
-      <input class="f-input" value="${esc(l.text||'')}" oninput="updateDialogLine(${id},${i},'text',this.value)">
-      <button class="item-del" onclick="removeDialogLine(${id},${i})">✕</button>
-    </div>`).join('');
-  return `
-  <div class="field-row"><label>Sarlavha</label>
-    <input class="f-input" value="${esc(d.title||'Диалог')}" oninput="updateBlockField(${id},'title',this.value)">
-  </div>
-  <div class="item-list" id="dlist-${id}">${lines}</div>
-  <button class="add-item-btn" onclick="addDialogLine(${id})">+ Qator qo'shish</button>`;
+  const lines = (d.lines || []).map((l, i) => '<div class="item-row"><select class="f-select" style="width:60px;flex:0" onchange="updateDialogLine(' + id + ',' + i + ',\'speaker\',this.value)"><option' + (l.speaker === 'A' ? ' selected' : '') + '>A</option><option' + (l.speaker === 'B' ? ' selected' : '') + '>B</option></select><input class="f-input" value="' + esc(l.text || '') + '" oninput="updateDialogLine(' + id + ',' + i + ',\'text\',this.value)"><button class="item-del" onclick="removeDialogLine(' + id + ',' + i + ')">✕</button></div>').join('');
+  return '<div class="field-row"><label>Sarlavha</label><input class="f-input" value="' + esc(d.title || 'Диалог') + '" oninput="updateBlockField(' + id + ',\'title\',this.value)"></div><div class="item-list" id="dlist-' + id + '">' + lines + '</div><button class="add-item-btn" onclick="addDialogLine(' + id + ')">+ Qator qo\'shish</button>';
 }
-
 function buildFillBlankEditor(id, d) {
-  const items = (d.items||[]).map((item,i) => `
-    <div class="item-row">
-      <input class="f-input" placeholder="Oldin" value="${esc(item.pre||'')}" oninput="updateFBItem(${id},${i},'pre',this.value)">
-      <input class="f-input" placeholder="Javob" value="${esc(item.answer||'')}" oninput="updateFBItem(${id},${i},'answer',this.value)" style="border-color:var(--green)">
-      <input class="f-input" placeholder="Keyin" value="${esc(item.post||'')}" oninput="updateFBItem(${id},${i},'post',this.value)">
-      <button class="item-del" onclick="removeFBItem(${id},${i})">✕</button>
-    </div>`).join('');
-  return `
-  <div class="field-row"><label>Sarlavha</label>
-    <input class="f-input" value="${esc(d.title||'Упражнение')}" oninput="updateBlockField(${id},'title',this.value)">
-    <label style="margin-left:8px">Rang</label>
-    <input type="color" class="f-color" value="${d.bar_color||'#2a9d8f'}" oninput="updateBlockField(${id},'bar_color',this.value)">
-  </div>
-  <div class="field-row"><label>Ko'rsatma</label>
-    <input class="f-input" value="${esc(d.instruction||'')}" oninput="updateBlockField(${id},'instruction',this.value)">
-  </div>
-  <div class="item-list" id="fblist-${id}">${items}</div>
-  <button class="add-item-btn" onclick="addFBItem(${id})">+ Satr qo'shish</button>`;
+  const items = (d.items || []).map((item, i) => '<div class="item-row"><input class="f-input" placeholder="Oldin" value="' + esc(item.pre || '') + '" oninput="updateFBItem(' + id + ',' + i + ',\'pre\',this.value)"><input class="f-input" placeholder="Javob" value="' + esc(item.answer || '') + '" oninput="updateFBItem(' + id + ',' + i + ',\'answer\',this.value)" style="border-color:var(--green)"><input class="f-input" placeholder="Keyin" value="' + esc(item.post || '') + '" oninput="updateFBItem(' + id + ',' + i + ',\'post\',this.value)"><button class="item-del" onclick="removeFBItem(' + id + ',' + i + ')">✕</button></div>').join('');
+  return '<div class="field-row"><label>Sarlavha</label><input class="f-input" value="' + esc(d.title || 'Упражнение') + '" oninput="updateBlockField(' + id + ',\'title\',this.value)"><label style="margin-left:8px">Rang</label><input type="color" class="f-color" value="' + (d.bar_color || '#2a9d8f') + '" oninput="updateBlockField(' + id + ',\'bar_color\',this.value)"></div><div class="field-row"><label>Ko\'rsatma</label><input class="f-input" value="' + esc(d.instruction || '') + '" oninput="updateBlockField(' + id + ',\'instruction\',this.value)"></div><div class="item-list" id="fblist-' + id + '">' + items + '</div><button class="add-item-btn" onclick="addFBItem(' + id + ')">+ Satr qo\'shish</button>';
 }
-
 function buildMatchEditor(id, d) {
-  const pairs = (d.pairs||[]).map((p,i) => `
-    <div class="item-row">
-      <input class="f-input" placeholder="Chap" value="${esc(p.left||'')}" oninput="updateMatchPair(${id},${i},'left',this.value)">
-      <span style="color:var(--gray);flex-shrink:0">↔</span>
-      <input class="f-input" placeholder="O'ng" value="${esc(p.right||'')}" oninput="updateMatchPair(${id},${i},'right',this.value)">
-      <button class="item-del" onclick="removeMatchPair(${id},${i})">✕</button>
-    </div>`).join('');
-  return `
-  <div class="field-row"><label>Sarlavha</label>
-    <input class="f-input" value="${esc(d.title||'Moslashtiring')}" oninput="updateBlockField(${id},'title',this.value)">
-    <label style="margin-left:8px">Rang</label>
-    <input type="color" class="f-color" value="${d.bar_color||'#e76f51'}" oninput="updateBlockField(${id},'bar_color',this.value)">
-  </div>
-  <div class="item-list" id="mlist-${id}">${pairs}</div>
-  <button class="add-item-btn" onclick="addMatchPair(${id})">+ Juft qo'shish</button>`;
+  const pairs = (d.pairs || []).map((p, i) => '<div class="item-row"><input class="f-input" placeholder="Chap" value="' + esc(p.left || '') + '" oninput="updateMatchPair(' + id + ',' + i + ',\'left\',this.value)"><span style="color:var(--gray);flex-shrink:0">↔</span><input class="f-input" placeholder="O\'ng" value="' + esc(p.right || '') + '" oninput="updateMatchPair(' + id + ',' + i + ',\'right\',this.value)"><button class="item-del" onclick="removeMatchPair(' + id + ',' + i + ')">✕</button></div>').join('');
+  return '<div class="field-row"><label>Sarlavha</label><input class="f-input" value="' + esc(d.title || 'Соедините') + '" oninput="updateBlockField(' + id + ',\'title\',this.value)"><label style="margin-left:8px">Rang</label><input type="color" class="f-color" value="' + (d.bar_color || '#e76f51') + '" oninput="updateBlockField(' + id + ',\'bar_color\',this.value)"></div><div class="item-list" id="mlist-' + id + '">' + pairs + '</div><button class="add-item-btn" onclick="addMatchPair(' + id + ')">+ Juft qo\'shish</button>';
 }
-
 function buildQuizEditor(id, d) {
-  const qs = (d.questions||[]).map((q,qi) => `
-    <div style="border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px">
-      <div class="field-row">
-        <label>Savol ${qi+1}</label>
-        <input class="f-input" value="${esc(q.q||'')}" oninput="updateQuizQ(${id},${qi},'q',this.value)">
-        <button class="item-del" onclick="removeQuizQ(${id},${qi})">✕</button>
-      </div>
-      ${(q.options||[]).map((opt,oi) => `
-        <div class="item-row">
-          <input type="radio" name="qcorr-${id}-${qi}" ${q.correct===oi?'checked':''} onchange="updateQuizQ(${id},${qi},'correct',${oi})" style="flex-shrink:0">
-          <input class="f-input" value="${esc(opt)}" oninput="updateQuizOpt(${id},${qi},${oi},this.value)">
-          <button class="item-del" onclick="removeQuizOpt(${id},${qi},${oi})">✕</button>
-        </div>`).join('')}
-      <button class="add-item-btn" onclick="addQuizOpt(${id},${qi})" style="margin-top:4px">+ Variant qo'shish</button>
-    </div>`).join('');
-  return `
-  <div class="field-row"><label>Sarlavha</label>
-    <input class="f-input" value="${esc(d.title||'Test')}" oninput="updateBlockField(${id},'title',this.value)">
-    <label style="margin-left:8px">Rang</label>
-    <input type="color" class="f-color" value="${d.bar_color||'#6a4c93'}" oninput="updateBlockField(${id},'bar_color',this.value)">
-  </div>
-  <div id="qlist-${id}">${qs}</div>
-  <button class="add-item-btn" onclick="addQuizQ(${id})">+ Savol qo'shish</button>`;
+  const qs = (d.questions || []).map((q, qi) => {
+    const opts = (q.options || []).map((opt, oi) => '<div class="item-row"><input type="radio" name="qcorr-' + id + '-' + qi + '"' + (q.correct === oi ? ' checked' : '') + ' onchange="updateQuizQ(' + id + ',' + qi + ',\'correct\',' + oi + ')" style="flex-shrink:0"><input class="f-input" value="' + esc(opt) + '" oninput="updateQuizOpt(' + id + ',' + qi + ',' + oi + ',this.value)"><button class="item-del" onclick="removeQuizOpt(' + id + ',' + qi + ',' + oi + ')">✕</button></div>').join('');
+    return '<div style="border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px"><div class="field-row"><label>Savol ' + (qi+1) + '</label><input class="f-input" value="' + esc(q.q || '') + '" oninput="updateQuizQ(' + id + ',' + qi + ',\'q\',this.value)"><button class="item-del" onclick="removeQuizQ(' + id + ',' + qi + ')">✕</button></div>' + opts + '<button class="add-item-btn" onclick="addQuizOpt(' + id + ',' + qi + ')" style="margin-top:4px">+ Variant qo\'shish</button></div>';
+  }).join('');
+  return '<div class="field-row"><label>Sarlavha</label><input class="f-input" value="' + esc(d.title || 'Test') + '" oninput="updateBlockField(' + id + ',\'title\',this.value)"><label style="margin-left:8px">Rang</label><input type="color" class="f-color" value="' + (d.bar_color || '#6a4c93') + '" oninput="updateBlockField(' + id + ',\'bar_color\',this.value)"></div><div id="qlist-' + id + '">' + qs + '</div><button class="add-item-btn" onclick="addQuizQ(' + id + ')">+ Savol qo\'shish</button>';
 }
-
 function buildCrosswordEditor(id, d) {
-  const words = (d.words||[]).map((w,i) => `
-    <div class="item-row">
-      <input class="f-input" placeholder="So'z" value="${esc(w.word||'')}" oninput="updateCWWord(${id},${i},'word',this.value)" style="text-transform:uppercase">
-      <select class="f-select" style="width:80px;flex:0" onchange="updateCWWord(${id},${i},'dir',this.value)">
-        <option value="across" ${w.dir==='across'?'selected':''}>→</option>
-        <option value="down" ${w.dir==='down'?'selected':''}>↓</option>
-      </select>
-      <input type="number" class="f-input" style="width:50px" min="0" value="${w.row||0}" oninput="updateCWWord(${id},${i},'row',parseInt(this.value))" placeholder="R">
-      <input type="number" class="f-input" style="width:50px" min="0" value="${w.col||0}" oninput="updateCWWord(${id},${i},'col',parseInt(this.value))" placeholder="C">
-      <input class="f-input" placeholder="Izoh" value="${esc(w.clue||'')}" oninput="updateCWWord(${id},${i},'clue',this.value)">
-      <button class="item-del" onclick="removeCWWord(${id},${i})">✕</button>
-    </div>`).join('');
-  return `
-  <div class="field-row"><label>Sarlavha</label>
-    <input class="f-input" value="${esc(d.title||'Кроссворд')}" oninput="updateBlockField(${id},'title',this.value)">
-  </div>
-  <p style="font-size:12px;color:var(--gray);margin-bottom:8px">So'z, yo'nalish, boshlanish qatori (R) va ustuni (C) kiriting:</p>
-  <div id="cwlist-${id}">${words}</div>
-  <button class="add-item-btn" onclick="addCWWord(${id})">+ So'z qo'shish</button>`;
+  const words = (d.words || []).map((w, i) => '<div class="item-row"><input class="f-input" placeholder="So\'z" value="' + esc(w.word || '') + '" oninput="updateCWWord(' + id + ',' + i + ',\'word\',this.value)" style="text-transform:uppercase"><select class="f-select" style="width:80px;flex:0" onchange="updateCWWord(' + id + ',' + i + ',\'dir\',this.value)"><option value="across"' + (w.dir === 'across' ? ' selected' : '') + '>→</option><option value="down"' + (w.dir === 'down' ? ' selected' : '') + '>↓</option></select><input type="number" class="f-input" style="width:50px" min="0" value="' + (w.row || 0) + '" oninput="updateCWWord(' + id + ',' + i + ',\'row\',parseInt(this.value))" placeholder="R"><input type="number" class="f-input" style="width:50px" min="0" value="' + (w.col || 0) + '" oninput="updateCWWord(' + id + ',' + i + ',\'col\',parseInt(this.value))" placeholder="C"><input class="f-input" placeholder="Izoh" value="' + esc(w.clue || '') + '" oninput="updateCWWord(' + id + ',' + i + ',\'clue\',this.value)"><button class="item-del" onclick="removeCWWord(' + id + ',' + i + ')">✕</button></div>').join('');
+  return '<div class="field-row"><label>Sarlavha</label><input class="f-input" value="' + esc(d.title || 'Кроссворд') + '" oninput="updateBlockField(' + id + ',\'title\',this.value)"></div><p style="font-size:12px;color:var(--gray);margin-bottom:8px">So\'z, yo\'nalish, R (qator) va C (ustun):</p><div id="cwlist-' + id + '">' + words + '</div><button class="add-item-btn" onclick="addCWWord(' + id + ')">+ So\'z qo\'shish</button>';
 }
-
 function buildImageEditor(id, d) {
-  return `
-  <div class="field-row"><label>Fayl</label>
-    <input type="file" accept="image/*" onchange="uploadImage(${id},this)" style="font-size:13px;flex:1">
-  </div>
-  <div class="field-row"><label>URL</label>
-    <input class="f-input" value="${esc(d.url||'')}" oninput="updateBlockField(${id},'url',this.value)" placeholder="yoki URL kiriting">
-  </div>
-  <div class="field-row"><label>Izoh</label>
-    <input class="f-input" value="${esc(d.caption||'')}" oninput="updateBlockField(${id},'caption',this.value)">
-  </div>
-  <div class="field-row"><label>Kenglik</label>
-    <input type="range" min="20" max="100" value="${d.width||100}" oninput="updateBlockField(${id},'width',parseInt(this.value));this.nextSibling.textContent=this.value+'%'">
-    <span style="font-size:12px;min-width:35px">${d.width||100}%</span>
-  </div>
-  ${d.url ? `<img src="${d.url}" class="img-preview">` : ''}`;
+  return '<div class="field-row"><label>Fayl</label><input type="file" accept="image/*" onchange="uploadImage(' + id + ',this)" style="font-size:13px;flex:1"></div><div class="field-row"><label>URL</label><input class="f-input" value="' + esc(d.url || '') + '" oninput="updateBlockField(' + id + ',\'url\',this.value)" placeholder="yoki URL kiriting"></div><div class="field-row"><label>Izoh</label><input class="f-input" value="' + esc(d.caption || '') + '" oninput="updateBlockField(' + id + ',\'caption\',this.value)"></div>' + (d.url ? '<img src="' + d.url + '" class="img-preview">' : '');
 }
-
 function buildAudioTextEditor(id, d) {
-  return `
-  <div class="field-row"><label>Matn</label></div>
-  <textarea class="f-textarea" placeholder="O'qiladigan matn..." oninput="updateBlockField(${id},'text',this.value)">${esc(d.text||'')}</textarea>
-  <div class="field-row" style="margin-top:8px"><label>Audio</label>
-    <input type="file" accept="audio/*" onchange="uploadAudio(${id},this)" style="font-size:13px;flex:1">
-  </div>
-  ${d.audio ? `<audio controls src="${d.audio}" style="width:100%;margin-top:6px"></audio>` : ''}`;
+  return '<div class="field-row"><label>Matn</label></div><textarea class="f-textarea" placeholder="O\'qiladigan matn..." oninput="updateBlockField(' + id + ',\'text\',this.value)">' + esc(d.text || '') + '</textarea><div class="field-row" style="margin-top:8px"><label>Audio</label><input type="file" accept="audio/*" onchange="uploadAudio(' + id + ',this)" style="font-size:13px;flex:1"></div>' + (d.audio ? '<audio controls src="' + d.audio + '" style="width:100%;margin-top:6px"></audio>' : '');
 }
-
 function buildTableEditor(id, d) {
   const headers = d.headers || ['', ''];
   const rows = d.rows || [['', '']];
-  const hrow = headers.map((h,i) => `
-    <input class="f-input" style="flex:1" value="${esc(h)}" placeholder="Ustun ${i+1}" oninput="updateTableHeader(${id},${i},this.value)">`).join('');
-  const trows = rows.map((row,ri) => `
-    <div class="item-row">
-      ${row.map((cell,ci) => `<input class="f-input" style="flex:1" value="${esc(cell)}" oninput="updateTableCell(${id},${ri},${ci},this.value)">`).join('')}
-      <button class="item-del" onclick="removeTableRow(${id},${ri})">✕</button>
-    </div>`).join('');
-  return `
-  <div class="field-row"><label>Sarlavha</label>
-    <input class="f-input" value="${esc(d.title||'')}" oninput="updateBlockField(${id},'title',this.value)">
-  </div>
-  <p style="font-size:12px;color:var(--gray);margin-bottom:6px">Ustun sarlavhalari:</p>
-  <div class="item-row" id="theaders-${id}">${hrow}
-    <button class="add-item-btn" style="width:auto;padding:4px 10px" onclick="addTableCol(${id})">+</button>
-  </div>
-  <div id="trows-${id}">${trows}</div>
-  <button class="add-item-btn" onclick="addTableRow(${id})">+ Qator qo'shish</button>`;
+  const hrow = headers.map((h, i) => '<input class="f-input" style="flex:1" value="' + esc(h) + '" placeholder="Ustun ' + (i+1) + '" oninput="updateTableHeader(' + id + ',' + i + ',this.value)">').join('');
+  const trows = rows.map((row, ri) => '<div class="item-row">' + row.map((cell, ci) => '<input class="f-input" style="flex:1" value="' + esc(cell) + '" oninput="updateTableCell(' + id + ',' + ri + ',' + ci + ',this.value)">').join('') + '<button class="item-del" onclick="removeTableRow(' + id + ',' + ri + ')">✕</button></div>').join('');
+  return '<div class="field-row"><label>Sarlavha</label><input class="f-input" value="' + esc(d.title || '') + '" oninput="updateBlockField(' + id + ',\'title\',this.value)"></div><p style="font-size:12px;color:var(--gray);margin-bottom:6px">Ustun sarlavhalari:</p><div class="item-row" id="theaders-' + id + '">' + hrow + '<button class="add-item-btn" style="width:auto;padding:4px 10px" onclick="addTableCol(' + id + ')">+</button></div><div id="trows-' + id + '">' + trows + '</div><button class="add-item-btn" onclick="addTableRow(' + id + ')">+ Qator qo\'shish</button>';
 }
 
 // ═══════════════════════════════════════════════════════════
 // BLOCK DATA UPDATERS
 // ═══════════════════════════════════════════════════════════
 function getBlock(id) { return state.blocks.find(b => b.id === id); }
-
 async function saveBlock(id) {
-  const b = getBlock(id);
-  if (!b) return;
-  await api('PUT', `/api/blocks/${id}`, {data: b.data});
+  const b = getBlock(id); if (!b) return;
+  await api('PUT', '/api/blocks/' + id, {data: b.data});
   if (state.studentOpen) renderStudentView();
 }
-
-function updateBlockField(id, field, value) {
-  const b = getBlock(id);
-  if (!b) return;
-  b.data[field] = value;
-  saveBlock(id);
-}
-
-// vocab
-function updateVocabItem(id, i, field, value) {
-  const b = getBlock(id); b.data.items[i][field] = value; saveBlock(id);
-}
-function addVocabItem(id) {
-  const b = getBlock(id);
-  b.data.items = b.data.items || [];
-  b.data.items.push({ru:'', uz:'', audio:''});
-  saveBlock(id); rerenderBlockEditor(id);
-}
-function removeVocabItem(id, i) {
-  const b = getBlock(id); b.data.items.splice(i,1); saveBlock(id); rerenderBlockEditor(id);
-}
-
-// dialog
-function updateDialogLine(id, i, field, value) {
-  const b = getBlock(id); b.data.lines[i][field] = value; saveBlock(id);
-}
-function addDialogLine(id) {
-  const b = getBlock(id);
-  b.data.lines = b.data.lines || [];
-  b.data.lines.push({speaker:'A', text:''});
-  saveBlock(id); rerenderBlockEditor(id);
-}
-function removeDialogLine(id, i) {
-  const b = getBlock(id); b.data.lines.splice(i,1); saveBlock(id); rerenderBlockEditor(id);
-}
-
-// fill blank
-function updateFBItem(id, i, field, value) {
-  const b = getBlock(id); b.data.items[i][field] = value; saveBlock(id);
-}
-function addFBItem(id) {
-  const b = getBlock(id);
-  b.data.items = b.data.items || [];
-  b.data.items.push({pre:'', answer:'', post:''});
-  saveBlock(id); rerenderBlockEditor(id);
-}
-function removeFBItem(id, i) {
-  const b = getBlock(id); b.data.items.splice(i,1); saveBlock(id); rerenderBlockEditor(id);
-}
-
-// match
-function updateMatchPair(id, i, field, value) {
-  const b = getBlock(id); b.data.pairs[i][field] = value; saveBlock(id);
-}
-function addMatchPair(id) {
-  const b = getBlock(id);
-  b.data.pairs = b.data.pairs || [];
-  b.data.pairs.push({left:'', right:''});
-  saveBlock(id); rerenderBlockEditor(id);
-}
-function removeMatchPair(id, i) {
-  const b = getBlock(id); b.data.pairs.splice(i,1); saveBlock(id); rerenderBlockEditor(id);
-}
-
-// quiz
-function updateQuizQ(id, qi, field, value) {
-  const b = getBlock(id); b.data.questions[qi][field] = value; saveBlock(id);
-}
-function updateQuizOpt(id, qi, oi, value) {
-  const b = getBlock(id); b.data.questions[qi].options[oi] = value; saveBlock(id);
-}
-function addQuizQ(id) {
-  const b = getBlock(id);
-  b.data.questions = b.data.questions || [];
-  b.data.questions.push({q:'', options:['',''], correct:0});
-  saveBlock(id); rerenderBlockEditor(id);
-}
-function removeQuizQ(id, qi) {
-  const b = getBlock(id); b.data.questions.splice(qi,1); saveBlock(id); rerenderBlockEditor(id);
-}
-function addQuizOpt(id, qi) {
-  const b = getBlock(id); b.data.questions[qi].options.push(''); saveBlock(id); rerenderBlockEditor(id);
-}
-function removeQuizOpt(id, qi, oi) {
-  const b = getBlock(id); b.data.questions[qi].options.splice(oi,1); saveBlock(id); rerenderBlockEditor(id);
-}
-
-// crossword
-function updateCWWord(id, i, field, value) {
-  const b = getBlock(id); b.data.words[i][field] = field==='word'?value.toUpperCase():value; saveBlock(id);
-}
-function addCWWord(id) {
-  const b = getBlock(id);
-  b.data.words = b.data.words || [];
-  b.data.words.push({word:'', dir:'across', row:0, col:0, clue:''});
-  saveBlock(id); rerenderBlockEditor(id);
-}
-function removeCWWord(id, i) {
-  const b = getBlock(id); b.data.words.splice(i,1); saveBlock(id); rerenderBlockEditor(id);
-}
-
-// table
-function updateTableHeader(id, i, value) {
-  const b = getBlock(id); b.data.headers[i] = value; saveBlock(id);
-}
-function updateTableCell(id, ri, ci, value) {
-  const b = getBlock(id); b.data.rows[ri][ci] = value; saveBlock(id);
-}
-function addTableRow(id) {
-  const b = getBlock(id);
-  const cols = (b.data.headers||[]).length || 2;
-  b.data.rows.push(Array(cols).fill(''));
-  saveBlock(id); rerenderBlockEditor(id);
-}
-function removeTableRow(id, ri) {
-  const b = getBlock(id); b.data.rows.splice(ri,1); saveBlock(id); rerenderBlockEditor(id);
-}
-function addTableCol(id) {
-  const b = getBlock(id);
-  b.data.headers.push('');
-  b.data.rows.forEach(r => r.push(''));
-  saveBlock(id); rerenderBlockEditor(id);
-}
-
-// uploads
-async function uploadImage(id, input) {
-  const f = input.files[0]; if (!f) return;
-  const fd = new FormData(); fd.append('file', f);
-  const r = await fetch('/api/upload/image', {method:'POST', body:fd});
-  const j = await r.json();
-  updateBlockField(id, 'url', j.url);
-  rerenderBlockEditor(id);
-}
-async function uploadAudio(id, input) {
-  const f = input.files[0]; if (!f) return;
-  const fd = new FormData(); fd.append('file', f);
-  const r = await fetch('/api/upload/audio', {method:'POST', body:fd});
-  const j = await r.json();
-  updateBlockField(id, 'audio', j.url);
-  rerenderBlockEditor(id);
-}
-
-function rerenderBlockEditor(id) {
-  const b = getBlock(id);
-  const el = document.getElementById(`block-body-${id}`);
-  if (el && b) el.innerHTML = buildBlockEditor(b);
-}
+function updateBlockField(id, field, value) { const b = getBlock(id); if (!b) return; b.data[field] = value; saveBlock(id); }
+function updateVocabItem(id,i,f,v){ const b=getBlock(id); b.data.items[i][f]=v; saveBlock(id); }
+function addVocabItem(id){ const b=getBlock(id); b.data.items=b.data.items||[]; b.data.items.push({ru:'',uz:'',audio:''}); saveBlock(id); rerenderBlockEditor(id); }
+function removeVocabItem(id,i){ const b=getBlock(id); b.data.items.splice(i,1); saveBlock(id); rerenderBlockEditor(id); }
+function updateDialogLine(id,i,f,v){ const b=getBlock(id); b.data.lines[i][f]=v; saveBlock(id); }
+function addDialogLine(id){ const b=getBlock(id); b.data.lines=b.data.lines||[]; b.data.lines.push({speaker:'A',text:''}); saveBlock(id); rerenderBlockEditor(id); }
+function removeDialogLine(id,i){ const b=getBlock(id); b.data.lines.splice(i,1); saveBlock(id); rerenderBlockEditor(id); }
+function updateFBItem(id,i,f,v){ const b=getBlock(id); b.data.items[i][f]=v; saveBlock(id); }
+function addFBItem(id){ const b=getBlock(id); b.data.items=b.data.items||[]; b.data.items.push({pre:'',answer:'',post:''}); saveBlock(id); rerenderBlockEditor(id); }
+function removeFBItem(id,i){ const b=getBlock(id); b.data.items.splice(i,1); saveBlock(id); rerenderBlockEditor(id); }
+function updateMatchPair(id,i,f,v){ const b=getBlock(id); b.data.pairs[i][f]=v; saveBlock(id); }
+function addMatchPair(id){ const b=getBlock(id); b.data.pairs=b.data.pairs||[]; b.data.pairs.push({left:'',right:''}); saveBlock(id); rerenderBlockEditor(id); }
+function removeMatchPair(id,i){ const b=getBlock(id); b.data.pairs.splice(i,1); saveBlock(id); rerenderBlockEditor(id); }
+function updateQuizQ(id,qi,f,v){ const b=getBlock(id); b.data.questions[qi][f]=v; saveBlock(id); }
+function updateQuizOpt(id,qi,oi,v){ const b=getBlock(id); b.data.questions[qi].options[oi]=v; saveBlock(id); }
+function addQuizQ(id){ const b=getBlock(id); b.data.questions=b.data.questions||[]; b.data.questions.push({q:'',options:['',''],correct:0}); saveBlock(id); rerenderBlockEditor(id); }
+function removeQuizQ(id,qi){ const b=getBlock(id); b.data.questions.splice(qi,1); saveBlock(id); rerenderBlockEditor(id); }
+function addQuizOpt(id,qi){ const b=getBlock(id); b.data.questions[qi].options.push(''); saveBlock(id); rerenderBlockEditor(id); }
+function removeQuizOpt(id,qi,oi){ const b=getBlock(id); b.data.questions[qi].options.splice(oi,1); saveBlock(id); rerenderBlockEditor(id); }
+function updateCWWord(id,i,f,v){ const b=getBlock(id); b.data.words[i][f]=f==='word'?v.toUpperCase():v; saveBlock(id); }
+function addCWWord(id){ const b=getBlock(id); b.data.words=b.data.words||[]; b.data.words.push({word:'',dir:'across',row:0,col:0,clue:''}); saveBlock(id); rerenderBlockEditor(id); }
+function removeCWWord(id,i){ const b=getBlock(id); b.data.words.splice(i,1); saveBlock(id); rerenderBlockEditor(id); }
+function updateTableHeader(id,i,v){ const b=getBlock(id); b.data.headers[i]=v; saveBlock(id); }
+function updateTableCell(id,ri,ci,v){ const b=getBlock(id); b.data.rows[ri][ci]=v; saveBlock(id); }
+function addTableRow(id){ const b=getBlock(id); const cols=(b.data.headers||[]).length||2; b.data.rows.push(Array(cols).fill('')); saveBlock(id); rerenderBlockEditor(id); }
+function removeTableRow(id,ri){ const b=getBlock(id); b.data.rows.splice(ri,1); saveBlock(id); rerenderBlockEditor(id); }
+function addTableCol(id){ const b=getBlock(id); b.data.headers.push(''); b.data.rows.forEach(r=>r.push('')); saveBlock(id); rerenderBlockEditor(id); }
+async function uploadImage(id,input){ const f=input.files[0]; if(!f)return; const fd=new FormData(); fd.append('file',f); const r=await fetch('/api/upload/image',{method:'POST',body:fd}); const j=await r.json(); updateBlockField(id,'url',j.url); rerenderBlockEditor(id); }
+async function uploadAudio(id,input){ const f=input.files[0]; if(!f)return; const fd=new FormData(); fd.append('file',f); const r=await fetch('/api/upload/audio',{method:'POST',body:fd}); const j=await r.json(); updateBlockField(id,'audio',j.url); rerenderBlockEditor(id); }
+function rerenderBlockEditor(id){ const b=getBlock(id); const el=document.getElementById('block-body-'+id); if(el&&b) el.innerHTML=buildBlockEditor(b); }
 
 // ═══════════════════════════════════════════════════════════
 // BLOCK OPERATIONS
 // ═══════════════════════════════════════════════════════════
-async function moveBlock(id, dir) {
-  const sorted = [...state.blocks].sort((a,b) => a.order - b.order);
-  const idx = sorted.findIndex(b => b.id === id);
-  const swapIdx = idx + dir;
-  if (swapIdx < 0 || swapIdx >= sorted.length) return;
-  const tmp = sorted[idx].order;
-  sorted[idx].order = sorted[swapIdx].order;
-  sorted[swapIdx].order = tmp;
-  await api('POST', '/api/blocks/reorder', sorted.map(b => ({id:b.id, order:b.order})));
-  state.blocks = sorted;
-  renderBlocks();
-  if (state.studentOpen) renderStudentView();
-}
+async function moveBlock(id,dir){ const sorted=[...state.blocks].sort((a,b)=>a.order-b.order); const idx=sorted.findIndex(b=>b.id===id); const si=idx+dir; if(si<0||si>=sorted.length)return; const tmp=sorted[idx].order; sorted[idx].order=sorted[si].order; sorted[si].order=tmp; await api('POST','/api/blocks/reorder',sorted.map(b=>({id:b.id,order:b.order}))); state.blocks=sorted; renderBlocks(); if(state.studentOpen)renderStudentView(); }
+async function deleteBlock(id){ await api('DELETE','/api/blocks/'+id); state.blocks=state.blocks.filter(b=>b.id!==id); renderBlocks(); if(state.studentOpen)renderStudentView(); toast("🗑️ Blok o'chirildi"); }
+async function duplicateBlock(id){ const b=getBlock(id); if(!b)return; const nb=await api('POST','/api/blocks',{lesson_id:b.lesson_id,type:b.type,order:b.order+0.5,data:b.data}); state.blocks.push(nb); state.blocks.sort((a,b)=>a.order-b.order); state.blocks.forEach((b,i)=>b.order=i); renderBlocks(); toast('⧉ Nusxa olindi'); }
+function openAddBlockModal(type){ if(!state.currentLessonId){toast('⚠️ Avval dars tanlang');return;} addBlock(type); }
+async function addBlock(type){
+  const defaults={heading:{text:'Yangi sarlavha',level:1,color:'#e63946'},hr:{color:'#e63946',height:3},vocab:{title:'Новые слова',bar_color:'#457b9d',items:[{ru:'',uz:'',audio:''}]},dialog:{title:'Диалог',lines:[{speaker:'A',text:''},{speaker:'B',text:''}]},fill_blank:{title:'Упражнение',bar_color:'#2a9d8f',instruction:'',items:[{pre:'',answer:'',post:''}]},match:{title:'Соедините',bar_color:'#e76f51',pairs:[{left:'',right:''},{left:'',right:''}]},quiz:{title:'Тест',bar_color:'#6a4c93',questions:[{q:'',options:['',''],correct:0}]},crossword:{title:'Кроссворд',words:[]},image:{url:'',caption:'',width:100},audio_text:{text:'',audio:''},table:{title:'',headers:['Ustun 1','Ustun 2'],rows:[['',''],['','']]}};
+  const nb=await api('POST','/api/blocks',{lesson_id:state.currentLessonId,type,data:defaults[type]||{}}); state.blocks.push(nb); renderBlocks(); if(state.studentOpen)renderStudentView(); setTimeout(()=>{const el=document.querySelector('[data-id="'+nb.id+'"]');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},100); toast("✅ Blok qo'shildi"); }
 
-async function deleteBlock(id) {
-  await api('DELETE', `/api/blocks/${id}`);
-  state.blocks = state.blocks.filter(b => b.id !== id);
-  renderBlocks();
-  if (state.studentOpen) renderStudentView();
-  toast('🗑️ Blok o\'chirildi');
-}
+// ═══════════════════════════════════════════════════════════
+// STUDENT VIEW
+// ═══════════════════════════════════════════════════════════
+function toggleStudentPanel(){ state.studentOpen=!state.studentOpen; const panel=document.getElementById('student-panel'); panel.classList.toggle('hidden',!state.studentOpen); if(state.studentOpen)renderStudentView(); }
+function renderStudentView(){ const content=document.getElementById('student-content'); content.innerHTML=''; [...state.blocks].sort((a,b)=>a.order-b.order).forEach(block=>{const el=renderStudentBlock(block);if(el)content.appendChild(el);}); }
+function renderStudentBlock(block){ const d=block.data; switch(block.type){case 'heading':return renderSHeading(d);case 'hr':return renderSHr(d);case 'vocab':return renderSVocab(d);case 'dialog':return renderSDialog(d);case 'fill_blank':return renderSFillBlank(block);case 'match':return renderSMatch(block);case 'quiz':return renderSQuiz(block);case 'crossword':return renderSCrossword(block);case 'image':return renderSImage(d);case 'audio_text':return renderSAudioText(d);case 'table':return renderSTable(d);default:return null;} }
+function renderSHeading(d){ const el=document.createElement('div'); const size={1:'28px',2:'22px',3:'18px',4:'15px'}[d.level||1]; el.innerHTML='<div class="s-heading" style="font-size:'+size+';color:'+(d.color||'#e63946')+'">'+esc(d.text||'')+'</div>'; return el; }
+function renderSHr(d){ const el=document.createElement('div'); el.innerHTML='<hr class="s-hr" style="background:'+(d.color||'#e63946')+';height:'+(d.height||3)+'px">'; return el; }
+function renderSVocab(d){ const el=document.createElement('div'); const items=(d.items||[]).map((item,i)=>'<div class="vocab-item"><span class="vnum">'+(i+1)+'</span><span class="vru">'+esc(item.ru||'')+'</span>'+(item.uz?'<span class="vuz">— '+esc(item.uz)+'</span>':'')+(item.audio?'<button class="vocab-audio-btn" onclick="playAudio(\''+item.audio+'\')">▶</button>':'')+'</div>').join(''); el.innerHTML='<div class="s-section-title"><div class="s-section-bar" style="background:'+(d.bar_color||'#457b9d')+'"></div><div class="s-section-label" style="background:'+(d.bar_color||'#457b9d')+'">'+esc(d.title||'Новые слова')+'</div></div><div class="vocab-grid">'+items+'</div>'; return el; }
+function renderSDialog(d){ const el=document.createElement('div'); const lines=(d.lines||[]).map(l=>'<div class="dialog-line"><span class="d-sp '+l.speaker+'">'+l.speaker+'</span><span class="d-text">'+esc(l.text||'')+'</span></div>').join(''); el.innerHTML='<div class="dialog-box"><div class="d-title">💬 '+esc(d.title||'Диалог')+'</div>'+lines+'</div>'; return el; }
+function renderSFillBlank(block){ const d=block.data,el=document.createElement('div'); const items=(d.items||[]).map((item,i)=>'<div class="fb-item"><span class="fb-num">'+(i+1)+'</span><span>'+esc(item.pre||'')+'</span><input class="fb-input" id="fb-'+block.id+'-'+i+'" data-answer="'+esc(item.answer||'')+'" placeholder="..."><span>'+esc(item.post||'')+'</span></div>').join(''); el.innerHTML='<div class="s-section-title"><div class="s-section-bar" style="background:'+(d.bar_color||'#2a9d8f')+'"></div><div class="s-section-label" style="background:'+(d.bar_color||'#2a9d8f')+'">'+esc(d.title||'Упражнение')+'</div></div>'+(d.instruction?'<p class="fb-instruction">'+esc(d.instruction)+'</p>':'')+items+'<button class="fb-check-btn" onclick="checkFillBlank('+block.id+','+(d.items||[]).length+')">✔ Tekshirish</button><div class="fb-score" id="fb-score-'+block.id+'"></div>'; return el; }
+function checkFillBlank(blockId,count){ let correct=0; const answers={}; for(let i=0;i<count;i++){const input=document.getElementById('fb-'+blockId+'-'+i);if(!input)continue;const ans=input.dataset.answer.trim().toLowerCase();const val=input.value.trim().toLowerCase();input.classList.remove('correct','wrong');const ok=val===ans;if(ok){input.classList.add('correct');correct++;}else input.classList.add('wrong');answers[''+(i+1)]={given:input.value.trim(),expected:input.dataset.answer,correct:ok};} document.getElementById('fb-score-'+blockId).textContent='Natija: '+correct+' / '+count+' ('+Math.round(correct/count*100)+'%)'; const b=state.blocks.find(b=>b.id===blockId); recordStudentAnswer(blockId,'fill_blank',b&&b.data?b.data.title||"Bo'sh joy":"Bo'sh joy",answers,correct,count); }
+function renderSMatch(block){ const d=block.data,pairs=[...(d.pairs||[])],el=document.createElement('div'); const rightShuffled=[...pairs].sort(()=>Math.random()-.5); let selected=null,matched={}; const leftHTML=pairs.map((p,i)=>'<div class="match-item" id="ml-'+block.id+'-'+i+'" data-idx="'+i+'" data-side="left">'+esc(p.left)+'</div>').join(''); const rightHTML=rightShuffled.map((p,ri)=>{const oi=pairs.findIndex(pp=>pp.right===p.right);return'<div class="match-item" id="mr-'+block.id+'-'+ri+'" data-orig="'+oi+'" data-side="right">'+esc(p.right)+'</div>';}).join(''); el.innerHTML='<div class="s-section-title"><div class="s-section-bar" style="background:'+(d.bar_color||'#e76f51')+'"></div><div class="s-section-label" style="background:'+(d.bar_color||'#e76f51')+'">'+esc(d.title||'Соедините')+'</div></div><div class="match-grid"><div class="match-col">'+leftHTML+'</div><div class="match-col">'+rightHTML+'</div></div><div id="mscore-'+block.id+'" style="font-size:13px;font-weight:600;color:var(--green)"></div>'; setTimeout(()=>{el.querySelectorAll('.match-item').forEach(item=>{item.addEventListener('click',function(){if(this.classList.contains('matched'))return;if(!selected){if(this.dataset.side!=='left')return;selected=this;this.classList.add('selected');}else{if(this.dataset.side!=='right'){selected.classList.remove('selected');selected=this;selected.classList.add('selected');return;}const li=parseInt(selected.dataset.idx),ro=parseInt(this.dataset.orig);selected.classList.remove('selected');if(li===ro){selected.classList.add('matched');this.classList.add('matched');matched[li]=true;if(Object.keys(matched).length===pairs.length){document.getElementById('mscore-'+block.id).textContent="🎉 Hammasi to'g'ri!";const ans={};pairs.forEach((p,i)=>{ans[p.left]={given:p.right,correct:!!matched[i]};});recordStudentAnswer(block.id,'match',d.title||'Moslashtirish',ans,pairs.length,pairs.length);}}else{selected.classList.add('wrong-flash');this.classList.add('wrong-flash');setTimeout(()=>{selected.classList.remove('wrong-flash');this.classList.remove('wrong-flash');},600);}selected=null;}});});},0); return el; }
+function renderSQuiz(block){ const d=block.data,questions=d.questions||[],el=document.createElement('div'); let current=0,score=0; const quizAnswers={}; function renderQ(){const q=questions[current];const opts=q.options.map((opt,i)=>'<button class="quiz-opt" id="qopt-'+block.id+'-'+i+'" onclick="qzAns_'+block.id+'('+i+','+q.correct+')">'+esc(opt)+'</button>').join(''); el.querySelector('.quiz-inner').innerHTML='<div class="quiz-q">'+(current+1)+'. '+esc(q.q)+'</div><div class="quiz-opts">'+opts+'</div><div class="quiz-nav"><button onclick="qzPrev_'+block.id+'()"'+(current===0?' disabled':'')+'>← Oldingi</button><span class="quiz-progress">'+(current+1)+' / '+questions.length+'</span><button onclick="qzNext_'+block.id+'()"'+(current===questions.length-1?' disabled':'')+'>Keyingi →</button></div>';} window['qzAns_'+block.id]=function(chosen,correct){const btns=document.querySelectorAll('[id^="qopt-'+block.id+'-"]');btns.forEach(b=>b.disabled=true);btns[chosen].classList.add(chosen===correct?'correct':'wrong');if(chosen===correct)score++;const q=questions[current];quizAnswers[''+(current+1)]={question:q.q,given:q.options[chosen],expected:q.options[correct],correct:chosen===correct};recordStudentAnswer(block.id,'quiz',d.title||'Test',quizAnswers,score,questions.length);}; window['qzPrev_'+block.id]=function(){if(current>0){current--;renderQ();}}; window['qzNext_'+block.id]=function(){if(current<questions.length-1){current++;renderQ();}}; el.innerHTML='<div class="s-section-title"><div class="s-section-bar" style="background:'+(d.bar_color||'#6a4c93')+'"></div><div class="s-section-label" style="background:'+(d.bar_color||'#6a4c93')+'">'+esc(d.title||'Тест')+'</div></div><div class="quiz-inner"></div>'; setTimeout(renderQ,0); return el; }
+function renderSCrossword(block){ const d=block.data,words=d.words||[],el=document.createElement('div');let maxR=0,maxC=0;words.forEach(w=>{const len=w.word.length;if(w.dir==='across'){maxR=Math.max(maxR,w.row+1);maxC=Math.max(maxC,w.col+len);}else{maxR=Math.max(maxR,w.row+len);maxC=Math.max(maxC,w.col+1);}});const grid=Array.from({length:maxR},()=>Array(maxC).fill(null));words.forEach((w)=>{for(let k=0;k<w.word.length;k++){const r=w.dir==='across'?w.row:w.row+k;const c=w.dir==='across'?w.col+k:w.col;grid[r][c]={letter:w.word[k]};}});const gs='grid-template-columns:repeat('+maxC+',36px);grid-template-rows:repeat('+maxR+',36px)';const cells=grid.flatMap((row,ri)=>row.map((cell,ci)=>{if(!cell)return'<div class="cw-cell black"></div>';return'<input class="cw-cell" maxlength="1" data-r="'+ri+'" data-c="'+ci+'" data-letter="'+cell.letter+'" oninput="this.value=this.value.toUpperCase()">';})).join('');const across=words.filter(w=>w.dir==='across').map((w,i)=>'<div class="cw-clue"><b>'+(i+1)+'.</b> '+esc(w.clue||w.word)+'</div>').join('');const down=words.filter(w=>w.dir==='down').map((w,i)=>'<div class="cw-clue"><b>'+(i+1)+'.</b> '+esc(w.clue||w.word)+'</div>').join('');el.innerHTML='<div class="s-section-title"><div class="s-section-bar" style="background:#264653"></div><div class="s-section-label" style="background:#264653">'+esc(d.title||'Кроссворд')+'</div></div><div class="cw-grid" style="'+gs+'">'+cells+'</div><div class="cw-clues"><div class="cw-clue-list"><h4>→ Gorizontal</h4>'+across+'</div><div class="cw-clue-list"><h4>↓ Vertikal</h4>'+down+'</div></div><button class="fb-check-btn" onclick="checkCW('+block.id+')">✔ Tekshirish</button>'; return el; }
+function checkCW(blockId){ const cells=document.querySelectorAll('#student-content .cw-cell:not(.black)'); cells.forEach(cell=>{cell.classList.remove('correct','wrong');if(cell.value.toUpperCase()===cell.dataset.letter)cell.classList.add('correct');else if(cell.value)cell.classList.add('wrong');}); }
+function renderSImage(d){ if(!d.url)return null; const el=document.createElement('div'); el.className='s-image-wrap'; el.innerHTML='<img src="'+d.url+'" class="s-image" style="width:'+(d.width||100)+'%">'+(d.caption?'<p class="s-image-caption">'+esc(d.caption)+'</p>':''); return el; }
+let _audioEl=null;
+function renderSAudioText(d){ const el=document.createElement('div'); const hasAudio=!!d.audio; const bid='at-'+Math.random().toString(36).slice(2); el.innerHTML='<div class="audio-text-box" id="'+bid+'">'+(hasAudio?'<button class="play-text-btn" onclick="toggleAudioText(\''+bid+'\',\''+d.audio+'\')" id="pbtn-'+bid+'">▶</button>':'')+'<div style="padding-right:'+(hasAudio?'44px':'0')+'">'+((d.text||'').replace(/\n/g,'<br>'))+'</div></div>'; return el; }
+function toggleAudioText(bid,src){ const btn=document.getElementById('pbtn-'+bid); if(_audioEl){_audioEl.pause();_audioEl=null;if(btn){btn.textContent='▶';btn.classList.remove('playing');}return;} _audioEl=new Audio(src);_audioEl.play();if(btn){btn.textContent='⏸';btn.classList.add('playing');}_audioEl.onended=function(){if(btn){btn.textContent='▶';btn.classList.remove('playing');}_audioEl=null;}; }
+function playAudio(src){ new Audio(src).play(); }
+function renderSTable(d){ const el=document.createElement('div'); const headers=(d.headers||[]).map(h=>'<th>'+esc(h)+'</th>').join(''); const rows=(d.rows||[]).map(row=>'<tr>'+row.map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>').join(''); el.innerHTML=(d.title?'<div class="s-section-title" style="margin-bottom:8px"><div class="s-section-bar" style="background:var(--dark)"></div><div class="s-section-label" style="background:var(--dark)">'+esc(d.title)+'</div></div>':'')+'<table class="s-table"><thead><tr>'+headers+'</tr></thead><tbody>'+rows+'</tbody></table>'; return el; }
 
-async function duplicateBlock(id) {
-  const b = getBlock(id);
-  if (!b) return;
-  const nb = await api('POST', '/api/blocks', {
-    lesson_id: b.lesson_id, type: b.type,
-    order: b.order + 0.5, data: b.data
-  });
-  state.blocks.push(nb);
-  state.blocks.sort((a,b) => a.order - b.order);
-  state.blocks.forEach((b,i) => b.order = i);
-  renderBlocks();
-  toast('⧉ Nusxa olindi');
+// ═══════════════════════════════════════════════════════════
+// DRAG & DROP
+// ═══════════════════════════════════════════════════════════
+function initDragDrop(){
+  const container=document.getElementById('blocks-container');
+  let dragEl=null,ghostEl=null,offsetY=0,indicator=null,scrollRAF=null;
+  function createGhost(card){const g=card.cloneNode(true),rect=card.getBoundingClientRect();g.style.cssText='position:fixed;left:'+rect.left+'px;top:'+rect.top+'px;width:'+rect.width+'px;opacity:.75;pointer-events:none;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);border-radius:8px;transition:none;transform:rotate(1deg);';document.body.appendChild(g);return g;}
+  function getIndicator(){if(!indicator){indicator=document.createElement('div');indicator.className='drag-over-indicator';}return indicator;}
+  function removeIndicator(){if(indicator&&indicator.parentNode)indicator.parentNode.removeChild(indicator);}
+  function autoScroll(cy){const ZONE=80,SPEED=12,rect=container.getBoundingClientRect();if(scrollRAF)cancelAnimationFrame(scrollRAF);function step(){if(!dragEl)return;if(cy-rect.top<ZONE)container.scrollTop-=SPEED;else if(rect.bottom-cy<ZONE)container.scrollTop+=SPEED;scrollRAF=requestAnimationFrame(step);}scrollRAF=requestAnimationFrame(step);}
+  function getTarget(cy){const cards=[...container.querySelectorAll('.block-card:not(.dragging)')];let best=null,bestD=Infinity;cards.forEach(c=>{const mid=c.getBoundingClientRect().top+c.getBoundingClientRect().height/2;const d=Math.abs(cy-mid);if(d<bestD){bestD=d;best={el:c,above:cy<mid};}});return best;}
+  container.addEventListener('mousedown',function(e){const handle=e.target.closest('.block-drag');if(!handle)return;e.preventDefault();dragEl=handle.closest('.block-card');dragEl.classList.add('dragging');offsetY=e.clientY-dragEl.getBoundingClientRect().top;ghostEl=createGhost(dragEl);document.body.style.userSelect='none';});
+  document.addEventListener('mousemove',function(e){if(!dragEl||!ghostEl)return;ghostEl.style.top=(e.clientY-offsetY)+'px';autoScroll(e.clientY);const t=getTarget(e.clientY);const ind=getIndicator();if(t){if(t.above)t.el.before(ind);else t.el.after(ind);}});
+  document.addEventListener('mouseup',async function(e){if(!dragEl)return;if(scrollRAF)cancelAnimationFrame(scrollRAF);const t=getTarget(e.clientY);if(t){if(t.above)t.el.before(dragEl);else t.el.after(dragEl);}dragEl.classList.remove('dragging');ghostEl.remove();removeIndicator();dragEl=null;ghostEl=null;document.body.style.userSelect='';const cards=container.querySelectorAll('.block-card'),updates=[];cards.forEach((card,i)=>{const id=parseInt(card.dataset.id);const b=state.blocks.find(b=>b.id===id);if(b){b.order=i;updates.push({id,order:i});}});await api('POST','/api/blocks/reorder',updates);renderBlocks();if(state.studentOpen)renderStudentView();});
 }
 
 // ═══════════════════════════════════════════════════════════
-// ADD BLOCK MODAL
+// MODAL & TOAST & UTILS
 // ═══════════════════════════════════════════════════════════
-function openAddBlockModal(type) {
-  if (!state.currentLessonId) { toast('⚠️ Avval dars tanlang'); return; }
-  addBlock(type);
-}
-
-async function addBlock(type) {
-  const defaults = {
-    heading:    {text:'Yangi sarlavha', level:1, color:'#e63946'},
-    hr:         {color:'#e63946', height:3},
-    vocab:      {title:'Новые слова', bar_color:'#457b9d', items:[{ru:'',uz:'',audio:''}]},
-    dialog:     {title:'Диалог', lines:[{speaker:'A',text:''},{speaker:'B',text:''}]},
-    fill_blank: {title:'Упражнение', bar_color:'#2a9d8f', instruction:'', items:[{pre:'',answer:'',post:''}]},
-    match:      {title:'Соедините', bar_color:'#e76f51', pairs:[{left:'',right:''},{left:'',right:''}]},
-    quiz:       {title:'Тест', bar_color:'#6a4c93', questions:[{q:'',options:['',''],correct:0}]},
-    crossword:  {title:'Кроссворд', words:[]},
-    image:      {url:'', caption:'', width:100},
-    audio_text: {text:'', audio:''},
-    table:      {title:'', headers:['Ustun 1','Ustun 2'], rows:[['',''],['','']]},
-  };
-  const nb = await api('POST', '/api/blocks', {
-    lesson_id: state.currentLessonId,
-    type, data: defaults[type] || {}
-  });
-  state.blocks.push(nb);
-  renderBlocks();
-  if (state.studentOpen) renderStudentView();
-  // scroll to new block
-  setTimeout(() => {
-    const el = document.querySelector(`[data-id="${nb.id}"]`);
-    if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
-  }, 100);
-  toast('✅ Blok qo\'shildi');
-}
-
-// ═══════════════════════════════════════════════════════════
-// STUDENT VIEW RENDER
-// ═══════════════════════════════════════════════════════════
-function toggleStudentPanel() {
-  state.studentOpen = !state.studentOpen;
-  const panel = document.getElementById('student-panel');
-  panel.classList.toggle('hidden', !state.studentOpen);
-  if (state.studentOpen) renderStudentView();
-}
-
-function renderStudentView() {
-  const content = document.getElementById('student-content');
-  content.innerHTML = '';
-  const sorted = [...state.blocks].sort((a,b) => a.order - b.order);
-  sorted.forEach(block => {
-    const el = renderStudentBlock(block);
-    if (el) content.appendChild(el);
-  });
-}
-
-function renderStudentBlock(block) {
-  const d = block.data;
-  switch(block.type) {
-    case 'heading': return renderSHeading(d);
-    case 'hr':      return renderSHr(d);
-    case 'vocab':   return renderSVocab(d);
-    case 'dialog':  return renderSDialog(d);
-    case 'fill_blank': return renderSFillBlank(block);
-    case 'match':   return renderSMatch(block);
-    case 'quiz':    return renderSQuiz(block);
-    case 'crossword': return renderSCrossword(block);
-    case 'image':   return renderSImage(d);
-    case 'audio_text': return renderSAudioText(d);
-    case 'table':   return renderSTable(d);
-    default: return null;
-  }
-}
-
-function renderSHeading(d) {
-  const el = document.createElement('div');
-  const size = {1:'28px',2:'22px',3:'18px',4:'15px'}[d.level||1];
-  el.innerHTML = `<div class="s-heading" style="font-size:${size};color:${d.color||'#e63946'}">${esc(d.text||'')}</div>`;
-  return el;
-}
-
-function renderSHr(d) {
-  const el = document.createElement('div');
-  el.innerHTML = `<hr class="s-hr" style="background:${d.color||'#e63946'};height:${d.height||3}px">`;
-  return el;
-}
-
-function renderSVocab(d) {
-  const el = document.createElement('div');
-  const items = (d.items||[]).map((item,i) => `
-    <div class="vocab-item">
-      <span class="vnum">${i+1}</span>
-      <span class="vru">${esc(item.ru||'')}</span>
-      ${item.uz ? `<span class="vuz">— ${esc(item.uz)}</span>` : ''}
-      ${item.audio ? `<button class="vocab-audio-btn" onclick="playAudio('${item.audio}')">▶</button>` : ''}
-    </div>`).join('');
-  el.innerHTML = `
-    <div class="s-section-title">
-      <div class="s-section-bar" style="background:${d.bar_color||'#457b9d'}"></div>
-      <div class="s-section-label" style="background:${d.bar_color||'#457b9d'}">${esc(d.title||'Новые слова')}</div>
-    </div>
-    <div class="vocab-grid">${items}</div>`;
-  return el;
-}
-
-function renderSDialog(d) {
-  const el = document.createElement('div');
-  const lines = (d.lines||[]).map(l => `
-    <div class="dialog-line">
-      <span class="d-sp ${l.speaker}">${l.speaker}</span>
-      <span class="d-text">${esc(l.text||'')}</span>
-    </div>`).join('');
-  el.innerHTML = `
-    <div class="dialog-box">
-      <div class="d-title">💬 ${esc(d.title||'Диалог')}</div>
-      ${lines}
-    </div>`;
-  return el;
-}
-
-function renderSFillBlank(block) {
-  const d = block.data;
-  const el = document.createElement('div');
-  const items = (d.items||[]).map((item,i) => `
-    <div class="fb-item">
-      <span class="fb-num">${i+1}</span>
-      <span>${esc(item.pre||'')}</span>
-      <input class="fb-input" id="fb-${block.id}-${i}" data-answer="${esc(item.answer||'')}" placeholder="...">
-      <span>${esc(item.post||'')}</span>
-    </div>`).join('');
-  el.innerHTML = `
-    <div class="s-section-title">
-      <div class="s-section-bar" style="background:${d.bar_color||'#2a9d8f'}"></div>
-      <div class="s-section-label" style="background:${d.bar_color||'#2a9d8f'}">${esc(d.title||'Упражнение')}</div>
-    </div>
-    ${d.instruction ? `<p class="fb-instruction">${esc(d.instruction)}</p>` : ''}
-    ${items}
-    <button class="fb-check-btn" onclick="checkFillBlank(${block.id},${(d.items||[]).length})">✔ Tekshirish</button>
-    <div class="fb-score" id="fb-score-${block.id}"></div>`;
-  return el;
-}
-
-function checkFillBlank(blockId, count) {
-  let correct = 0;
-  const answers = {};
-  for (let i = 0; i < count; i++) {
-    const input = document.getElementById(`fb-${blockId}-${i}`);
-    if (!input) continue;
-    const ans = input.dataset.answer.trim().toLowerCase();
-    const val = input.value.trim().toLowerCase();
-    input.classList.remove('correct','wrong');
-    const ok = val === ans;
-    if (ok) { input.classList.add('correct'); correct++; }
-    else input.classList.add('wrong');
-    answers[`${i+1}`] = { given: input.value.trim(), expected: input.dataset.answer, correct: ok };
-  }
-  document.getElementById(`fb-score-${blockId}`).textContent =
-    `Natija: ${correct} / ${count} (${Math.round(correct/count*100)}%)`;
-
-  // O'quvchi natijasini saqlash
-  const b = state.blocks.find(b => b.id === blockId);
-  recordStudentAnswer(blockId, 'fill_blank', b?.data?.title || 'Bo\'sh joy', answers, correct, count);
-}
-
-function renderSMatch(block) {
-  const d = block.data;
-  const pairs = [...(d.pairs||[])];
-  const el = document.createElement('div');
-  const rightShuffled = [...pairs].sort(() => Math.random()-.5);
-  let selected = null;
-  let matched = {};
-
-  const leftHTML  = pairs.map((p,i) => `<div class="match-item" id="ml-${block.id}-${i}" data-idx="${i}" data-side="left">${esc(p.left)}</div>`).join('');
-  const rightHTML = rightShuffled.map((p,ri) => {
-    const origIdx = pairs.findIndex(pp => pp.right === p.right);
-    return `<div class="match-item" id="mr-${block.id}-${ri}" data-orig="${origIdx}" data-side="right">${esc(p.right)}</div>`;
-  }).join('');
-
-  el.innerHTML = `
-    <div class="s-section-title">
-      <div class="s-section-bar" style="background:${d.bar_color||'#e76f51'}"></div>
-      <div class="s-section-label" style="background:${d.bar_color||'#e76f51'}">${esc(d.title||'Соедините')}</div>
-    </div>
-    <div class="match-grid">
-      <div class="match-col" id="mleft-${block.id}">${leftHTML}</div>
-      <div class="match-col" id="mright-${block.id}">${rightHTML}</div>
-    </div>
-    <div id="mscore-${block.id}" style="font-size:13px;font-weight:600;color:var(--green)"></div>`;
-
-  setTimeout(() => {
-    el.querySelectorAll('.match-item').forEach(item => {
-      item.addEventListener('click', function() {
-        if (this.classList.contains('matched')) return;
-        if (!selected) {
-          if (this.dataset.side !== 'left') return;
-          selected = this;
-          this.classList.add('selected');
-        } else {
-          if (this.dataset.side !== 'right') {
-            selected.classList.remove('selected');
-            selected = this;
-            selected.classList.add('selected');
-            return;
-          }
-          const leftIdx = parseInt(selected.dataset.idx);
-          const rightOrig = parseInt(this.dataset.orig);
-          selected.classList.remove('selected');
-          if (leftIdx === rightOrig) {
-            selected.classList.add('matched');
-            this.classList.add('matched');
-            matched[leftIdx] = true;
-            const matchAnswers = Object.assign({}, matched);
-            if (Object.keys(matched).length === pairs.length) {
-              document.getElementById(`mscore-${block.id}`).textContent = '🎉 Hammasi to\'g\'ri!';
-              // O'quvchi natijasi
-              const ans = {};
-              pairs.forEach((p, i) => { ans[p.left] = { given: p.right, correct: true }; });
-              recordStudentAnswer(block.id, 'match', d.title||'Moslashtirish', ans, pairs.length, pairs.length);
-            }
-            }
-          } else {
-            selected.classList.add('wrong-flash');
-            this.classList.add('wrong-flash');
-            setTimeout(() => {
-              selected.classList.remove('wrong-flash');
-              this.classList.remove('wrong-flash');
-            }, 600);
-          }
-          selected = null;
-        }
-      });
-    });
-  }, 0);
-  return el;
-}
-
-function renderSQuiz(block) {
-  const d = block.data;
-  const questions = d.questions || [];
-  const el = document.createElement('div');
-  let current = 0; let score = 0; let answered = false;
-
-  function renderQ() {
-    const q = questions[current];
-    const opts = q.options.map((opt,i) => `
-      <button class="quiz-opt" id="qopt-${block.id}-${i}" onclick="answerQuiz(${block.id},${i},${q.correct},${questions.length})">${esc(opt)}</button>`).join('');
-    el.querySelector('.quiz-inner').innerHTML = `
-      <div class="quiz-q">${current+1}. ${esc(q.q)}</div>
-      <div class="quiz-opts">${opts}</div>
-      <div class="quiz-nav">
-        <button onclick="prevQuizQ()" ${current===0?'disabled':''}>← Oldingi</button>
-        <span class="quiz-progress">${current+1} / ${questions.length}</span>
-        <button onclick="nextQuizQ()" ${current===questions.length-1?'disabled':''}>Keyingi →</button>
-      </div>`;
-  }
-
-  window[`answerQuiz`] = function(bid, chosen, correct, total) {
-    if (bid !== block.id) return;
-    const btns = document.querySelectorAll(`[id^="qopt-${block.id}-"]`);
-    btns.forEach(b => b.disabled = true);
-    btns[chosen].classList.add(chosen === correct ? 'correct' : 'wrong');
-    if (chosen === correct) score++;
-    // O'quvchi natijasi
-    const q = questions[current];
-    const existAns = state.studentAnswers[block.id]?.answers || {};
-    existAns[`${current+1}`] = {
-      question: q.q,
-      given: q.options[chosen],
-      expected: q.options[correct],
-      correct: chosen === correct,
-    };
-    recordStudentAnswer(block.id, 'quiz', d.title||'Test', existAns, score, total);
-  };
-  window[`prevQuizQ`] = () => { if(current>0){current--;renderQ();} };
-  window[`nextQuizQ`] = () => { if(current<questions.length-1){current++;renderQ();} };
-
-  el.innerHTML = `
-    <div class="s-section-title">
-      <div class="s-section-bar" style="background:${d.bar_color||'#6a4c93'}"></div>
-      <div class="s-section-label" style="background:${d.bar_color||'#6a4c93'}">${esc(d.title||'Тест')}</div>
-    </div>
-    <div class="quiz-inner"></div>`;
-
-  setTimeout(renderQ, 0);
-  return el;
-}
-
-function renderSCrossword(block) {
-  const d = block.data;
-  const words = d.words || [];
-  const el = document.createElement('div');
-
-  // build grid
-  let maxR = 0, maxC = 0;
-  words.forEach(w => {
-    const len = w.word.length;
-    if (w.dir === 'across') { maxR = Math.max(maxR, w.row+1); maxC = Math.max(maxC, w.col+len); }
-    else                    { maxR = Math.max(maxR, w.row+len); maxC = Math.max(maxC, w.col+1); }
-  });
-
-  const grid = Array.from({length:maxR}, () => Array(maxC).fill(null));
-  words.forEach((w,wi) => {
-    for (let k = 0; k < w.word.length; k++) {
-      const r = w.dir==='across' ? w.row : w.row+k;
-      const c = w.dir==='across' ? w.col+k : w.col;
-      grid[r][c] = {letter: w.word[k], wi, k};
-    }
-  });
-
-  const gridStyle = `grid-template-columns:repeat(${maxC},36px);grid-template-rows:repeat(${maxR},36px)`;
-  const cells = grid.flatMap((row,ri) => row.map((cell,ci) => {
-    if (!cell) return `<div class="cw-cell black"></div>`;
-    return `<input class="cw-cell" maxlength="1" data-r="${ri}" data-c="${ci}" data-letter="${cell.letter}" oninput="cwInput(this,${block.id})">`;
-  })).join('');
-
-  const across = words.filter(w=>w.dir==='across').map((w,i)=>`<div class="cw-clue"><b>${i+1}.</b> ${esc(w.clue||w.word)}</div>`).join('');
-  const down   = words.filter(w=>w.dir==='down').map((w,i)=>`<div class="cw-clue"><b>${i+1}.</b> ${esc(w.clue||w.word)}</div>`).join('');
-
-  el.innerHTML = `
-    <div class="s-section-title">
-      <div class="s-section-bar" style="background:#264653"></div>
-      <div class="s-section-label" style="background:#264653">${esc(d.title||'Кроссворд')}</div>
-    </div>
-    <div class="cw-grid" style="${gridStyle}">${cells}</div>
-    <div class="cw-clues">
-      <div class="cw-clue-list"><h4>→ Gorizontal</h4>${across}</div>
-      <div class="cw-clue-list"><h4>↓ Vertikal</h4>${down}</div>
-    </div>
-    <button class="fb-check-btn" onclick="checkCW(${block.id})">✔ Tekshirish</button>`;
-  return el;
-}
-
-window.cwInput = function(input) {
-  input.value = input.value.toUpperCase();
-};
-window.checkCW = function(blockId) {
-  const cells = document.querySelectorAll(`#student-content .cw-cell:not(.black)`);
-  cells.forEach(cell => {
-    cell.classList.remove('correct','wrong');
-    if (cell.value.toUpperCase() === cell.dataset.letter) cell.classList.add('correct');
-    else if (cell.value) cell.classList.add('wrong');
-  });
-};
-
-function renderSImage(d) {
-  if (!d.url) return null;
-  const el = document.createElement('div');
-  el.className = 's-image-wrap';
-  el.innerHTML = `<img src="${d.url}" class="s-image" style="width:${d.width||100}%">
-    ${d.caption ? `<p class="s-image-caption">${esc(d.caption)}</p>` : ''}`;
-  return el;
-}
-
-function renderSAudioText(d) {
-  const el = document.createElement('div');
-  const hasAudio = !!d.audio;
-  const bid = 'at-' + Math.random().toString(36).slice(2);
-  el.innerHTML = `
-    <div class="audio-text-box" id="${bid}">
-      ${hasAudio ? `<button class="play-text-btn" onclick="toggleAudioText('${bid}','${d.audio}')" id="pbtn-${bid}">▶</button>` : ''}
-      <div style="padding-right:${hasAudio?'44px':'0'}">${(d.text||'').replace(/\n/g,'<br>')}</div>
-    </div>`;
-  return el;
-}
-
-let _audioEl = null;
-window.toggleAudioText = function(bid, src) {
-  const btn = document.getElementById(`pbtn-${bid}`);
-  if (_audioEl) { _audioEl.pause(); _audioEl = null; btn.textContent='▶'; btn.classList.remove('playing'); return; }
-  _audioEl = new Audio(src);
-  _audioEl.play();
-  btn.textContent = '⏸'; btn.classList.add('playing');
-  _audioEl.onended = () => { btn.textContent='▶'; btn.classList.remove('playing'); _audioEl = null; };
-};
-
-window.playAudio = function(src) {
-  new Audio(src).play();
-};
-
-function renderSTable(d) {
-  const el = document.createElement('div');
-  const headers = (d.headers||[]).map(h => `<th>${esc(h)}</th>`).join('');
-  const rows = (d.rows||[]).map(row =>
-    `<tr>${row.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('');
-  el.innerHTML = `
-    ${d.title ? `<div class="s-section-title" style="margin-bottom:8px">
-      <div class="s-section-bar" style="background:var(--dark)"></div>
-      <div class="s-section-label" style="background:var(--dark)">${esc(d.title)}</div>
-    </div>` : ''}
-    <table class="s-table"><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
-  return el;
-}
-
-// ═══════════════════════════════════════════════════════════
-// DRAG & DROP  (mouse + touch + auto-scroll)
-// ═══════════════════════════════════════════════════════════
-function initDragDrop() {
-  const container = document.getElementById('blocks-container');
-
-  // ── pointer-based drag (works on touch too) ──
-  let dragEl    = null;
-  let ghostEl   = null;
-  let startY    = 0;
-  let offsetY   = 0;
-  let indicator = null; // drop-position line
-
-  function createGhost(card) {
-    const g = card.cloneNode(true);
-    const rect = card.getBoundingClientRect();
-    g.style.cssText = `
-      position:fixed;left:${rect.left}px;top:${rect.top}px;
-      width:${rect.width}px;opacity:.75;pointer-events:none;
-      z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);
-      border-radius:var(--radius);transition:none;transform:rotate(1deg);`;
-    document.body.appendChild(g);
-    return g;
-  }
-
-  function getIndicator() {
-    if (!indicator) {
-      indicator = document.createElement('div');
-      indicator.className = 'drag-over-indicator';
-    }
-    return indicator;
-  }
-
-  function removeIndicator() {
-    if (indicator && indicator.parentNode) indicator.parentNode.removeChild(indicator);
-  }
-
-  // auto-scroll when dragging near edges
-  let scrollRAF = null;
-  function autoScroll(clientY) {
-    const ZONE = 80, SPEED = 12;
-    const rect = container.getBoundingClientRect();
-    if (scrollRAF) cancelAnimationFrame(scrollRAF);
-    function step() {
-      if (!dragEl) return;
-      if (clientY - rect.top < ZONE)        container.scrollTop -= SPEED;
-      else if (rect.bottom - clientY < ZONE) container.scrollTop += SPEED;
-      scrollRAF = requestAnimationFrame(step);
-    }
-    scrollRAF = requestAnimationFrame(step);
-  }
-
-  // find where to insert
-  function getInsertTarget(clientY) {
-    const cards = [...container.querySelectorAll('.block-card:not(.dragging)')];
-    let best = null, bestDist = Infinity;
-    for (const c of cards) {
-      const rect = c.getBoundingClientRect();
-      const mid  = rect.top + rect.height / 2;
-      const dist = Math.abs(clientY - mid);
-      if (dist < bestDist) { bestDist = dist; best = { el: c, above: clientY < mid }; }
-    }
-    return best;
-  }
-
-  container.addEventListener('mousedown', e => {
-    const handle = e.target.closest('.block-drag');
-    if (!handle) return;
-    e.preventDefault();
-    dragEl = handle.closest('.block-card');
-    dragEl.classList.add('dragging');
-    const rect = dragEl.getBoundingClientRect();
-    offsetY = e.clientY - rect.top;
-    ghostEl = createGhost(dragEl);
-    startY  = e.clientY;
-    document.body.style.userSelect = 'none';
-  });
-
-  document.addEventListener('mousemove', e => {
-    if (!dragEl || !ghostEl) return;
-    ghostEl.style.top = (e.clientY - offsetY) + 'px';
-    autoScroll(e.clientY);
-
-    const target = getInsertTarget(e.clientY);
-    const ind    = getIndicator();
-    if (target) {
-      if (target.above) target.el.before(ind);
-      else              target.el.after(ind);
-    }
-  });
-
-  document.addEventListener('mouseup', async e => {
-    if (!dragEl) return;
-    if (scrollRAF) cancelAnimationFrame(scrollRAF);
-
-    const target = getInsertTarget(e.clientY);
-    if (target) {
-      if (target.above) target.el.before(dragEl);
-      else              target.el.after(dragEl);
-    }
-
-    dragEl.classList.remove('dragging');
-    ghostEl.remove();
-    removeIndicator();
-    dragEl  = null;
-    ghostEl = null;
-    document.body.style.userSelect = '';
-
-    // save new order
-    const cards   = container.querySelectorAll('.block-card');
-    const updates = [];
-    cards.forEach((card, i) => {
-      const id = parseInt(card.dataset.id);
-      const b  = state.blocks.find(b => b.id === id);
-      if (b) { b.order = i; updates.push({ id, order: i }); }
-    });
-    await api('POST', '/api/blocks/reorder', updates);
-    renderBlocks();
-    if (state.studentOpen) renderStudentView();
-  });
-}ner, e.clientY);
-    if (!dragEl) return;
-    if (after == null) container.appendChild(dragEl);
-    else container.insertBefore(dragEl, after);
-  });
-}
-
-// ═══════════════════════════════════════════════════════════
-// MODAL
-// ═══════════════════════════════════════════════════════════
-function showModal(html) {
-  document.getElementById('modal-box').innerHTML = html;
-  document.getElementById('modal-overlay').classList.add('open');
-}
-function closeModal(e) {
-  if (e && e.target !== document.getElementById('modal-overlay')) return;
-  document.getElementById('modal-overlay').classList.remove('open');
-}
-
-// ═══════════════════════════════════════════════════════════
-// TOAST
-// ═══════════════════════════════════════════════════════════
+function showModal(html){ document.getElementById('modal-box').innerHTML=html; document.getElementById('modal-overlay').classList.add('open'); }
+function closeModal(e){ if(e&&e.target!==document.getElementById('modal-overlay'))return; document.getElementById('modal-overlay').classList.remove('open'); }
 let _toastTimer;
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
-}
-
-// ═══════════════════════════════════════════════════════════
-// UTILS
-// ═══════════════════════════════════════════════════════════
-function esc(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
+function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(_toastTimer); _toastTimer=setTimeout(()=>el.classList.remove('show'),2500); }
+function esc(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 // ═══════════════════════════════════════════════════════════
 // START
 // ═══════════════════════════════════════════════════════════
 initLoginCheck();
+
 </script>
 </body>
 </html>
