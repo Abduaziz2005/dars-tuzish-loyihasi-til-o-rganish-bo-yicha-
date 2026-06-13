@@ -147,6 +147,21 @@ def seed_demo():
                  'options': ['воскресенье','суббота','понедельник','пятница'], 'correct': 2},
             ]
         }),
+        (5, 'vocab_timer', {
+            'title': 'Лug\'atni yodlang (kunlar)',
+            'timer_sec': 90,
+            'test_order': 'random',
+            'test_dir': 'random',
+            'items': [
+                {'ru': 'понедельник', 'uz': 'dushanba'},
+                {'ru': 'вторник',     'uz': 'seshanba'},
+                {'ru': 'среда',       'uz': 'chorshanba'},
+                {'ru': 'четверг',     'uz': 'payshanba'},
+                {'ru': 'пятница',     'uz': 'juma'},
+                {'ru': 'суббота',     'uz': 'shanba'},
+                {'ru': 'воскресенье', 'uz': 'yakshanba'},
+            ]
+        }),
     ]
     for order, btype, bdata in blocks_data:
         b = Block(lesson_id=lesson.id, type=btype, order=order,
@@ -381,16 +396,51 @@ def save_result():
 def get_results():
     """O'qituvchi barcha natijalarni ko'radi"""
     results = StudentResult.query.order_by(StudentResult.submitted_at.desc()).all()
-    return jsonify([{
-        'id':           r.id,
-        'student_name': r.student_name,
-        'lesson_title': r.lesson_title,
-        'total_score':  r.total_score,
-        'max_score':    r.max_score,
-        'pct':          round(r.total_score / r.max_score * 100) if r.max_score else 0,
-        'answers':      json.loads(r.answers_json or '{}'),
-        'submitted_at': r.submitted_at.strftime('%Y-%m-%d %H:%M'),
-    } for r in results])
+    data = []
+    for r in results:
+        answers_raw = json.loads(r.answers_json or '{}')
+        # Har bir blok turini qayta ishlash
+        processed = {}
+        for block_id, block_data in answers_raw.items():
+            if isinstance(block_data, dict):
+                b_type  = block_data.get('type', '')
+                b_title = block_data.get('title', '')
+                b_ans   = block_data.get('answers', {})
+                b_score = block_data.get('score', 0)
+                b_max   = block_data.get('max', 0)
+                # vocab_timer va gen_test uchun javob detallari
+                if b_type in ('vocab_timer', 'gen_test'):
+                    rows = []
+                    for q, v in b_ans.items():
+                        if isinstance(v, dict):
+                            rows.append({
+                                'question':  q,
+                                'given':     v.get('given', ''),
+                                'correct':   v.get('correct', ''),
+                                'is_correct':v.get('isCorrect', v.get('correct', '') == v.get('given', '')),
+                            })
+                    processed[block_id] = {
+                        'type': b_type, 'title': b_title,
+                        'score': b_score, 'max': b_max,
+                        'rows': rows,
+                        'answers': b_ans,
+                    }
+                else:
+                    processed[block_id] = block_data
+            else:
+                processed[block_id] = block_data
+
+        data.append({
+            'id':           r.id,
+            'student_name': r.student_name,
+            'lesson_title': r.lesson_title,
+            'total_score':  r.total_score,
+            'max_score':    r.max_score,
+            'pct':          round(r.total_score / r.max_score * 100) if r.max_score else 0,
+            'answers':      processed,
+            'submitted_at': r.submitted_at.strftime('%Y-%m-%d %H:%M'),
+        })
+    return jsonify(data)
 
 @app.route('/api/results/<int:rid>', methods=['DELETE'])
 def delete_result(rid):

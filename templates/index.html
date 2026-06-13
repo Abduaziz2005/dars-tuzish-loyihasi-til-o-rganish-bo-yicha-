@@ -711,6 +711,63 @@ input,textarea,select{outline:none;font-family:inherit}
 }
 .lesson-sel-btn.active{background:var(--blue);border-color:var(--blue);color:white;font-weight:700}
 .lesson-sel-btn:hover:not(.active){border-color:var(--blue);color:var(--blue)}
+/* Dark theme */
+body.dark{background:#12121f!important;color:#e0deef!important}
+body.dark #app,body.dark #main{background:#12121f}
+body.dark #topbar,body.dark #sidebar-header,body.dark #student-header{background:#0d0d1a}
+body.dark #sidebar,body.dark .block-card,body.dark .modal-box,body.dark .s-table{background:#1c1a2e;border-color:#2d2b45;color:#e0deef}
+body.dark .f-input,body.dark .f-textarea,body.dark .f-select,body.dark .tts-modal-box-inner{background:#252340;color:#e0deef;border-color:#3d3b5a}
+body.dark .block-header,body.dark #editor-panel,body.dark #blocks-container{background:#16142a}
+body.dark .vocab-item,body.dark .match-item,body.dark .quiz-opt,body.dark .dialog-box{background:#1c1a2e;border-color:#2d2b45;color:#e0deef}
+body.dark .lesson-item:hover{background:#252340}
+body.dark .lesson-item.active{background:#252340;border-color:#6a4c93}
+body.dark .add-item-btn{color:#a78bfa;border-color:#6a4c93}
+body.dark .cw-cell{background:#1c1a2e;color:#e0deef;border-color:#2d2b45}
+body.dark .audio-text-box{background:#1c1a2e;border-color:#2d2b45}
+body.dark #student-fullscreen,body.dark .sf-body,body.dark #preview-overlay{background:#12121f}
+body.dark .sf-block-card{background:#1c1a2e;border-color:#2d2b45}
+body.dark .sf-lesson-tabs{background:#0d0d1a;border-color:#2d2b45}
+body.dark #tts-modal-box,body.dark #gen-test-box{background:#1c1a2e;color:#e0deef}
+body.dark #tts-text,body.dark #tts-gender,body.dark #tts-rate{background:#252340;color:#e0deef;border-color:#3d3b5a}
+body.dark #tts-voice-list{border-color:#3d3b5a;background:#252340}
+/* VT block */
+.vt-words-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin:10px 0}
+.vt-word-card{padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:8px;background:white;font-size:14px}
+body.dark .vt-word-card{background:#252340;border-color:#3d3b5a;color:#e0deef}
+.vt-word-num{background:var(--blue);color:white;border-radius:4px;min-width:22px;text-align:center;font-size:11px;font-weight:700;padding:1px 5px}
+.vt-timer-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:700;background:rgba(14,165,233,.15);border:1.5px solid #0ea5e9;color:#0ea5e9}
+.vt-timer-pill.expired{background:rgba(239,68,68,.1);border-color:#f87171;color:#f87171}
+.vt-start-test-btn{width:100%;padding:11px;border-radius:8px;background:var(--blue);color:white;font-size:14px;font-weight:700;border:none;cursor:pointer;margin-top:10px;transition:filter .15s}
+.vt-start-test-btn:disabled{opacity:.4;cursor:not-allowed}
+.vt-start-test-btn:not(:disabled):hover{filter:brightness(1.1)}
+.vt-test-q{font-size:18px;font-weight:700;margin-bottom:16px;color:var(--dark)}
+body.dark .vt-test-q{color:#e0deef}
+.vt-answer-input{width:100%;padding:11px;border:2px solid var(--border);border-radius:8px;font-size:15px;font-family:inherit;outline:none}
+.vt-answer-input:focus{border-color:var(--blue)}
+.vt-answer-input.correct{border-color:var(--green);background:rgba(42,157,143,.08)}
+.vt-answer-input.wrong{border-color:var(--red);background:rgba(239,68,68,.08)}
+.vt-opt{padding:11px 18px;border-radius:8px;border:2px solid var(--border);background:white;font-size:14px;cursor:pointer;text-align:left;width:100%;margin-top:8px;transition:all .15s}
+body.dark .vt-opt{background:#252340;color:#e0deef;border-color:#3d3b5a}
+.vt-opt:hover:not(:disabled){border-color:var(--blue);background:#f0f8ff}
+.vt-opt.correct{border-color:var(--green);background:#f0fff4;color:var(--green);font-weight:600}
+.vt-opt.wrong{border-color:var(--red);background:#fff0f0;color:var(--red)}
+.vt-next-btn{margin-top:14px;padding:10px 24px;border-radius:8px;background:var(--blue);color:white;font-size:14px;font-weight:700;border:none;cursor:pointer}
+.vt-results-score{text-align:center;font-size:36px;font-weight:900;color:var(--blue);margin:8px 0}
+.vt-res-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+.vt-res-table th{background:var(--dark);color:white;padding:8px 12px;text-align:left}
+body.dark .vt-res-table th{background:#252340}
+.vt-res-table td{padding:8px 12px;border-bottom:1px solid var(--border)}
+.vt-res-table tr:hover td{background:#f1faee}
+body.dark .vt-res-table tr:hover td{background:#1c1a2e}
+/* Gen test */
+.gen-word-chip{padding:8px 14px;border:2px solid var(--border);border-radius:20px;cursor:pointer;font-size:13px;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.gen-word-chip:hover{border-color:var(--blue)}
+.gen-word-chip.sel{border-color:var(--blue);background:var(--blue);color:white}
+body.dark .gen-word-chip{background:#252340;border-color:#3d3b5a;color:#e0deef}
+body.dark .gen-word-chip.sel{background:var(--blue);color:white}
+.gen-type-btn{flex:1;padding:12px;border-radius:10px;border:2px solid var(--border);background:white;cursor:pointer;font-size:13px;font-weight:600;text-align:center;transition:all .15s}
+body.dark .gen-type-btn{background:#252340;border-color:#3d3b5a;color:#e0deef}
+.gen-type-btn.active{border-color:var(--purple);background:rgba(106,76,147,.1);color:var(--purple)}
 </style>
 </head>
 <body>
@@ -782,8 +839,11 @@ input,textarea,select{outline:none;font-family:inherit}
   <span class="role-badge" id="role-badge" style="display:none"></span>
   <button class="tb-btn" id="btn-results" style="display:none" onclick="openResultsScreen()">📊 Natijalar</button>
   <button class="tb-btn" id="btn-export-urok" style="display:none" onclick="exportCurrentLesson()">⬇ .urok yuborish</button>
-  <button class="split-toggle" onclick="toggleStudentPanel()">👁 O'quvchi ko'rinishi</button>
-  <button class="tb-btn" onclick="logoutRole()" style="background:rgba(255,255,255,.08)">🚪 Chiqish</button>
+  <button class="split-toggle" onclick="toggleStudentPanel()">👁 O'quvchi paneli</button>
+  <button class="tb-btn" onclick="openTeacherPreview()" style="background:rgba(255,255,255,.12)">🔍 Preview</button>
+  <button class="tb-btn" id="theme-btn" onclick="toggleTheme()" style="background:rgba(255,255,255,.08)" title="Mavzu">🌙</button>
+  <button class="tb-btn" onclick="openTTSModal()" style="background:rgba(255,255,255,.08)" title="Matn o'qish">🔊</button>
+  <button class="tb-btn" onclick="logoutRole()" style="background:rgba(255,255,255,.08)">🚪</button>
 </div>
 
 <!-- Main -->
@@ -817,6 +877,7 @@ input,textarea,select{outline:none;font-family:inherit}
       <button class="add-block-btn" style="color:#555;border-color:#aaa" onclick="openAddBlockModal('audio_text')">🔊 Matn+Ovoz</button>
       <button class="add-block-btn" style="color:#888;border-color:#ccc" onclick="openAddBlockModal('table')">📊 Jadval</button>
       <button class="add-block-btn" style="color:#aaa;border-color:#ddd" onclick="openAddBlockModal('hr')">― Chiziq</button>
+      <button class="add-block-btn" style="color:#0ea5e9;border-color:#0ea5e9;font-weight:800" onclick="openAddBlockModal('vocab_timer')">⏱ Lug'at+Test</button>
     </div>
     <div id="blocks-container">
       <div id="blocks-empty">
@@ -863,8 +924,10 @@ input,textarea,select{outline:none;font-family:inherit}
       <div class="sf-score-pill" id="sf-score-pill" style="display:none">
         ⭐ <span id="sf-score-num">0</span> ball
       </div>
+      <button onclick="openGenTest()" style="padding:7px 14px;border-radius:8px;background:#6a4c93;color:white;font-size:13px;font-weight:700;border:none;cursor:pointer;white-space:nowrap">🧠 Umumiy test</button>
       <button class="sf-submit-btn" onclick="submitStudentResults()">📤 Natijani yuborish</button>
       <button class="sf-download-btn" onclick="downloadResultFile()">⬇ Yuklab olish</button>
+      <button onclick="toggleTheme()" style="padding:7px 10px;border-radius:8px;background:rgba(255,255,255,.12);color:white;border:none;cursor:pointer;font-size:16px" id="sf-theme-btn" title="Mavzu">🌙</button>
       <button class="sf-logout-btn" onclick="logoutRole()">🚪 Chiqish</button>
     </div>
   </div>
@@ -879,6 +942,59 @@ input,textarea,select{outline:none;font-family:inherit}
     </div>
   </div>
 
+</div>
+
+<!-- Teacher Preview -->
+<div id="preview-overlay" style="display:none;position:fixed;inset:0;z-index:6500;background:#f0f4f8;flex-direction:column">
+  <div style="background:#1d3557;color:white;padding:0 20px;height:52px;display:flex;align-items:center;gap:16px;flex-shrink:0">
+    <span style="font-weight:800;font-size:16px">📚 Lang<span style="color:#a8dadc">Learn</span> — Preview</span>
+    <span id="preview-lesson-title" style="font-size:14px;color:#a8dadc;flex:1"></span>
+    <button onclick="closeTeacherPreview()" style="padding:7px 18px;border-radius:8px;background:#e63946;color:white;border:none;cursor:pointer;font-weight:700">← Orqaga (tahrirlash)</button>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:32px 20px">
+    <div style="max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:20px" id="preview-content"></div>
+  </div>
+</div>
+
+<!-- TTS Modal -->
+<div id="tts-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:16px;padding:28px;width:480px;max-width:94vw;box-shadow:0 16px 48px rgba(0,0,0,.25)" id="tts-modal-box">
+    <h3 style="font-size:17px;margin-bottom:18px;display:flex;align-items:center;gap:8px">🔊 Matn o'qish (TTS — rus tili)</h3>
+    <textarea id="tts-text" style="width:100%;height:100px;padding:10px;border:1.5px solid #dee2e6;border-radius:8px;font-size:14px;resize:vertical;font-family:inherit;margin-bottom:14px" placeholder="Rus tilida matn kiriting..."></textarea>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#6c757d;margin-bottom:4px">Jins</div>
+        <select id="tts-gender" style="width:100%;padding:8px;border:1.5px solid #dee2e6;border-radius:8px;font-size:13px">
+          <option value="auto">🔄 Auto</option>
+          <option value="female">👩 Ayol ovozi</option>
+          <option value="male">👨 Erkak ovozi</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#6c757d;margin-bottom:4px">Tezlik: <span id="tts-rate-label">1.0x</span></div>
+        <input type="range" id="tts-rate" min="0.5" max="2" step="0.1" value="1" style="width:100%;margin-top:8px" oninput="document.getElementById('tts-rate-label').textContent=parseFloat(this.value).toFixed(1)+'x'">
+      </div>
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;color:#6c757d;margin-bottom:6px">Ovoz tanlash:</div>
+      <div id="tts-voice-list" style="max-height:100px;overflow-y:auto;border:1px solid #dee2e6;border-radius:8px;padding:4px"></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="closeTTSModal()" style="padding:9px 18px;border-radius:8px;background:#f8f9fa;border:1px solid #dee2e6;color:#555;cursor:pointer;font-size:14px">Yopish</button>
+      <button id="tts-play-btn" onclick="playTTS()" style="padding:9px 22px;border-radius:8px;background:#2a9d8f;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700">▶ O'qish</button>
+    </div>
+  </div>
+</div>
+
+<!-- General Test Modal -->
+<div id="gen-test-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:8500;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px">
+  <div style="background:white;border-radius:16px;width:100%;max-width:680px;box-shadow:0 16px 48px rgba(0,0,0,.25);margin:auto;overflow:hidden" id="gen-test-box">
+    <div style="background:#6a4c93;color:white;padding:18px 24px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:17px;font-weight:700;flex:1" id="gen-test-title">🧠 Umumiy test</span>
+      <button onclick="closeGenTest()" style="padding:5px 14px;border-radius:6px;background:rgba(255,255,255,.15);color:white;border:none;cursor:pointer;font-size:13px">✕</button>
+    </div>
+    <div style="padding:24px" id="gen-test-body"></div>
+  </div>
 </div>
 
 <!-- Modal -->
@@ -1126,14 +1242,26 @@ function showResultDetail(r) {
   let html = '';
   Object.values(answers).forEach(a => {
     if (!a || !a.type) return;
+    const isVT = a.type === 'vocab_timer' || a.type === 'gen_test';
     html += '<div class="detail-block"><div class="detail-block-title">' + esc(a.title || a.type) + ' — ' + (a.score || 0) + '/' + (a.max || 0) + ' ball</div>';
-    const ans = a.answers || {};
-    Object.entries(ans).forEach(function(kv) {
-      const k = kv[0], v = kv[1];
-      const ok = v && v.correct !== undefined ? v.correct : null;
-      const given = v && v.given !== undefined ? v.given : (typeof v === 'string' ? v : '');
-      html += '<div class="detail-item"><span class="det-icon">' + (ok === true ? '✅' : ok === false ? '❌' : '•') + '</span><span class="' + (ok === true ? 'det-correct' : ok === false ? 'det-wrong' : '') + '">' + esc(k) + ': <b>' + esc(String(given)) + '</b></span></div>';
-    });
+    // vocab_timer / gen_test — rows format (server tomonidan qayta ishlangan)
+    if (isVT && a.rows && a.rows.length) {
+      html += a.rows.map(function(row) {
+        return '<div class="detail-item"><span class="det-icon">' + (row.is_correct ? '✅' : '❌') + '</span>' +
+          '<span class="' + (row.is_correct ? 'det-correct' : 'det-wrong') + '">' + esc(row.question) + ': <b>' + esc(String(row.given || '')) + '</b>' +
+          (!row.is_correct ? ' <span style="color:#6c757d;font-weight:400">→ ' + esc(row.correct) + '</span>' : '') +
+          '</span></div>';
+      }).join('');
+    } else {
+      const ans = a.answers || {};
+      Object.entries(ans).forEach(function(kv) {
+        const k = kv[0], v = kv[1];
+        const ok = v && v.correct !== undefined ? v.correct : null;
+        const given = v && v.given !== undefined ? v.given : (typeof v === 'string' ? v : '');
+        html += '<div class="detail-item"><span class="det-icon">' + (ok === true ? '✅' : ok === false ? '❌' : '•') + '</span>' +
+          '<span class="' + (ok === true ? 'det-correct' : ok === false ? 'det-wrong' : '') + '">' + esc(k) + ': <b>' + esc(String(given)) + '</b></span></div>';
+      });
+    }
     html += '</div>';
   });
   if (!html) html = '<p style="color:var(--gray);font-size:13px">Javoblar yo\'q</p>';
@@ -1482,6 +1610,632 @@ function sfUpdateScore() {
 
 // submitStudentResults — to'liq ekrandan ham ishlaydi
 // (funksiya allaqachon mavjud, faqat sfUpdateScore chaqiramiz)
+
+// ═══════════════════════════════════════════════════════════
+// PREVIEW (O'qituvchi o'quvchi ko'rinishini ko'radi)
+// ═══════════════════════════════════════════════════════════
+function openTeacherPreview() {
+  if (!state.currentLessonId) { toast("⚠️ Avval dars tanlang"); return; }
+  const overlay = document.getElementById('preview-overlay');
+  const contentEl = document.getElementById('preview-content');
+  const titleEl = document.getElementById('preview-lesson-title');
+  const cur = state.lessons.find(l => l.id === state.currentLessonId);
+  if (cur) titleEl.textContent = cur.title;
+  contentEl.innerHTML = '';
+  const sorted = [...state.blocks].sort((a,b) => a.order - b.order);
+  sorted.forEach(block => {
+    const el = renderStudentBlock(block);
+    if (!el) return;
+    if (!['heading','hr'].includes(block.type)) {
+      const card = document.createElement('div');
+      card.className = 'sf-block-card';
+      card.style.cssText = 'background:white;border-radius:14px;box-shadow:0 2px 16px rgba(0,0,0,.07);overflow:hidden;border:1.5px solid #dee2e6;padding:24px';
+      card.appendChild(el);
+      contentEl.appendChild(card);
+    } else {
+      contentEl.appendChild(el);
+    }
+  });
+  overlay.style.display = 'flex';
+}
+function closeTeacherPreview() {
+  document.getElementById('preview-overlay').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════
+// DARK / LIGHT THEME
+// ═══════════════════════════════════════════════════════════
+function toggleTheme() {
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('ll_theme', isDark ? 'dark' : 'light');
+  const btns = document.querySelectorAll('#theme-btn, #sf-theme-btn');
+  btns.forEach(b => { if (b) b.textContent = isDark ? '☀️' : '🌙'; });
+}
+function applyTheme() {
+  const t = localStorage.getItem('ll_theme');
+  if (t === 'dark') {
+    document.body.classList.add('dark');
+    document.querySelectorAll('#theme-btn,#sf-theme-btn').forEach(b => { if(b) b.textContent='☀️'; });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// TTS (Text-to-Speech — rus tili)
+// ═══════════════════════════════════════════════════════════
+let _ttsUtterance = null;
+let _selectedVoice = null;
+
+function openTTSModal() {
+  document.getElementById('tts-overlay').style.display = 'flex';
+  loadTTSVoices();
+}
+function closeTTSModal() {
+  stopTTS();
+  document.getElementById('tts-overlay').style.display = 'none';
+}
+function loadTTSVoices() {
+  const listEl = document.getElementById('tts-voice-list');
+  if (!listEl) return;
+  const voices = window.speechSynthesis ? window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('ru')) : [];
+  if (!voices.length) {
+    listEl.innerHTML = '<div style="padding:8px;font-size:13px;color:#6c757d">Brauzeringizda rus ovozi topilmadi. Chrome/Edge ishlatib ko\'ring.</div>';
+    return;
+  }
+  listEl.innerHTML = '';
+  voices.forEach((v, i) => {
+    const item = document.createElement('div');
+    item.style.cssText = 'padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px';
+    item.textContent = v.name + ' (' + v.lang + ')';
+    item.onclick = function() {
+      _selectedVoice = v;
+      listEl.querySelectorAll('div').forEach(d => d.style.background = '');
+      this.style.background = '#f0f8ff';
+      this.style.color = '#457b9d';
+    };
+    if (i === 0) { item.style.background = '#f0f8ff'; item.style.color = '#457b9d'; _selectedVoice = v; }
+    listEl.appendChild(item);
+  });
+}
+function playTTS(text, gender, onEnd) {
+  if (!window.speechSynthesis) { toast('❌ Brauzeringiz TTS ni qo\'llab-quvvatlamaydi'); return; }
+  stopTTS();
+  const txt = text || document.getElementById('tts-text').value.trim();
+  if (!txt) { toast('⚠️ Matn kiriting'); return; }
+  const rate = text ? 0.9 : parseFloat(document.getElementById('tts-rate').value);
+  const utt = new SpeechSynthesisUtterance(txt);
+  utt.lang = 'ru-RU';
+  utt.rate = rate;
+  // Voice selection
+  const allVoices = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('ru'));
+  if (allVoices.length) {
+    const g = gender || document.getElementById('tts-gender').value;
+    if (g === 'female') {
+      const fv = allVoices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('anna') || v.name.toLowerCase().includes('milena') || v.name.toLowerCase().includes('irina') || v.name.toLowerCase().includes('elena') || v.name.toLowerCase().includes('zhanna'));
+      utt.voice = fv || _selectedVoice || allVoices[0];
+    } else if (g === 'male') {
+      const mv = allVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('pavel') || v.name.toLowerCase().includes('yuri') || v.name.toLowerCase().includes('dmitry'));
+      utt.voice = mv || _selectedVoice || allVoices[0];
+    } else {
+      utt.voice = _selectedVoice || allVoices[0];
+    }
+  }
+  _ttsUtterance = utt;
+  if (onEnd) utt.onend = onEnd;
+  if (!text) {
+    const btn = document.getElementById('tts-play-btn');
+    if (btn) { btn.textContent = '⏹ To\'xtatish'; btn.style.background = '#e76f51'; }
+    utt.onend = function() {
+      const b = document.getElementById('tts-play-btn');
+      if (b) { b.textContent = '▶ O\'qish'; b.style.background = '#2a9d8f'; }
+      _ttsUtterance = null;
+    };
+  }
+  window.speechSynthesis.speak(utt);
+}
+function stopTTS() {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  _ttsUtterance = null;
+}
+// Modal play button handler
+function playTTSModal() {
+  const btn = document.getElementById('tts-play-btn');
+  if (window.speechSynthesis && window.speechSynthesis.speaking) { stopTTS(); if(btn){btn.textContent='▶ O\'qish';btn.style.background='#2a9d8f';} return; }
+  playTTS();
+}
+
+// ═══════════════════════════════════════════════════════════
+// DIALOG TTS — ikki kishi suhbati
+// ═══════════════════════════════════════════════════════════
+let _dialogTTSRunning = false;
+function playDialogTTS(lines, voiceA, voiceB) {
+  if (_dialogTTSRunning) { stopTTS(); _dialogTTSRunning = false; return; }
+  if (!window.speechSynthesis) { toast('❌ TTS qo\'llab-quvvatlanmaydi'); return; }
+  const allVoices = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('ru'));
+  if (!allVoices.length) { toast('⚠️ Rus ovozi topilmadi'); return; }
+  const femaleVoice = allVoices.find(v => /female|anna|milena|irina|elena|zhanna/i.test(v.name)) || allVoices[0];
+  const maleVoice = allVoices.find(v => /male|pavel|yuri|dmitry/i.test(v.name)) || allVoices[Math.min(1, allVoices.length - 1)];
+  _dialogTTSRunning = true;
+  let i = 0;
+  function speakNext() {
+    if (!_dialogTTSRunning || i >= lines.length) { _dialogTTSRunning = false; return; }
+    const line = lines[i++];
+    const utt = new SpeechSynthesisUtterance(line.text);
+    utt.lang = 'ru-RU'; utt.rate = 0.9;
+    if (line.speaker === 'B') utt.voice = voiceB || maleVoice;
+    else utt.voice = voiceA || femaleVoice;
+    utt.onend = function() { setTimeout(speakNext, 300); };
+    window.speechSynthesis.speak(utt);
+  }
+  stopTTS();
+  setTimeout(speakNext, 100);
+}
+
+// ═══════════════════════════════════════════════════════════
+// VOCAB TIMER BLOCK EDITOR
+// ═══════════════════════════════════════════════════════════
+function buildVocabTimerEditor(id, d) {
+  const items = (d.items || []).map((item, i) =>
+    '<div class="item-row" id="vt-item-' + id + '-' + i + '">' +
+    '<input class="f-input" placeholder="Rus so\'z" value="' + esc(item.ru || '') + '" oninput="updateVTItem(' + id + ',' + i + ',\'ru\',this.value)">' +
+    '<span style="color:#6c757d;flex-shrink:0">→</span>' +
+    '<input class="f-input" placeholder="O\'zbekcha" value="' + esc(item.uz || '') + '" oninput="updateVTItem(' + id + ',' + i + ',\'uz\',this.value)">' +
+    '<button class="item-del" onclick="removeVTItem(' + id + ',' + i + ')">✕</button>' +
+    '</div>'
+  ).join('');
+  return '<div class="field-row"><label>Sarlavha</label>' +
+    '<input class="f-input" value="' + esc(d.title || 'Yodlash') + '" oninput="updateBlockField(' + id + ',\'title\',this.value)"></div>' +
+    '<div class="field-row"><label>Yodlash vaqti (soniya)</label>' +
+    '<input type="number" class="f-input" style="width:90px" min="10" max="600" value="' + (d.timer_sec || 60) + '" oninput="updateBlockField(' + id + ',\'timer_sec\',parseInt(this.value))" placeholder="60">' +
+    '</div><div class="field-row"><label>Test tartibi</label>' +
+    '<select class="f-select" onchange="updateBlockField(' + id + ',\'test_order\',this.value)">' +
+    '<option value="sequential" ' + (d.test_order === 'sequential' ? 'selected' : '') + '>Ketma-ket</option>' +
+    '<option value="random" ' + (d.test_order === 'random' || !d.test_order ? 'selected' : '') + '>Aralash</option>' +
+    '</select>' +
+    '<label style="margin-left:12px">Test yo\'nalishi</label>' +
+    '<select class="f-select" onchange="updateBlockField(' + id + ',\'test_dir\',this.value)">' +
+    '<option value="ru_uz" ' + (d.test_dir === 'ru_uz' ? 'selected' : '') + '>Rus → O\'zbek</option>' +
+    '<option value="uz_ru" ' + (d.test_dir === 'uz_ru' ? 'selected' : '') + '>O\'zbek → Rus</option>' +
+    '<option value="random" ' + (d.test_dir === 'random' || !d.test_dir ? 'selected' : '') + '>Tavakkal</option>' +
+    '</select></div>' +
+    '<div class="item-list" id="vt-list-' + id + '">' + items + '</div>' +
+    '<button class="add-item-btn" onclick="addVTItem(' + id + ')">+ So\'z qo\'shish</button>';
+}
+function updateVTItem(id, i, field, value) {
+  const b = getBlock(id); if (!b) return;
+  b.data.items = b.data.items || [];
+  if (!b.data.items[i]) b.data.items[i] = {};
+  b.data.items[i][field] = value;
+  saveBlock(id);
+}
+function addVTItem(id) {
+  const b = getBlock(id); if (!b) return;
+  b.data.items = b.data.items || [];
+  b.data.items.push({ru: '', uz: ''});
+  saveBlock(id); rerenderBlockEditor(id);
+}
+function removeVTItem(id, i) {
+  const b = getBlock(id); if (!b) return;
+  b.data.items.splice(i, 1);
+  saveBlock(id); rerenderBlockEditor(id);
+}
+
+// ═══════════════════════════════════════════════════════════
+// VOCAB TIMER STUDENT RENDER
+// ═══════════════════════════════════════════════════════════
+function renderSVocabTimer(block) {
+  const d = block.data;
+  const items = d.items || [];
+  if (!items.length) return null;
+  const el = document.createElement('div');
+  let timeLeft = d.timer_sec || 60;
+  let timerEnded = false;
+  let timerInterval = null;
+
+  function buildWordGrid() {
+    return '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin:10px 0">' +
+      items.map((item, i) =>
+        '<div class="vt-word-card" style="padding:10px 14px;border:1.5px solid #dee2e6;border-radius:8px;display:flex;align-items:center;gap:8px;background:white;font-size:14px">' +
+        '<span class="vt-word-num" style="background:#457b9d;color:white;border-radius:4px;min-width:22px;text-align:center;font-size:11px;font-weight:700;padding:1px 5px">' + (i + 1) + '</span>' +
+        '<span style="font-weight:600;flex:1">' + esc(item.ru || '') + '</span>' +
+        '<span style="color:#6c757d;font-size:13px">— ' + esc(item.uz || '') + '</span>' +
+        '</div>'
+      ).join('') + '</div>';
+  }
+
+  el.innerHTML =
+    '<div class="s-section-title"><div class="s-section-bar" style="background:#0ea5e9"></div>' +
+    '<div class="s-section-label" style="background:#0ea5e9">⏱ ' + esc(d.title || 'Yodlash') + '</div></div>' +
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">' +
+    '<span class="vt-timer-pill" id="vt-timer-' + block.id + '" style="display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:700;background:rgba(14,165,233,.15);border:1.5px solid #0ea5e9;color:#0ea5e9">⏱ ' + timeLeft + ' soniya</span>' +
+    '<button onclick="playTTS(\'' + items.map(it=>it.ru).join(', ').replace(/'/g,"\\'") + '\',\'auto\')" style="padding:4px 12px;border-radius:6px;border:1px solid #dee2e6;background:white;cursor:pointer;font-size:12px">🔊 Hammasini eshit</button>' +
+    '</div>' +
+    '<div id="vt-words-' + block.id + '">' + buildWordGrid() + '</div>' +
+    '<button id="vt-btn-' + block.id + '" class="vt-start-test-btn" style="width:100%;padding:11px;border-radius:8px;background:#0ea5e9;color:white;font-size:14px;font-weight:700;border:none;cursor:not-allowed;margin-top:10px;opacity:.4" disabled onclick="startVTTest(' + block.id + ')">🧪 Test boshlash (vaqt tugaganida)</button>';
+
+  // Timer countdown
+  timerInterval = setInterval(function() {
+    timeLeft--;
+    const pill = el.querySelector('#vt-timer-' + block.id);
+    if (pill) pill.textContent = '⏱ ' + timeLeft + ' soniya';
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      timerEnded = true;
+      const wordsDiv = el.querySelector('#vt-words-' + block.id);
+      if (wordsDiv) { wordsDiv.style.opacity = '0'; setTimeout(()=>{wordsDiv.style.display='none';},300); wordsDiv.style.transition='opacity .3s'; }
+      if (pill) { pill.textContent = '✅ Vaqt tugadi!'; pill.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:700;background:rgba(239,68,68,.1);border:1.5px solid #f87171;color:#f87171'; }
+      const btn = el.querySelector('#vt-btn-' + block.id);
+      if (btn) { btn.disabled = false; btn.style.cursor = 'pointer'; btn.style.opacity = '1'; btn.style.background = '#2a9d8f'; btn.textContent = '🧪 Testni boshlash'; }
+    }
+  }, 1000);
+
+  // Store block data for test
+  window['_vtBlock_' + block.id] = {d, el, items};
+  return el;
+}
+
+// Store for active VT tests
+const _vtTests = {};
+function startVTTest(blockId) {
+  const stored = window['_vtBlock_' + blockId];
+  if (!stored) return;
+  const {d, el} = stored;
+  const items = (d.items || []).filter(it => it.ru && it.uz);
+  if (!items.length) { toast('⚠️ So\'zlar yo\'q'); return; }
+  // Prepare questions
+  let qs = items.map((it, i) => ({...it, origIdx: i}));
+  if (d.test_order === 'sequential') {/*keep order*/} else { qs = qs.sort(() => Math.random() - 0.5); }
+  // Direction per question
+  qs = qs.map(q => {
+    const dir = d.test_dir === 'ru_uz' ? 'ru_uz' : d.test_dir === 'uz_ru' ? 'uz_ru' : (Math.random() > 0.5 ? 'ru_uz' : 'uz_ru');
+    return {...q, dir};
+  });
+  _vtTests[blockId] = {qs, cur: 0, results: [], d};
+  renderVTQuestion(blockId, el);
+}
+function renderVTQuestion(blockId, el) {
+  const t = _vtTests[blockId];
+  if (!t) return;
+  if (t.cur >= t.qs.length) { renderVTResults(blockId, el); return; }
+  const q = t.qs[t.cur];
+  const questionWord = q.dir === 'ru_uz' ? q.ru : q.uz;
+  const dirLabel = q.dir === 'ru_uz' ? "O'zbekcha tarjimani yozing:" : "Ruscha tarjimani yozing:";
+  const progressHtml = '<div style="font-size:13px;color:#6c757d;margin-bottom:8px">' + (t.cur + 1) + ' / ' + t.qs.length + '</div>' +
+    '<div style="height:6px;background:#dee2e6;border-radius:4px;margin-bottom:16px;overflow:hidden"><div style="height:100%;border-radius:4px;background:#0ea5e9;width:' + Math.round((t.cur / t.qs.length) * 100) + '%"></div></div>';
+  const html = progressHtml +
+    '<div class="vt-test-q" style="font-size:18px;font-weight:700;margin-bottom:12px">' + esc(questionWord) +
+    ' <button onclick="playTTS(\'' + esc(questionWord).replace(/'/g,"\\'") + '\')" style="padding:3px 10px;border-radius:6px;border:1px solid #dee2e6;background:white;cursor:pointer;font-size:12px;margin-left:8px">🔊</button></div>' +
+    '<div style="font-size:13px;color:#6c757d;margin-bottom:8px">' + dirLabel + '</div>' +
+    '<input id="vt-inp-' + blockId + '" class="vt-answer-input" style="width:100%;padding:11px;border:2px solid #dee2e6;border-radius:8px;font-size:15px;font-family:inherit;outline:none" placeholder="Javobingizni yozing..." onkeydown="if(event.key===\'Enter\')checkVTAnswer(' + blockId + ')">' +
+    '<div style="display:flex;gap:8px;margin-top:12px">' +
+    '<button onclick="checkVTAnswer(' + blockId + ')" style="padding:10px 24px;border-radius:8px;background:#0ea5e9;color:white;font-size:14px;font-weight:700;border:none;cursor:pointer">✅ Tekshirish</button>' +
+    '</div>' +
+    '<div id="vt-feedback-' + blockId + '" style="margin-top:10px;font-size:14px;min-height:20px"></div>';
+  const container = el.querySelector('#vt-words-' + blockId) || el.querySelector('.vt-test-container');
+  let testDiv = el.querySelector('#vt-test-' + blockId);
+  if (!testDiv) {
+    testDiv = document.createElement('div'); testDiv.id = 'vt-test-' + blockId;
+    el.appendChild(testDiv);
+  }
+  testDiv.innerHTML = html;
+  setTimeout(() => { const inp = el.querySelector('#vt-inp-' + blockId); if (inp) inp.focus(); }, 50);
+}
+function checkVTAnswer(blockId) {
+  const t = _vtTests[blockId];
+  if (!t) return;
+  const q = t.qs[t.cur];
+  const inp = document.getElementById('vt-inp-' + blockId);
+  if (!inp) return;
+  const given = inp.value.trim();
+  const correct = q.dir === 'ru_uz' ? q.uz : q.ru;
+  const isOk = given.toLowerCase() === correct.toLowerCase();
+  t.results.push({question: q.dir === 'ru_uz' ? q.ru : q.uz, correct, given, ok: isOk, dir: q.dir});
+  inp.classList.add(isOk ? 'correct' : 'wrong');
+  inp.disabled = true;
+  const fb = document.getElementById('vt-feedback-' + blockId);
+  if (fb) fb.innerHTML = isOk ? '<span style="color:#2a9d8f;font-weight:600">✅ To\'g\'ri!</span>' : '<span style="color:#e63946">❌ Noto\'g\'ri. To\'g\'ri javob: <b>' + esc(correct) + '</b></span>';
+  const testDiv = document.getElementById('vt-test-' + blockId);
+  if (testDiv) {
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'vt-next-btn';
+    nextBtn.style.cssText = 'margin-top:12px;padding:10px 24px;border-radius:8px;background:#457b9d;color:white;font-size:14px;font-weight:700;border:none;cursor:pointer';
+    nextBtn.textContent = t.cur + 1 < t.qs.length ? 'Keyingi →' : '📊 Natijalar';
+    nextBtn.onclick = function() {
+      t.cur++;
+      const block = window['_vtBlock_' + blockId];
+      if (block) renderVTQuestion(blockId, block.el);
+    };
+    testDiv.appendChild(nextBtn);
+  }
+  // Save to student answers
+  const allCorrect = t.results.filter(r => r.ok).length;
+  const ansMap = {};
+  t.results.forEach((r, i) => { ansMap[esc(r.question)] = {given: r.given, correct: r.correct, isCorrect: r.ok}; });
+  recordStudentAnswer(blockId, 'vocab_timer', t.d.title || 'Lug\'at test', ansMap, allCorrect, t.results.length);
+}
+function renderVTResults(blockId, el) {
+  const t = _vtTests[blockId];
+  if (!t) return;
+  const total = t.results.length;
+  const correct = t.results.filter(r => r.ok).length;
+  const pct = total > 0 ? Math.round(correct / total * 100) : 0;
+  const rows = t.results.map(r =>
+    '<tr><td>' + esc(r.question) + '</td><td><input value="' + esc(r.given) + '" readonly style="border:none;background:transparent;color:' + (r.ok ? '#2a9d8f' : '#e63946') + ';font-weight:600;width:100%;font-family:inherit">' +
+    '</td><td style="color:#2a9d8f;font-weight:600">' + esc(r.correct) + '</td><td style="font-size:18px">' + (r.ok ? '✅' : '❌') + '</td></tr>'
+  ).join('');
+  let testDiv = el.querySelector('#vt-test-' + blockId);
+  if (!testDiv) { testDiv = document.createElement('div'); testDiv.id = 'vt-test-' + blockId; el.appendChild(testDiv); }
+  testDiv.innerHTML =
+    '<div style="text-align:center;padding:16px 0"><div style="font-size:36px;font-weight:900;color:#457b9d">' + pct + '%</div>' +
+    '<div style="color:#6c757d;margin-top:4px">' + correct + ' / ' + total + ' to\'g\'ri javob</div></div>' +
+    '<table class="vt-res-table" style="width:100%;border-collapse:collapse;font-size:13px;margin-top:12px">' +
+    '<thead><tr><th style="background:#1d3557;color:white;padding:8px 12px;text-align:left">Savol</th><th style="background:#1d3557;color:white;padding:8px 12px;text-align:left">Sizning javob</th><th style="background:#1d3557;color:white;padding:8px 12px;text-align:left">To\'g\'ri javob</th><th style="background:#1d3557;color:white;padding:8px 12px">✓</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table>' +
+    '<button onclick="restartVTTest(' + blockId + ')" style="margin-top:14px;padding:10px 24px;border-radius:8px;background:#0ea5e9;color:white;font-size:14px;font-weight:700;border:none;cursor:pointer">🔄 Qayta boshlash</button>';
+}
+function restartVTTest(blockId) {
+  const stored = window['_vtBlock_' + blockId];
+  if (!stored) return;
+  const testDiv = document.getElementById('vt-test-' + blockId);
+  if (testDiv) testDiv.remove();
+  startVTTest(blockId);
+}
+
+// ═══════════════════════════════════════════════════════════
+// UMUMIY TEST (O'quvchi o'zi so'z tanlaydi)
+// ═══════════════════════════════════════════════════════════
+let _genTest = {};
+
+function openGenTest() {
+  // Barcha vocab va vocab_timer bloklardan so'z to'plamiz
+  const allWords = [];
+  state.blocks.forEach(block => {
+    if (block.type === 'vocab') {
+      (block.data.items || []).forEach(it => { if (it.ru && it.uz) allWords.push({ru: it.ru, uz: it.uz, src: block.data.title || "So'zlar"}); });
+    }
+    if (block.type === 'vocab_timer') {
+      (block.data.items || []).forEach(it => { if (it.ru && it.uz) allWords.push({ru: it.ru, uz: it.uz, src: block.data.title || "Lug'at"}); });
+    }
+  });
+  _genTest = {allWords, selected: [], testType: '1', dir: 'random', step: 'select'};
+  const overlay = document.getElementById('gen-test-overlay');
+  overlay.style.display = 'flex';
+  renderGenTestSelect();
+}
+function closeGenTest() {
+  document.getElementById('gen-test-overlay').style.display = 'none';
+  stopTTS();
+}
+function renderGenTestSelect() {
+  const body = document.getElementById('gen-test-body');
+  const title = document.getElementById('gen-test-title');
+  title.textContent = '🧠 Umumiy test — So\'z tanlash';
+  const allWords = _genTest.allWords;
+  if (!allWords.length) {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:#6c757d"><div style="font-size:48px;opacity:.3;margin-bottom:16px">📭</div><p>Darsda So\'zlar yoki Lug\'at+Test bloki yo\'q</p></div>';
+    return;
+  }
+  const chips = allWords.map((w, i) => {
+    const sel = _genTest.selected.includes(i);
+    return '<span class="gen-word-chip" data-idx="' + i + '" onclick="toggleGenWord(' + i + ')" style="padding:7px 14px;border:2px solid ' + (sel ? '#457b9d' : '#dee2e6') + ';border-radius:20px;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:6px;background:' + (sel ? '#457b9d' : 'white') + ';color:' + (sel ? 'white' : '#444') + ';margin:3px">' +
+      '<span>' + (sel ? '✓' : '○') + '</span>' + esc(w.ru) + ' — ' + esc(w.uz) + '</span>';
+  }).join('');
+  body.innerHTML =
+    '<div style="font-size:13px;color:#6c757d;margin-bottom:12px">Bilgan so\'zlarni tanlang:</div>' +
+    '<div style="margin-bottom:10px;display:flex;gap:8px">' +
+    '<button onclick="selectAllGenWords()" style="padding:6px 14px;border-radius:6px;border:1.5px solid #dee2e6;background:white;cursor:pointer;font-size:13px">✅ Hammasini tanlash</button>' +
+    '<button onclick="clearGenWords()" style="padding:6px 14px;border-radius:6px;border:1.5px solid #dee2e6;background:white;cursor:pointer;font-size:13px">✕ Tozalash</button>' +
+    '</div>' +
+    '<div style="max-height:260px;overflow-y:auto;border:1px solid #dee2e6;border-radius:8px;padding:10px;margin-bottom:18px">' + chips + '</div>' +
+    '<div style="font-size:13px;font-weight:700;color:#6c757d;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Test turi:</div>' +
+    '<div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">' +
+    '<button class="gen-type-btn ' + (_genTest.testType === '1' ? 'active' : '') + '" style="flex:1;min-width:160px;padding:12px;border-radius:10px;border:2px solid ' + (_genTest.testType === '1' ? '#6a4c93' : '#dee2e6') + ';background:' + (_genTest.testType === '1' ? 'rgba(106,76,147,.1)' : 'white') + ';cursor:pointer;font-size:13px;font-weight:600;color:' + (_genTest.testType === '1' ? '#6a4c93' : '#444') + '" onclick="setGenType(\'1\')">✍️ Matn yozib javob<br><span style="font-size:11px;font-weight:400">Tarjimani o\'zing yoz</span></button>' +
+    '<button class="gen-type-btn ' + (_genTest.testType === '2' ? 'active' : '') + '" style="flex:1;min-width:160px;padding:12px;border-radius:10px;border:2px solid ' + (_genTest.testType === '2' ? '#6a4c93' : '#dee2e6') + ';background:' + (_genTest.testType === '2' ? 'rgba(106,76,147,.1)' : 'white') + ';cursor:pointer;font-size:13px;font-weight:600;color:' + (_genTest.testType === '2' ? '#6a4c93' : '#444') + '" onclick="setGenType(\'2\')">🔘 4 variantdan tanlash<br><span style="font-size:11px;font-weight:400">To\'g\'ri javobni top</span></button>' +
+    '</div>' +
+    '<div style="font-size:13px;font-weight:700;color:#6c757d;margin-bottom:10px">Yo\'nalish:</div>' +
+    '<div style="display:flex;gap:8px;margin-bottom:20px">' +
+    '<button onclick="setGenDir(\'ru_uz\')" style="padding:7px 16px;border-radius:8px;border:1.5px solid ' + (_genTest.dir==='ru_uz'?'#457b9d':'#dee2e6') + ';background:' + (_genTest.dir==='ru_uz'?'#457b9d':'white') + ';color:' + (_genTest.dir==='ru_uz'?'white':'#444') + ';cursor:pointer;font-size:13px">Rus → O\'zb</button>' +
+    '<button onclick="setGenDir(\'uz_ru\')" style="padding:7px 16px;border-radius:8px;border:1.5px solid ' + (_genTest.dir==='uz_ru'?'#457b9d':'#dee2e6') + ';background:' + (_genTest.dir==='uz_ru'?'#457b9d':'white') + ';color:' + (_genTest.dir==='uz_ru'?'white':'#444') + ';cursor:pointer;font-size:13px">O\'zb → Rus</button>' +
+    '<button onclick="setGenDir(\'random\')" style="padding:7px 16px;border-radius:8px;border:1.5px solid ' + (_genTest.dir==='random'?'#457b9d':'#dee2e6') + ';background:' + (_genTest.dir==='random'?'#457b9d':'white') + ';color:' + (_genTest.dir==='random'?'white':'#444') + ';cursor:pointer;font-size:13px">🔀 Aralash</button>' +
+    '</div>' +
+    '<button onclick="startGenTest()" id="gen-start-btn" style="width:100%;padding:13px;border-radius:10px;background:#6a4c93;color:white;font-size:15px;font-weight:700;border:none;cursor:pointer;' + (_genTest.selected.length < 1 ? 'opacity:.4;cursor:not-allowed' : '') + '" ' + (_genTest.selected.length < 1 ? 'disabled' : '') + '>' +
+    (_genTest.selected.length > 0 ? '▶ Testni boshlash (' + _genTest.selected.length + ' so\'z)' : '⚠️ Kamida 1 ta so\'z tanlang') + '</button>';
+}
+function toggleGenWord(i) {
+  const idx = _genTest.selected.indexOf(i);
+  if (idx === -1) _genTest.selected.push(i);
+  else _genTest.selected.splice(idx, 1);
+  renderGenTestSelect();
+}
+function selectAllGenWords() { _genTest.selected = _genTest.allWords.map((_,i) => i); renderGenTestSelect(); }
+function clearGenWords() { _genTest.selected = []; renderGenTestSelect(); }
+function setGenType(t) { _genTest.testType = t; renderGenTestSelect(); }
+function setGenDir(d) { _genTest.dir = d; renderGenTestSelect(); }
+
+function startGenTest() {
+  if (!_genTest.selected.length) { toast('⚠️ So\'z tanlang'); return; }
+  let qs = _genTest.selected.map(i => ({..._genTest.allWords[i]}));
+  qs = qs.sort(() => Math.random() - 0.5);
+  qs = qs.map(q => {
+    const dir = _genTest.dir === 'random' ? (Math.random() > 0.5 ? 'ru_uz' : 'uz_ru') : _genTest.dir;
+    return {...q, dir};
+  });
+  _genTest.qs = qs; _genTest.cur = 0; _genTest.results = []; _genTest.step = 'test';
+  renderGenTestQuestion();
+}
+function renderGenTestQuestion() {
+  const title = document.getElementById('gen-test-title');
+  const body = document.getElementById('gen-test-body');
+  if (_genTest.cur >= _genTest.qs.length) { renderGenTestResults(); return; }
+  title.textContent = '🧠 Test — ' + (_genTest.cur + 1) + ' / ' + _genTest.qs.length;
+  const q = _genTest.qs[_genTest.cur];
+  const questionWord = q.dir === 'ru_uz' ? q.ru : q.uz;
+  const correctAns = q.dir === 'ru_uz' ? q.uz : q.ru;
+  const pct = Math.round((_genTest.cur / _genTest.qs.length) * 100);
+  const progress = '<div style="height:6px;background:#dee2e6;border-radius:4px;margin-bottom:20px;overflow:hidden"><div style="height:100%;border-radius:4px;background:#6a4c93;transition:width .3s;width:' + pct + '%"></div></div>';
+  const qHtml = '<div style="font-size:20px;font-weight:800;margin-bottom:6px;color:#1d3557">' + esc(questionWord) +
+    ' <button onclick="playTTS(\'' + esc(questionWord).replace(/'/g,"\\'") + '\')" style="padding:3px 10px;border-radius:6px;border:1px solid #dee2e6;background:white;cursor:pointer;font-size:12px">🔊</button></div>' +
+    '<div style="font-size:13px;color:#6c757d;margin-bottom:16px">' + (q.dir === 'ru_uz' ? "O'zbekcha tarjimasi:" : "Ruscha tarjimasi:") + '</div>';
+
+  if (_genTest.testType === '1') {
+    // Text input test
+    body.innerHTML = progress + qHtml +
+      '<input id="gen-inp" style="width:100%;padding:11px;border:2px solid #dee2e6;border-radius:8px;font-size:15px;font-family:inherit;outline:none;margin-bottom:12px" placeholder="Javobingizni yozing..." onkeydown="if(event.key===\'Enter\')checkGenAnswer()">' +
+      '<button onclick="checkGenAnswer()" style="padding:10px 24px;border-radius:8px;background:#6a4c93;color:white;font-size:14px;font-weight:700;border:none;cursor:pointer">✅ Tekshirish</button>' +
+      '<div id="gen-feedback" style="margin-top:10px;font-size:14px;min-height:20px"></div>';
+    setTimeout(() => { const inp = document.getElementById('gen-inp'); if (inp) inp.focus(); }, 50);
+  } else {
+    // 4-option MCQ
+    const allAnswers = _genTest.allWords.map(w => q.dir === 'ru_uz' ? w.uz : w.ru).filter(a => a !== correctAns);
+    const wrong = allAnswers.sort(() => Math.random() - 0.5).slice(0, 3);
+    const opts = [correctAns, ...wrong].sort(() => Math.random() - 0.5);
+    const optsHtml = opts.map(opt =>
+      '<button onclick="selectGenMCQ(this,\'' + esc(opt).replace(/'/g,"\\'") + '\',\'' + esc(correctAns).replace(/'/g,"\\'") + '\')" style="padding:11px 18px;border-radius:8px;border:2px solid #dee2e6;background:white;font-size:14px;cursor:pointer;text-align:left;width:100%;margin-top:8px;transition:all .15s" onmouseover="if(!this.disabled)this.style.borderColor=\'#457b9d\'" onmouseout="if(!this.disabled&&!this.classList.contains(\'correct\')&&!this.classList.contains(\'wrong\'))this.style.borderColor=\'#dee2e6\'">' + esc(opt) + '</button>'
+    ).join('');
+    body.innerHTML = progress + qHtml + optsHtml + '<div id="gen-feedback" style="margin-top:12px;font-size:14px;min-height:20px"></div>';
+  }
+}
+function checkGenAnswer() {
+  const inp = document.getElementById('gen-inp');
+  if (!inp) return;
+  const q = _genTest.qs[_genTest.cur];
+  const correctAns = q.dir === 'ru_uz' ? q.uz : q.ru;
+  const given = inp.value.trim();
+  const ok = given.toLowerCase() === correctAns.toLowerCase();
+  inp.style.border = '2px solid ' + (ok ? '#2a9d8f' : '#e63946');
+  inp.style.background = ok ? 'rgba(42,157,143,.08)' : 'rgba(239,68,68,.08)';
+  inp.disabled = true;
+  const fb = document.getElementById('gen-feedback');
+  if (fb) fb.innerHTML = ok ? '<span style="color:#2a9d8f;font-weight:600">✅ To\'g\'ri!</span>' : '<span style="color:#e63946">❌ To\'g\'ri javob: <b>' + esc(correctAns) + '</b></span>';
+  _genTest.results.push({question: q.dir === 'ru_uz' ? q.ru : q.uz, correct: correctAns, given, ok});
+  const nextBtn = document.createElement('button');
+  nextBtn.style.cssText = 'margin-top:12px;padding:10px 24px;border-radius:8px;background:#457b9d;color:white;font-size:14px;font-weight:700;border:none;cursor:pointer';
+  nextBtn.textContent = _genTest.cur + 1 < _genTest.qs.length ? 'Keyingi →' : '📊 Natijalar';
+  nextBtn.onclick = function() { _genTest.cur++; renderGenTestQuestion(); };
+  document.getElementById('gen-test-body').appendChild(nextBtn);
+}
+function selectGenMCQ(btn, chosen, correct) {
+  const q = _genTest.qs[_genTest.cur];
+  const ok = chosen === correct;
+  document.querySelectorAll('#gen-test-body button[onclick^="selectGenMCQ"]').forEach(b => {
+    b.disabled = true;
+    const bc = b.getAttribute('onclick').includes("'" + correct + "'") || b.getAttribute('onclick').includes('"' + correct + '"') || b.textContent.trim() === correct;
+    if (bc) { b.style.border = '2px solid #2a9d8f'; b.style.background = '#f0fff4'; b.style.color = '#2a9d8f'; b.style.fontWeight = '600'; }
+    else if (b === btn && !ok) { b.style.border = '2px solid #e63946'; b.style.background = '#fff0f0'; b.style.color = '#e63946'; }
+  });
+  const fb = document.getElementById('gen-feedback');
+  if (fb) fb.innerHTML = ok ? '<span style="color:#2a9d8f;font-weight:600">✅ To\'g\'ri!</span>' : '<span style="color:#e63946">❌ To\'g\'ri: <b>' + esc(correct) + '</b></span>';
+  _genTest.results.push({question: q.dir === 'ru_uz' ? q.ru : q.uz, correct, given: chosen, ok});
+  const nextBtn = document.createElement('button');
+  nextBtn.style.cssText = 'margin-top:12px;padding:10px 24px;border-radius:8px;background:#457b9d;color:white;font-size:14px;font-weight:700;border:none;cursor:pointer';
+  nextBtn.textContent = _genTest.cur + 1 < _genTest.qs.length ? 'Keyingi →' : '📊 Natijalar';
+  nextBtn.onclick = function() { _genTest.cur++; renderGenTestQuestion(); };
+  document.getElementById('gen-test-body').appendChild(nextBtn);
+}
+function renderGenTestResults() {
+  const title = document.getElementById('gen-test-title');
+  title.textContent = '📊 Test natijalari';
+  const total = _genTest.results.length;
+  const correct = _genTest.results.filter(r => r.ok).length;
+  const pct = total > 0 ? Math.round(correct / total * 100) : 0;
+  const rows = _genTest.results.map(r =>
+    '<tr>' +
+    '<td style="padding:8px 12px;border-bottom:1px solid #dee2e6">' + esc(r.question) + '</td>' +
+    '<td style="padding:8px 12px;border-bottom:1px solid #dee2e6;color:' + (r.ok ? '#2a9d8f' : '#e63946') + ';font-weight:' + (r.ok ? '400' : '600') + '">' + esc(r.given) + '</td>' +
+    '<td style="padding:8px 12px;border-bottom:1px solid #dee2e6;color:#2a9d8f;font-weight:600">' + esc(r.correct) + '</td>' +
+    '<td style="padding:8px 12px;border-bottom:1px solid #dee2e6;font-size:18px">' + (r.ok ? '✅' : '❌') + '</td>' +
+    '</tr>'
+  ).join('');
+  const ansMap = {};
+  _genTest.results.forEach(r => { ansMap[r.question] = {given: r.given, correct: r.correct, isCorrect: r.ok}; });
+  recordStudentAnswer(-Date.now(), 'gen_test', 'Umumiy test', ansMap, correct, total);
+  document.getElementById('gen-test-body').innerHTML =
+    '<div style="text-align:center;padding:16px 0">' +
+    '<div style="font-size:48px;font-weight:900;color:#6a4c93">' + pct + '%</div>' +
+    '<div style="color:#6c757d;margin-top:4px;font-size:15px">' + correct + ' / ' + total + ' to\'g\'ri javob</div>' +
+    '</div>' +
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:12px">' +
+    '<thead><tr><th style="background:#1d3557;color:white;padding:8px 12px;text-align:left">So\'z</th><th style="background:#1d3557;color:white;padding:8px 12px;text-align:left">Javobingiz</th><th style="background:#1d3557;color:white;padding:8px 12px;text-align:left">To\'g\'ri javob</th><th style="background:#1d3557;color:white;padding:8px 12px">✓</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table></div>' +
+    '<div style="display:flex;gap:8px;margin-top:16px;justify-content:center">' +
+    '<button onclick="_genTest.step=\'select\';_genTest.results=[];_genTest.cur=0;renderGenTestSelect()" style="padding:10px 20px;border-radius:8px;background:#6a4c93;color:white;font-size:14px;font-weight:700;border:none;cursor:pointer">🔄 Qayta</button>' +
+    '<button onclick="closeGenTest()" style="padding:10px 20px;border-radius:8px;background:#f8f9fa;border:1px solid #dee2e6;color:#555;font-size:14px;cursor:pointer">✕ Yopish</button>' +
+    '</div>';
+}
+
+// ═══════════════════════════════════════════════════════════
+// DIALOG TTS BUTTON — renderSDialog patching
+// ═══════════════════════════════════════════════════════════
+const _origRenderSDialog = renderSDialog;
+renderSDialog = function(d) {
+  const el = _origRenderSDialog(d);
+  if (!el) return el;
+  const lines = d.lines || [];
+  if (!lines.length) return el;
+  // Add TTS play button
+  const titleEl = el.querySelector('.d-title');
+  if (titleEl) {
+    const ttsBtn = document.createElement('button');
+    ttsBtn.textContent = '🔊 Eshitish';
+    ttsBtn.style.cssText = 'padding:4px 12px;border-radius:6px;border:1px solid #dee2e6;background:white;cursor:pointer;font-size:12px;margin-left:10px';
+    ttsBtn.onclick = function(e) {
+      e.stopPropagation();
+      if (_dialogTTSRunning) { stopTTS(); _dialogTTSRunning = false; ttsBtn.textContent = '🔊 Eshitish'; return; }
+      ttsBtn.textContent = '⏹ To\'xtatish';
+      playDialogTTS(lines, null, null);
+      // Restore button after finish
+      const checkDone = setInterval(function() {
+        if (!_dialogTTSRunning && !window.speechSynthesis.speaking) {
+          ttsBtn.textContent = '🔊 Eshitish';
+          clearInterval(checkDone);
+        }
+      }, 500);
+    };
+    titleEl.appendChild(ttsBtn);
+  }
+  return el;
+};
+
+// ═══════════════════════════════════════════════════════════
+// BLOCK EDITOR — vocab_timer qo'shish
+// ═══════════════════════════════════════════════════════════
+const _origBuildBlockEditor = buildBlockEditor;
+buildBlockEditor = function(block) {
+  if (block.type === 'vocab_timer') return buildVocabTimerEditor(block.id, block.data);
+  return _origBuildBlockEditor(block);
+};
+const _origRenderStudentBlock = renderStudentBlock;
+renderStudentBlock = function(block) {
+  if (block.type === 'vocab_timer') return renderSVocabTimer(block);
+  return _origRenderStudentBlock(block);
+};
+const _origGetBlockPreviewTitle = getBlockPreviewTitle;
+getBlockPreviewTitle = function(block) {
+  if (block.type === 'vocab_timer') return '⏱ ' + (block.data.title || 'Lug\'at+Test') + ' (' + (block.data.items || []).length + ' so\'z)';
+  return _origGetBlockPreviewTitle(block);
+};
+const _origAddBlock = addBlock;
+addBlock = async function(type) {
+  if (type === 'vocab_timer') {
+    const nb = await api('POST', '/api/blocks', {lesson_id: state.currentLessonId, type: 'vocab_timer', data: {title: 'Lug\'atni yodlang', timer_sec: 60, test_order: 'random', test_dir: 'random', items: [{ru: '', uz: ''}]}});
+    state.blocks.push(nb); renderBlocks(); if(state.studentOpen) renderStudentView();
+    setTimeout(()=>{const el=document.querySelector('[data-id="'+nb.id+'"]');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},100);
+    toast("✅ Lug'at+Test bloki qo'shildi"); return;
+  }
+  return _origAddBlock(type);
+};
+
+// ═══════════════════════════════════════════════════════════
+// INIT PATCH — theme va voices yuklanishi
+// ═══════════════════════════════════════════════════════════
+const _origInitLoginCheck = initLoginCheck;
+initLoginCheck = function() {
+  applyTheme();
+  if (window.speechSynthesis) {
+    window.speechSynthesis.onvoiceschanged = function() { loadTTSVoices(); };
+    window.speechSynthesis.getVoices(); // trigger load
+  }
+  _origInitLoginCheck();
+};
 
 // ═══════════════════════════════════════════════════════════
 // START
