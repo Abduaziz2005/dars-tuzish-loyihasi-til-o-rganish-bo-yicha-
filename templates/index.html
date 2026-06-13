@@ -403,6 +403,27 @@ input,textarea,select{outline:none;font-family:inherit}
 .btype-btn .btype-icon{font-size:22px;display:block;margin-bottom:4px}
 .btype-btn:hover{border-color:var(--blue);background:#f0f8ff;color:var(--blue)}
 
+/* ═══ NOTEBOOK ═══ */
+body.dark #notebook-box{background:#1c1a2e;color:#e0deef}
+body.dark #nb-search,body.dark #nb-filter-lang,body.dark #nb-filter-cat{background:#252340;color:#e0deef;border-color:#3d3b5a}
+body.dark #nb-title-inp,body.dark #nb-cat-inp,body.dark #nb-editor{background:#252340;color:#e0deef;border-color:#3d3b5a}
+body.dark .nb-tab.active{color:#a78bfa!important;border-bottom-color:#a78bfa!important}
+body.dark #nb-tabs{background:#16142a!important;border-color:#2d2b45!important}
+body.dark .nb-card{background:#252340;border-color:#3d3b5a;color:#e0deef}
+body.dark .nb-card:hover{border-color:#6a4c93;background:#2d2b4e}
+body.dark #nb-view-body{background:#252340;border-color:#3d3b5a;color:#e0deef}
+body.dark .nb-card-title{color:#c8c6e0}
+.nb-card{padding:14px 16px;border-radius:12px;border:1.5px solid #dee2e6;background:white;cursor:pointer;transition:all .15s;margin-bottom:10px}
+.nb-card:hover{border-color:#457b9d;box-shadow:0 2px 12px rgba(69,123,157,.15);transform:translateY(-1px)}
+.nb-card-title{font-size:15px;font-weight:700;color:#1d3557;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.nb-card-preview{font-size:13px;color:#6c757d;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:8px}
+.nb-card-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.nb-lang-badge{padding:2px 8px;border-radius:20px;font-size:11px;background:#f0f8ff;color:#457b9d;border:1px solid #c8dfef}
+body.dark .nb-lang-badge{background:#1a3060;color:#60a5fa;border-color:#2d5090}
+.nb-date{font-size:11px;color:#aaa;margin-left:auto}
+.nb-empty{text-align:center;padding:48px 20px;color:#aaa}
+.nb-tab.active{border-bottom-color:#457b9d!important;color:#457b9d!important}
+
 /* toast */
 #toast{
   position:fixed;bottom:24px;right:24px;z-index:9999;
@@ -927,6 +948,7 @@ body.dark .gen-type-btn{background:#252340;border-color:#3d3b5a;color:#e0deef}
       <button onclick="openGenTest()" style="padding:7px 14px;border-radius:8px;background:#6a4c93;color:white;font-size:13px;font-weight:700;border:none;cursor:pointer;white-space:nowrap">🧠 Umumiy test</button>
       <button class="sf-submit-btn" onclick="submitStudentResults()">📤 Natijani yuborish</button>
       <button class="sf-download-btn" onclick="downloadResultFile()">⬇ Yuklab olish</button>
+      <button onclick="openNotebook()" id="sf-notebook-btn" style="padding:7px 14px;border-radius:8px;background:rgba(255,255,255,.12);color:white;font-size:13px;font-weight:700;border:1.5px solid rgba(255,255,255,.25);cursor:pointer;white-space:nowrap">📓 Daftar</button>
       <button onclick="toggleTheme()" style="padding:7px 10px;border-radius:8px;background:rgba(255,255,255,.12);color:white;border:none;cursor:pointer;font-size:16px" id="sf-theme-btn" title="Mavzu">🌙</button>
       <button class="sf-logout-btn" onclick="logoutRole()">🚪 Chiqish</button>
     </div>
@@ -994,6 +1016,110 @@ body.dark .gen-type-btn{background:#252340;border-color:#3d3b5a;color:#e0deef}
       <button onclick="closeGenTest()" style="padding:5px 14px;border-radius:6px;background:rgba(255,255,255,.15);color:white;border:none;cursor:pointer;font-size:13px">✕</button>
     </div>
     <div style="padding:24px" id="gen-test-body"></div>
+  </div>
+</div>
+
+<!-- Shaxsiy Daftar Overlay -->
+<div id="notebook-overlay" style="display:none;position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,.5);align-items:center;justify-content:center">
+  <div id="notebook-box" style="background:white;border-radius:20px;width:780px;max-width:96vw;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.3);overflow:hidden">
+    <!-- Header -->
+    <div id="nb-header" style="background:linear-gradient(135deg,#1d3557,#457b9d);color:white;padding:16px 22px;display:flex;align-items:center;gap:14px;flex-shrink:0">
+      <span style="font-size:22px">📓</span>
+      <div style="flex:1">
+        <div style="font-size:17px;font-weight:800">Shaxsiy Daftar</div>
+        <div id="nb-student-label" style="font-size:12px;opacity:.75"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="nbNewNote()" style="padding:7px 16px;border-radius:8px;background:#2a9d8f;color:white;border:none;cursor:pointer;font-size:13px;font-weight:700">✏️ Yangi eslatma</button>
+        <button onclick="closeNotebook()" style="padding:7px 12px;border-radius:8px;background:rgba(255,255,255,.15);color:white;border:none;cursor:pointer;font-size:16px">✕</button>
+      </div>
+    </div>
+    <!-- Tabs: list / write -->
+    <div id="nb-tabs" style="display:flex;border-bottom:2px solid #dee2e6;background:#f8f9fa;flex-shrink:0">
+      <button class="nb-tab active" id="nb-tab-list" onclick="nbShowTab('list')" style="padding:10px 22px;border:none;background:transparent;font-size:13px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;color:#6c757d">📋 Eslatmalar</button>
+      <button class="nb-tab" id="nb-tab-write" onclick="nbShowTab('write')" style="padding:10px 22px;border:none;background:transparent;font-size:13px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;color:#6c757d">✏️ Yozish</button>
+    </div>
+    <!-- Body -->
+    <div id="nb-body" style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0">
+      <!-- List tab -->
+      <div id="nb-list-pane" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+        <!-- Search + filter -->
+        <div style="padding:14px 18px 10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex-shrink:0">
+          <input id="nb-search" type="text" placeholder="🔍 Qidirish..." oninput="nbRenderList()"
+            style="flex:1;min-width:160px;padding:8px 14px;border:1.5px solid #dee2e6;border-radius:8px;font-size:13px;font-family:inherit">
+          <select id="nb-filter-lang" onchange="nbRenderList()" style="padding:8px 12px;border:1.5px solid #dee2e6;border-radius:8px;font-size:13px;background:white;cursor:pointer">
+            <option value="">🌐 Barcha tilli</option>
+            <option value="ru">🇷🇺 Ruscha</option>
+            <option value="uz">🇺🇿 O'zbekcha</option>
+            <option value="mixed">🔀 Aralash</option>
+          </select>
+          <select id="nb-filter-cat" onchange="nbRenderList()" style="padding:8px 12px;border:1.5px solid #dee2e6;border-radius:8px;font-size:13px;background:white;cursor:pointer">
+            <option value="">📁 Barcha</option>
+            <option value="grammar">📝 Grammatika</option>
+            <option value="vocab">📖 Lug'at</option>
+            <option value="free">💬 Erkin</option>
+            <option value="homework">📚 Uy vazifasi</option>
+          </select>
+          <span id="nb-count" style="font-size:12px;color:#6c757d;white-space:nowrap"></span>
+        </div>
+        <!-- Notes list -->
+        <div id="nb-list" style="flex:1;overflow-y:auto;padding:0 14px 14px"></div>
+      </div>
+      <!-- Write tab -->
+      <div id="nb-write-pane" style="flex:1;display:none;flex-direction:column;overflow:hidden;padding:18px">
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <input id="nb-title-inp" type="text" placeholder="Sarlavha (ixtiyoriy)..."
+            style="flex:1;min-width:160px;padding:9px 14px;border:1.5px solid #dee2e6;border-radius:8px;font-size:14px;font-family:inherit">
+          <select id="nb-cat-inp" style="padding:9px 14px;border:1.5px solid #dee2e6;border-radius:8px;font-size:13px;background:white;cursor:pointer">
+            <option value="free">💬 Erkin</option>
+            <option value="grammar">📝 Grammatika</option>
+            <option value="vocab">📖 Lug'at</option>
+            <option value="homework">📚 Uy vazifasi</option>
+          </select>
+        </div>
+        <!-- Lang detect bar -->
+        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+          <span style="font-size:12px;color:#6c757d;font-weight:600">Til:</span>
+          <span id="nb-lang-indicator" style="padding:3px 12px;border-radius:20px;font-size:12px;font-weight:600;background:#f0f8ff;color:#457b9d;border:1px solid #c8dfef">avtomatik aniqlanadi</span>
+          <button onclick="playTTS(document.getElementById('nb-editor').value,'auto')" style="padding:4px 12px;border-radius:6px;border:1px solid #dee2e6;background:white;cursor:pointer;font-size:12px;margin-left:auto">🔊 O'qib eshitish</button>
+        </div>
+        <!-- Editor -->
+        <textarea id="nb-editor"
+          placeholder="Bu yerga rus yoki o'zbek tilida yozing...&#10;Masalan: Сегодня я выучил слово 'понедельник' — dushanba.&#10;&#10;Eslatmalar, lug'at, grammatika qoidalari — istalgan narsa!"
+          oninput="nbDetectLang(this.value)"
+          style="flex:1;width:100%;min-height:220px;padding:14px;border:1.5px solid #dee2e6;border-radius:10px;font-size:15px;line-height:1.7;font-family:inherit;resize:vertical"></textarea>
+        <!-- Toolbar -->
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center">
+          <div style="display:flex;gap:4px;background:#f8f9fa;border-radius:8px;padding:4px">
+            <button onclick="nbInsertText('**','**')" title="Qalin" style="padding:5px 10px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-weight:700;font-size:13px">B</button>
+            <button onclick="nbInsertText('_','_')" title="Kursiv" style="padding:5px 10px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-style:italic;font-size:13px">I</button>
+            <button onclick="nbInsertText('• ','')" title="Ro'yxat" style="padding:5px 10px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-size:13px">• List</button>
+            <button onclick="nbInsertText('→ ','')" title="O'q" style="padding:5px 10px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-size:13px">→</button>
+          </div>
+          <span style="font-size:12px;color:#6c757d" id="nb-char-count">0 belgi</span>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button onclick="nbDiscard()" style="padding:8px 18px;border-radius:8px;background:#f8f9fa;border:1px solid #dee2e6;color:#555;cursor:pointer;font-size:14px">🗑 Bekor</button>
+            <button onclick="nbSave()" style="padding:8px 22px;border-radius:8px;background:#2a9d8f;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700">💾 Saqlash</button>
+          </div>
+        </div>
+      </div>
+      <!-- View single note -->
+      <div id="nb-view-pane" style="flex:1;display:none;flex-direction:column;overflow:hidden;padding:20px">
+        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px">
+          <div style="flex:1">
+            <div id="nb-view-title" style="font-size:18px;font-weight:800;color:#1d3557;margin-bottom:4px"></div>
+            <div id="nb-view-meta" style="font-size:12px;color:#6c757d;display:flex;gap:12px;flex-wrap:wrap"></div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button id="nb-view-tts-btn" onclick="nbViewTTS()" style="padding:7px 14px;border-radius:8px;border:1.5px solid #dee2e6;background:white;cursor:pointer;font-size:13px">🔊 Eshitish</button>
+            <button onclick="nbEditCurrent()" style="padding:7px 14px;border-radius:8px;background:#457b9d;color:white;border:none;cursor:pointer;font-size:13px;font-weight:600">✏️ Tahrirlash</button>
+            <button onclick="nbDeleteCurrent()" style="padding:7px 14px;border-radius:8px;background:#fff0f0;color:#e63946;border:1px solid #fca5a5;cursor:pointer;font-size:13px;font-weight:600">🗑 O'chirish</button>
+            <button onclick="nbShowTab('list')" style="padding:7px 12px;border-radius:8px;background:#f8f9fa;border:1px solid #dee2e6;color:#555;cursor:pointer;font-size:13px">← Orqaga</button>
+          </div>
+        </div>
+        <div id="nb-view-body" style="flex:1;overflow-y:auto;font-size:15px;line-height:1.8;padding:20px;background:#f8f9fa;border-radius:12px;border:1px solid #dee2e6;white-space:pre-wrap;word-break:break-word"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1878,6 +2004,7 @@ const _vtTests = {};
 function startVTTest(blockId) {
   const stored = window['_vtBlock_' + blockId];
   if (!stored) return;
+  nbBlockDuringTest(true); // daftar bloklansin
   const {d, el} = stored;
   const items = (d.items || []).filter(it => it.ru && it.uz);
   if (!items.length) { toast('⚠️ So\'zlar yo\'q'); return; }
@@ -1955,6 +2082,8 @@ function checkVTAnswer(blockId) {
 function renderVTResults(blockId, el) {
   const t = _vtTests[blockId];
   if (!t) return;
+  // Test tugadi — daftarni qulfdan chiqarish
+  nbBlockDuringTest(false);
   const total = t.results.length;
   const correct = t.results.filter(r => r.ok).length;
   const pct = total > 0 ? Math.round(correct / total * 100) : 0;
@@ -1987,6 +2116,7 @@ let _genTest = {};
 
 function openGenTest() {
   // Barcha vocab va vocab_timer bloklardan so'z to'plamiz
+  nbBlockDuringTest(true); // daftar bloklansin
   const allWords = [];
   state.blocks.forEach(block => {
     if (block.type === 'vocab') {
@@ -2004,6 +2134,7 @@ function openGenTest() {
 function closeGenTest() {
   document.getElementById('gen-test-overlay').style.display = 'none';
   stopTTS();
+  nbBlockDuringTest(false); // daftar qulfidan chiqar
 }
 function renderGenTestSelect() {
   const body = document.getElementById('gen-test-body');
@@ -2236,6 +2367,300 @@ initLoginCheck = function() {
   }
   _origInitLoginCheck();
 };
+
+// ═══════════════════════════════════════════════════════════
+// SHAXSIY DAFTAR
+// ═══════════════════════════════════════════════════════════
+// Ma'lumotlar localStorage da: key = 'nb_' + studentName
+// Har bir eslatma: {id, title, text, lang, cat, createdAt, updatedAt}
+
+let _nbCurrentId = null; // tahrirlash uchun
+
+function _nbKey() {
+  return 'nb_' + (state.studentName || 'anon').replace(/\s+/g, '_').toLowerCase();
+}
+function _nbLoad() {
+  try { return JSON.parse(localStorage.getItem(_nbKey()) || '[]'); } catch(e) { return []; }
+}
+function _nbSave(notes) {
+  localStorage.setItem(_nbKey(), JSON.stringify(notes));
+}
+
+// Test/imtihon faolmi?
+function _isTestActive() {
+  // vocab_timer testi ishlayaptimi?
+  for (const key in window) {
+    if (key.startsWith('_vtTests') || key.startsWith('_vtBlock_')) {
+      const t = _vtTests && Object.keys(_vtTests).length > 0;
+      if (t) return true;
+    }
+  }
+  // gen_test ochiqmi?
+  const genOverlay = document.getElementById('gen-test-overlay');
+  if (genOverlay && genOverlay.style.display !== 'none') return true;
+  return false;
+}
+
+function openNotebook() {
+  if (_isTestActive()) {
+    toast('⛔ Test vaqtida daftar ochib bo\'lmaydi!');
+    return;
+  }
+  // Overlay ko'rsat
+  const overlay = document.getElementById('notebook-overlay');
+  overlay.style.display = 'flex';
+  // O'quvchi ismini ko'rsat
+  const lbl = document.getElementById('nb-student-label');
+  if (lbl) lbl.textContent = state.studentName || '';
+  _nbCurrentId = null;
+  nbShowTab('list');
+}
+
+function closeNotebook() {
+  document.getElementById('notebook-overlay').style.display = 'none';
+  stopTTS();
+}
+
+function nbShowTab(tab) {
+  // Pane lar
+  document.getElementById('nb-list-pane').style.display  = tab === 'list'  ? 'flex' : 'none';
+  document.getElementById('nb-write-pane').style.display = tab === 'write' ? 'flex' : 'none';
+  document.getElementById('nb-view-pane').style.display  = tab === 'view'  ? 'flex' : 'none';
+  // Tab tugmalari
+  document.getElementById('nb-tab-list').classList.toggle('active',  tab === 'list');
+  document.getElementById('nb-tab-write').classList.toggle('active', tab === 'write');
+  // Pane style
+  ['nb-list-pane','nb-write-pane','nb-view-pane'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.flexDirection = 'column';
+  });
+  if (tab === 'list') nbRenderList();
+  if (tab === 'write' && !_nbCurrentId) nbClearEditor();
+}
+
+function nbRenderList() {
+  const notes = _nbLoad();
+  const search = (document.getElementById('nb-search').value || '').toLowerCase();
+  const filterLang = document.getElementById('nb-filter-lang').value;
+  const filterCat  = document.getElementById('nb-filter-cat').value;
+  const listEl = document.getElementById('nb-list');
+
+  let filtered = notes;
+  if (search) filtered = filtered.filter(n =>
+    (n.title||'').toLowerCase().includes(search) ||
+    (n.text||'').toLowerCase().includes(search)
+  );
+  if (filterLang) filtered = filtered.filter(n => n.lang === filterLang);
+  if (filterCat)  filtered = filtered.filter(n => n.cat === filterCat);
+
+  // Sort: yangilar tepada
+  filtered = [...filtered].sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
+
+  const countEl = document.getElementById('nb-count');
+  if (countEl) countEl.textContent = filtered.length + ' ta eslatma';
+
+  if (!filtered.length) {
+    const msg = notes.length ? 'Natija topilmadi' : 'Hali eslatma yo\'q.\nYuqoridagi ✏️ Yangi eslatma tugmasini bosing!';
+    listEl.innerHTML = '<div class="nb-empty"><div class="nb-empty-icon">📓</div><p style="font-size:15px">' + msg.replace('\n','<br>') + '</p></div>';
+    return;
+  }
+
+  const catColors = {free:'#2a9d8f',grammar:'#6a4c93',vocab:'#457b9d',homework:'#e76f51'};
+  const catLabels = {free:'💬 Erkin',grammar:'📝 Grammatika',vocab:'📖 Lug\'at',homework:'📚 Uy vazifasi'};
+  const langLabels = {ru:'🇷🇺 Ruscha',uz:'🇺🇿 O\'zbekcha',mixed:'🔀 Aralash'};
+
+  listEl.innerHTML = filtered.map(n => {
+    const preview = (n.text||'').slice(0,120).replace(/</g,'&lt;');
+    const date = n.updatedAt ? new Date(n.updatedAt).toLocaleString('uz-UZ',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+    const catColor = catColors[n.cat] || '#6c757d';
+    return '<div class="nb-card" onclick="nbViewNote(\'' + n.id + '\')">' +
+      '<div class="nb-card-title">' +
+      (n.title ? esc(n.title) : '<span style="color:#aaa;font-style:italic">Sarlavsiz</span>') +
+      '</div>' +
+      '<div class="nb-card-preview">' + preview + (n.text.length > 120 ? '...' : '') + '</div>' +
+      '<div class="nb-card-meta">' +
+      '<span style="padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;background:' + catColor + '20;color:' + catColor + ';border:1px solid ' + catColor + '40">' + (catLabels[n.cat]||n.cat) + '</span>' +
+      '<span class="nb-lang-badge">' + (langLabels[n.lang]||n.lang||'?') + '</span>' +
+      '<span class="nb-date">' + date + '</span>' +
+      '</div></div>';
+  }).join('');
+}
+
+function nbNewNote() {
+  _nbCurrentId = null;
+  nbClearEditor();
+  nbShowTab('write');
+}
+
+function nbClearEditor() {
+  document.getElementById('nb-title-inp').value = '';
+  document.getElementById('nb-editor').value = '';
+  document.getElementById('nb-cat-inp').value = 'free';
+  document.getElementById('nb-char-count').textContent = '0 belgi';
+  document.getElementById('nb-lang-indicator').textContent = 'avtomatik aniqlanadi';
+  document.getElementById('nb-lang-indicator').style.cssText = 'padding:3px 12px;border-radius:20px;font-size:12px;font-weight:600;background:#f0f8ff;color:#457b9d;border:1px solid #c8dfef';
+}
+
+// Matn tilini aniqlash
+function nbDetectLang(text) {
+  const charCount = document.getElementById('nb-char-count');
+  if (charCount) charCount.textContent = text.length + ' belgi';
+  if (!text.trim()) {
+    const ind = document.getElementById('nb-lang-indicator');
+    if (ind) { ind.textContent = 'avtomatik aniqlanadi'; ind.style.cssText = 'padding:3px 12px;border-radius:20px;font-size:12px;font-weight:600;background:#f0f8ff;color:#457b9d;border:1px solid #c8dfef'; }
+    return;
+  }
+  const ruChars = (text.match(/[а-яёА-ЯЁ]/g)||[]).length;
+  const uzChars = (text.match(/[a-zA-ZoOgGqQhH\'']/g)||[]).length;
+  const total = ruChars + uzChars;
+  let lang = 'mixed', label = '🔀 Aralash', bg = '#fff7ed', color = '#e76f51', border = '#fcd9ab';
+  if (total > 0) {
+    const ruRatio = ruChars / total;
+    if (ruRatio > 0.65)       { lang='ru'; label='🇷🇺 Ruscha'; bg='#f0f8ff'; color='#457b9d'; border='#c8dfef'; }
+    else if (ruRatio < 0.35)  { lang='uz'; label='🇺🇿 O\'zbekcha'; bg='#f0fff4'; color='#2a9d8f'; border='#a7f3d0'; }
+  }
+  const ind = document.getElementById('nb-lang-indicator');
+  if (ind) { ind.textContent = label; ind.style.cssText = 'padding:3px 12px;border-radius:20px;font-size:12px;font-weight:600;background:' + bg + ';color:' + color + ';border:1px solid ' + border; }
+  return lang;
+}
+
+function nbSave() {
+  const text  = document.getElementById('nb-editor').value.trim();
+  if (!text) { toast('⚠️ Matn yozing'); return; }
+  const title = document.getElementById('nb-title-inp').value.trim();
+  const cat   = document.getElementById('nb-cat-inp').value;
+  const lang  = nbDetectLang(text) || 'mixed';
+
+  const notes = _nbLoad();
+  const now = Date.now();
+
+  if (_nbCurrentId) {
+    const idx = notes.findIndex(n => n.id === _nbCurrentId);
+    if (idx !== -1) {
+      notes[idx] = {...notes[idx], title, text, lang, cat, updatedAt: now};
+    }
+  } else {
+    notes.push({
+      id: 'nb_' + now + '_' + Math.random().toString(36).slice(2,7),
+      title, text, lang, cat,
+      createdAt: now, updatedAt: now
+    });
+  }
+  _nbSave(notes);
+  toast('✅ Eslatma saqlandi!');
+  _nbCurrentId = null;
+  nbShowTab('list');
+}
+
+function nbDiscard() {
+  _nbCurrentId = null;
+  nbClearEditor();
+  nbShowTab('list');
+}
+
+function nbViewNote(id) {
+  const notes = _nbLoad();
+  const note = notes.find(n => n.id === id);
+  if (!note) return;
+  _nbCurrentId = id;
+
+  const catLabels = {free:'💬 Erkin',grammar:'📝 Grammatika',vocab:'📖 Lug\'at',homework:'📚 Uy vazifasi'};
+  const langLabels = {ru:'🇷🇺 Ruscha',uz:'🇺🇿 O\'zbekcha',mixed:'🔀 Aralash'};
+  const date = note.updatedAt ? new Date(note.updatedAt).toLocaleString('uz-UZ',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+
+  const titleEl = document.getElementById('nb-view-title');
+  titleEl.textContent = note.title || 'Sarlavsiz eslatma';
+
+  const metaEl = document.getElementById('nb-view-meta');
+  const catColors = {free:'#2a9d8f',grammar:'#6a4c93',vocab:'#457b9d',homework:'#e76f51'};
+  const cc = catColors[note.cat] || '#6c757d';
+  metaEl.innerHTML =
+    '<span style="padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;background:' + cc + '20;color:' + cc + ';border:1px solid ' + cc + '40">' + (catLabels[note.cat]||note.cat) + '</span>' +
+    '<span style="padding:2px 8px;border-radius:20px;font-size:11px;background:#f0f8ff;color:#457b9d;border:1px solid #c8dfef">' + (langLabels[note.lang]||'?') + '</span>' +
+    '<span style="font-size:12px;color:#aaa">' + date + '</span>';
+
+  document.getElementById('nb-view-body').textContent = note.text;
+
+  // Show view pane (override tabs)
+  document.getElementById('nb-list-pane').style.display  = 'none';
+  document.getElementById('nb-write-pane').style.display = 'none';
+  document.getElementById('nb-view-pane').style.display  = 'flex';
+  ['nb-tab-list','nb-tab-write'].forEach(t => document.getElementById(t).classList.remove('active'));
+}
+
+function nbViewTTS() {
+  const body = document.getElementById('nb-view-body');
+  if (!body) return;
+  const text = body.textContent || '';
+  if (!text.trim()) { toast('⚠️ Matn yo\'q'); return; }
+  // Til aniqlab o'qish
+  const ruChars = (text.match(/[а-яёА-ЯЁ]/g)||[]).length;
+  const total = text.replace(/\s/g,'').length;
+  const lang = total > 0 && ruChars/total > 0.4 ? 'ru-RU' : 'uz-UZ';
+  const btn = document.getElementById('nb-view-tts-btn');
+  if (window.speechSynthesis && window.speechSynthesis.speaking) {
+    stopTTS(); if(btn) btn.textContent = '🔊 Eshitish'; return;
+  }
+  if(btn) btn.textContent = '⏹ To\'xtatish';
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = lang; utt.rate = 0.9;
+  if (lang === 'ru-RU') {
+    const voices = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('ru'));
+    if (voices.length) utt.voice = voices[0];
+  }
+  utt.onend = function() { if(btn) btn.textContent = '🔊 Eshitish'; };
+  window.speechSynthesis.speak(utt);
+}
+
+function nbEditCurrent() {
+  if (!_nbCurrentId) return;
+  const notes = _nbLoad();
+  const note = notes.find(n => n.id === _nbCurrentId);
+  if (!note) return;
+  document.getElementById('nb-title-inp').value = note.title || '';
+  document.getElementById('nb-editor').value = note.text || '';
+  document.getElementById('nb-cat-inp').value = note.cat || 'free';
+  nbDetectLang(note.text || '');
+  nbShowTab('write');
+}
+
+function nbDeleteCurrent() {
+  if (!_nbCurrentId) return;
+  if (!confirm('Bu eslatmani o\'chirasizmi?')) return;
+  const notes = _nbLoad().filter(n => n.id !== _nbCurrentId);
+  _nbSave(notes);
+  _nbCurrentId = null;
+  toast('🗑️ Eslatma o\'chirildi');
+  nbShowTab('list');
+}
+
+// Matn formatlash uchun (bold, italic va h.k.)
+function nbInsertText(before, after) {
+  const ta = document.getElementById('nb-editor');
+  if (!ta) return;
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const selected = ta.value.slice(start, end);
+  const newText = before + (selected || 'matn') + after;
+  ta.value = ta.value.slice(0, start) + newText + ta.value.slice(end);
+  ta.focus();
+  ta.setSelectionRange(start + before.length, start + before.length + (selected || 'matn').length);
+  nbDetectLang(ta.value);
+}
+
+// Test boshlanganda daftar tugmasini bloklash
+function nbBlockDuringTest(blocked) {
+  const btn = document.getElementById('sf-notebook-btn');
+  if (!btn) return;
+  if (blocked) {
+    btn.style.opacity = '0.4';
+    btn.style.cursor = 'not-allowed';
+    btn.title = 'Test vaqtida daftar ochilmaydi';
+  } else {
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+    btn.title = 'Shaxsiy daftar';
+  }
+}
 
 // ═══════════════════════════════════════════════════════════
 // START
