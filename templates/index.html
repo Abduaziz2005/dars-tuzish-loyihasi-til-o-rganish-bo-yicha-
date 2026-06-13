@@ -1487,6 +1487,7 @@ function getBlockPreviewTitle(block) {
   if (block.type === 'audio_text') return (d.text || '').slice(0, 40) + '...';
   if (block.type === 'table') return d.title || 'Jadval';
   if (block.type === 'hr') return 'Ajratuvchi chiziq';
+  if (block.type === 'vocab_timer') return '\u23f1 ' + (d.title || "Lug'at+Test") + ' (' + (d.items||[]).length + ' so\u02bcz)';
   return '';
 }
 function buildBlockEditor(block) {
@@ -1503,6 +1504,7 @@ function buildBlockEditor(block) {
     case 'image': return buildImageEditor(id, d);
     case 'audio_text': return buildAudioTextEditor(id, d);
     case 'table': return buildTableEditor(id, d);
+    case 'vocab_timer': return buildVocabTimerEditor(id, d);
     default: return '<p style="color:var(--gray);font-size:13px">Sozlanmagan</p>';
   }
 }
@@ -1601,7 +1603,7 @@ async function deleteBlock(id){ await api('DELETE','/api/blocks/'+id); state.blo
 async function duplicateBlock(id){ const b=getBlock(id); if(!b)return; const nb=await api('POST','/api/blocks',{lesson_id:b.lesson_id,type:b.type,order:b.order+0.5,data:b.data}); state.blocks.push(nb); state.blocks.sort((a,b)=>a.order-b.order); state.blocks.forEach((b,i)=>b.order=i); renderBlocks(); toast('⧉ Nusxa olindi'); }
 function openAddBlockModal(type){ if(!state.currentLessonId){toast('⚠️ Avval dars tanlang');return;} addBlock(type); }
 async function addBlock(type){
-  const defaults={heading:{text:'Yangi sarlavha',level:1,color:'#e63946'},hr:{color:'#e63946',height:3},vocab:{title:'Новые слова',bar_color:'#457b9d',items:[{ru:'',uz:'',audio:''}]},dialog:{title:'Диалог',lines:[{speaker:'A',text:''},{speaker:'B',text:''}]},fill_blank:{title:'Упражнение',bar_color:'#2a9d8f',instruction:'',items:[{pre:'',answer:'',post:''}]},match:{title:'Соедините',bar_color:'#e76f51',pairs:[{left:'',right:''},{left:'',right:''}]},quiz:{title:'Тест',bar_color:'#6a4c93',questions:[{q:'',options:['',''],correct:0}]},crossword:{title:'Кроссворд',words:[]},image:{url:'',caption:'',width:100},audio_text:{text:'',audio:''},table:{title:'',headers:['Ustun 1','Ustun 2'],rows:[['',''],['','']]}};
+  const defaults={heading:{text:'Yangi sarlavha',level:1,color:'#e63946'},hr:{color:'#e63946',height:3},vocab:{title:'Новые слова',bar_color:'#457b9d',items:[{ru:'',uz:'',audio:''}]},dialog:{title:'Диалог',lines:[{speaker:'A',text:''},{speaker:'B',text:''}]},fill_blank:{title:'Упражнение',bar_color:'#2a9d8f',instruction:'',items:[{pre:'',answer:'',post:''}]},match:{title:'Соедините',bar_color:'#e76f51',pairs:[{left:'',right:''},{left:'',right:''}]},quiz:{title:'Тест',bar_color:'#6a4c93',questions:[{q:'',options:['',''],correct:0}]},crossword:{title:'Кроссворд',words:[]},image:{url:'',caption:'',width:100},audio_text:{text:'',audio:''},table:{title:'',headers:['Ustun 1','Ustun 2'],rows:[['',''],['','']]},vocab_timer:{title:"Lug'atni yodlang",timer_sec:60,test_order:'random',test_dir:'random',items:[{ru:'',uz:''}]}};;
   const nb=await api('POST','/api/blocks',{lesson_id:state.currentLessonId,type,data:defaults[type]||{}}); state.blocks.push(nb); renderBlocks(); if(state.studentOpen)renderStudentView(); setTimeout(()=>{const el=document.querySelector('[data-id="'+nb.id+'"]');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},100); toast("✅ Blok qo'shildi"); }
 
 // ═══════════════════════════════════════════════════════════
@@ -1609,7 +1611,7 @@ async function addBlock(type){
 // ═══════════════════════════════════════════════════════════
 function toggleStudentPanel(){ state.studentOpen=!state.studentOpen; const panel=document.getElementById('student-panel'); panel.classList.toggle('hidden',!state.studentOpen); if(state.studentOpen)renderStudentView(); }
 function renderStudentView(){ const content=document.getElementById('student-content'); content.innerHTML=''; [...state.blocks].sort((a,b)=>a.order-b.order).forEach(block=>{const el=renderStudentBlock(block);if(el)content.appendChild(el);}); }
-function renderStudentBlock(block){ const d=block.data; switch(block.type){case 'heading':return renderSHeading(d);case 'hr':return renderSHr(d);case 'vocab':return renderSVocab(d);case 'dialog':return renderSDialog(d);case 'fill_blank':return renderSFillBlank(block);case 'match':return renderSMatch(block);case 'quiz':return renderSQuiz(block);case 'crossword':return renderSCrossword(block);case 'image':return renderSImage(d);case 'audio_text':return renderSAudioText(d);case 'table':return renderSTable(d);default:return null;} }
+function renderStudentBlock(block){ const d=block.data; switch(block.type){case 'heading':return renderSHeading(d);case 'hr':return renderSHr(d);case 'vocab':return renderSVocab(d);case 'dialog':return renderSDialog(d);case 'fill_blank':return renderSFillBlank(block);case 'match':return renderSMatch(block);case 'quiz':return renderSQuiz(block);case 'crossword':return renderSCrossword(block);case 'image':return renderSImage(d);case 'audio_text':return renderSAudioText(d);case 'table':return renderSTable(d);case 'vocab_timer':return renderSVocabTimer(block);default:return null;} }
 function renderSHeading(d){ const el=document.createElement('div'); const size={1:'28px',2:'22px',3:'18px',4:'15px'}[d.level||1]; el.innerHTML='<div class="s-heading" style="font-size:'+size+';color:'+(d.color||'#e63946')+'">'+esc(d.text||'')+'</div>'; return el; }
 function renderSHr(d){ const el=document.createElement('div'); el.innerHTML='<hr class="s-hr" style="background:'+(d.color||'#e63946')+';height:'+(d.height||3)+'px">'; return el; }
 function renderSVocab(d){ const el=document.createElement('div'); const items=(d.items||[]).map((item,i)=>'<div class="vocab-item"><span class="vnum">'+(i+1)+'</span><span class="vru">'+esc(item.ru||'')+'</span>'+(item.uz?'<span class="vuz">— '+esc(item.uz)+'</span>':'')+(item.audio?'<button class="vocab-audio-btn" onclick="playAudio(\''+item.audio+'\')">▶</button>':'')+'</div>').join(''); el.innerHTML='<div class="s-section-title"><div class="s-section-bar" style="background:'+(d.bar_color||'#457b9d')+'"></div><div class="s-section-label" style="background:'+(d.bar_color||'#457b9d')+'">'+esc(d.title||'Новые слова')+'</div></div><div class="vocab-grid">'+items+'</div>'; return el; }
@@ -2324,35 +2326,6 @@ renderSDialog = function(d) {
     titleEl.appendChild(ttsBtn);
   }
   return el;
-};
-
-// ═══════════════════════════════════════════════════════════
-// BLOCK EDITOR — vocab_timer qo'shish
-// ═══════════════════════════════════════════════════════════
-const _origBuildBlockEditor = buildBlockEditor;
-buildBlockEditor = function(block) {
-  if (block.type === 'vocab_timer') return buildVocabTimerEditor(block.id, block.data);
-  return _origBuildBlockEditor(block);
-};
-const _origRenderStudentBlock = renderStudentBlock;
-renderStudentBlock = function(block) {
-  if (block.type === 'vocab_timer') return renderSVocabTimer(block);
-  return _origRenderStudentBlock(block);
-};
-const _origGetBlockPreviewTitle = getBlockPreviewTitle;
-getBlockPreviewTitle = function(block) {
-  if (block.type === 'vocab_timer') return '⏱ ' + (block.data.title || 'Lug\'at+Test') + ' (' + (block.data.items || []).length + ' so\'z)';
-  return _origGetBlockPreviewTitle(block);
-};
-const _origAddBlock = addBlock;
-addBlock = async function(type) {
-  if (type === 'vocab_timer') {
-    const nb = await api('POST', '/api/blocks', {lesson_id: state.currentLessonId, type: 'vocab_timer', data: {title: 'Lug\'atni yodlang', timer_sec: 60, test_order: 'random', test_dir: 'random', items: [{ru: '', uz: ''}]}});
-    state.blocks.push(nb); renderBlocks(); if(state.studentOpen) renderStudentView();
-    setTimeout(()=>{const el=document.querySelector('[data-id="'+nb.id+'"]');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},100);
-    toast("✅ Lug'at+Test bloki qo'shildi"); return;
-  }
-  return _origAddBlock(type);
 };
 
 // ═══════════════════════════════════════════════════════════
