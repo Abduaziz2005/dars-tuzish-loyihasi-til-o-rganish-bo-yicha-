@@ -899,6 +899,10 @@ body.dark .gen-type-btn{background:#252340;border-color:#3d3b5a;color:#e0deef}
       <button class="add-block-btn" style="color:#888;border-color:#ccc" onclick="openAddBlockModal('table')">📊 Jadval</button>
       <button class="add-block-btn" style="color:#aaa;border-color:#ddd" onclick="openAddBlockModal('hr')">― Chiziq</button>
       <button class="add-block-btn" style="color:#0ea5e9;border-color:#0ea5e9;font-weight:800" onclick="openAddBlockModal('vocab_timer')">⏱ Lug'at+Test</button>
+      <button class="add-block-btn" style="color:#9333ea;border-color:#9333ea;font-weight:800" onclick="openAddBlockModal('memory_game')">🃏 Xotira o'yini</button>
+      <button class="add-block-btn" style="color:#ea580c;border-color:#ea580c;font-weight:800" onclick="openAddBlockModal('number_guess')">🔢 Son topish</button>
+      <button class="add-block-btn" style="color:#16a34a;border-color:#16a34a;font-weight:800" onclick="openAddBlockModal('anagram')">🧩 Anagram</button>
+      <button class="add-block-btn" style="color:#b45309;border-color:#b45309;font-weight:800" onclick="openAddBlockModal('flash_cards')">⚡ Tez xotira</button>
     </div>
     <div id="blocks-container">
       <div id="blocks-empty">
@@ -1469,8 +1473,8 @@ function renderBlocks() {
 function buildBlockCard(block, idx, total) {
   const card = document.createElement('div');
   card.className = 'block-card'; card.dataset.id = block.id;
-  const typeColors = {heading:'#e63946',vocab:'#457b9d',dialog:'#2a9d8f',fill_blank:'#2a9d8f',match:'#e76f51',quiz:'#6a4c93',crossword:'#264653',image:'#555',audio_text:'#1d3557',table:'#333',hr:'#aaa'};
-  const typeNames = {heading:'Sarlavha',vocab:"So'zlar",dialog:'Dialog',fill_blank:"Bo'sh joy",match:'Moslashtir',quiz:'Test',crossword:'Krossvord',image:'Rasm',audio_text:'Matn+Ovoz',table:'Jadval',hr:'Chiziq'};
+  const typeColors = {heading:'#e63946',vocab:'#457b9d',dialog:'#2a9d8f',fill_blank:'#2a9d8f',match:'#e76f51',quiz:'#6a4c93',crossword:'#264653',image:'#555',audio_text:'#1d3557',table:'#333',hr:'#aaa',memory_game:'#9333ea',number_guess:'#ea580c',anagram:'#16a34a',flash_cards:'#b45309'};
+  const typeNames = {heading:'Sarlavha',vocab:"So'zlar",dialog:'Dialog',fill_blank:"Bo'sh joy",match:'Moslashtir',quiz:'Test',crossword:'Krossvord',image:'Rasm',audio_text:'Matn+Ovoz',table:'Jadval',hr:'Chiziq',memory_game:"Xotira o'yini",number_guess:'Son topish',anagram:'Anagram',flash_cards:'Tez xotira'};
   card.innerHTML = '<div class="block-header"><span class="block-drag">⠿</span><span class="block-type-badge" style="background:' + (typeColors[block.type] || '#888') + '">' + (typeNames[block.type] || block.type) + '</span><span class="block-header-title">' + getBlockPreviewTitle(block) + '</span><button class="block-ctrl-btn up" title="Yuqoriga" onclick="moveBlock(' + block.id + ',-1)"' + (idx === 0 ? ' disabled' : '') + '>↑</button><button class="block-ctrl-btn dn" title="Pastga" onclick="moveBlock(' + block.id + ',1)"' + (idx === total - 1 ? ' disabled' : '') + '>↓</button><button class="block-ctrl-btn dup" title="Nusxa" onclick="duplicateBlock(' + block.id + ')">⧉</button><button class="block-ctrl-btn del" title="O\'chirish" onclick="deleteBlock(' + block.id + ')">✕</button></div><div class="block-body" id="block-body-' + block.id + '">' + buildBlockEditor(block) + '</div>';
   return card;
 }
@@ -1487,7 +1491,11 @@ function getBlockPreviewTitle(block) {
   if (block.type === 'audio_text') return (d.text || '').slice(0, 40) + '...';
   if (block.type === 'table') return d.title || 'Jadval';
   if (block.type === 'hr') return 'Ajratuvchi chiziq';
-  if (block.type === 'vocab_timer') return '\u23f1 ' + (d.title || "Lug'at+Test") + ' (' + (d.items||[]).length + ' so\u02bcz)';
+  if (block.type === 'vocab_timer')  return '\u23f1 ' + (d.title || "Lug'at+Test") + ' (' + (d.items||[]).length + " so'z)";
+  if (block.type === 'memory_game')  return '\ud83c\udfb4 ' + (d.title || "Xotira o'yini") + ' (' + (d.pairs||[]).length + " juft)";
+  if (block.type === 'number_guess') return '\ud83d\udd22 ' + (d.title || 'Son topish') + ' (' + (d.min||1) + '–' + (d.max||100) + ')';
+  if (block.type === 'anagram')      return '\ud83e\udde9 ' + (d.title || 'Anagram') + ' (' + (d.words||[]).length + " so'z)";
+  if (block.type === 'flash_cards')  return '\u26a1 ' + (d.title || 'Tez xotira') + ' (' + (d.cards||[]).length + ' karta)';
   return '';
 }
 function buildBlockEditor(block) {
@@ -1504,7 +1512,11 @@ function buildBlockEditor(block) {
     case 'image': return buildImageEditor(id, d);
     case 'audio_text': return buildAudioTextEditor(id, d);
     case 'table': return buildTableEditor(id, d);
-    case 'vocab_timer': return buildVocabTimerEditor(id, d);
+    case 'vocab_timer':  return buildVocabTimerEditor(id, d);
+    case 'memory_game':  return buildMemoryGameEditor(id, d);
+    case 'number_guess': return buildNumberGuessEditor(id, d);
+    case 'anagram':      return buildAnagramEditor(id, d);
+    case 'flash_cards':  return buildFlashCardsEditor(id, d);
     default: return '<p style="color:var(--gray);font-size:13px">Sozlanmagan</p>';
   }
 }
@@ -1603,7 +1615,7 @@ async function deleteBlock(id){ await api('DELETE','/api/blocks/'+id); state.blo
 async function duplicateBlock(id){ const b=getBlock(id); if(!b)return; const nb=await api('POST','/api/blocks',{lesson_id:b.lesson_id,type:b.type,order:b.order+0.5,data:b.data}); state.blocks.push(nb); state.blocks.sort((a,b)=>a.order-b.order); state.blocks.forEach((b,i)=>b.order=i); renderBlocks(); toast('⧉ Nusxa olindi'); }
 function openAddBlockModal(type){ if(!state.currentLessonId){toast('⚠️ Avval dars tanlang');return;} addBlock(type); }
 async function addBlock(type){
-  const defaults={heading:{text:'Yangi sarlavha',level:1,color:'#e63946'},hr:{color:'#e63946',height:3},vocab:{title:'Новые слова',bar_color:'#457b9d',items:[{ru:'',uz:'',audio:''}]},dialog:{title:'Диалог',lines:[{speaker:'A',text:''},{speaker:'B',text:''}]},fill_blank:{title:'Упражнение',bar_color:'#2a9d8f',instruction:'',items:[{pre:'',answer:'',post:''}]},match:{title:'Соедините',bar_color:'#e76f51',pairs:[{left:'',right:''},{left:'',right:''}]},quiz:{title:'Тест',bar_color:'#6a4c93',questions:[{q:'',options:['',''],correct:0}]},crossword:{title:'Кроссворд',words:[]},image:{url:'',caption:'',width:100},audio_text:{text:'',audio:''},table:{title:'',headers:['Ustun 1','Ustun 2'],rows:[['',''],['','']]},vocab_timer:{title:"Lug'atni yodlang",timer_sec:60,test_order:'random',test_dir:'random',items:[{ru:'',uz:''}]}};;
+  const defaults={heading:{text:'Yangi sarlavha',level:1,color:'#e63946'},hr:{color:'#e63946',height:3},vocab:{title:'Новые слова',bar_color:'#457b9d',items:[{ru:'',uz:'',audio:''}]},dialog:{title:'Диалог',lines:[{speaker:'A',text:''},{speaker:'B',text:''}]},fill_blank:{title:'Упражнение',bar_color:'#2a9d8f',instruction:'',items:[{pre:'',answer:'',post:''}]},match:{title:'Соедините',bar_color:'#e76f51',pairs:[{left:'',right:''},{left:'',right:''}]},quiz:{title:'Тест',bar_color:'#6a4c93',questions:[{q:'',options:['',''],correct:0}]},crossword:{title:'Кроссворд',words:[]},image:{url:'',caption:'',width:100},audio_text:{text:'',audio:''},table:{title:'',headers:['Ustun 1','Ustun 2'],rows:[['',''],['','']]},vocab_timer:{title:"Lug'atni yodlang",timer_sec:60,test_order:'random',test_dir:'random',items:[{ru:'',uz:''}]},memory_game:{title:"Xotira o'yini",lang:'uz',pairs:[{front:'',back:''},{front:'',back:''}]},number_guess:{title:'Son topish',min:1,max:100,lang:'uz'},anagram:{title:'Anagram',lang:'uz',words:[{word:'',hint:''}]},flash_cards:{title:'Tez xotira',flash_sec:2,cards:[{front:'',back:''}]}};;
   const nb=await api('POST','/api/blocks',{lesson_id:state.currentLessonId,type,data:defaults[type]||{}}); state.blocks.push(nb); renderBlocks(); if(state.studentOpen)renderStudentView(); setTimeout(()=>{const el=document.querySelector('[data-id="'+nb.id+'"]');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},100); toast("✅ Blok qo'shildi"); }
 
 // ═══════════════════════════════════════════════════════════
@@ -1611,7 +1623,7 @@ async function addBlock(type){
 // ═══════════════════════════════════════════════════════════
 function toggleStudentPanel(){ state.studentOpen=!state.studentOpen; const panel=document.getElementById('student-panel'); panel.classList.toggle('hidden',!state.studentOpen); if(state.studentOpen)renderStudentView(); }
 function renderStudentView(){ const content=document.getElementById('student-content'); content.innerHTML=''; [...state.blocks].sort((a,b)=>a.order-b.order).forEach(block=>{const el=renderStudentBlock(block);if(el)content.appendChild(el);}); }
-function renderStudentBlock(block){ const d=block.data; switch(block.type){case 'heading':return renderSHeading(d);case 'hr':return renderSHr(d);case 'vocab':return renderSVocab(d);case 'dialog':return renderSDialog(d);case 'fill_blank':return renderSFillBlank(block);case 'match':return renderSMatch(block);case 'quiz':return renderSQuiz(block);case 'crossword':return renderSCrossword(block);case 'image':return renderSImage(d);case 'audio_text':return renderSAudioText(d);case 'table':return renderSTable(d);case 'vocab_timer':return renderSVocabTimer(block);default:return null;} }
+function renderStudentBlock(block){ const d=block.data; switch(block.type){case 'heading':return renderSHeading(d);case 'hr':return renderSHr(d);case 'vocab':return renderSVocab(d);case 'dialog':return renderSDialog(d);case 'fill_blank':return renderSFillBlank(block);case 'match':return renderSMatch(block);case 'quiz':return renderSQuiz(block);case 'crossword':return renderSCrossword(block);case 'image':return renderSImage(d);case 'audio_text':return renderSAudioText(d);case 'table':return renderSTable(d);case 'vocab_timer':return renderSVocabTimer(block);case 'memory_game':return renderSMemoryGame(block);case 'number_guess':return renderSNumberGuess(block);case 'anagram':return renderSAnagram(block);case 'flash_cards':return renderSFlashCards(block);default:return null;} }
 function renderSHeading(d){ const el=document.createElement('div'); const size={1:'28px',2:'22px',3:'18px',4:'15px'}[d.level||1]; el.innerHTML='<div class="s-heading" style="font-size:'+size+';color:'+(d.color||'#e63946')+'">'+esc(d.text||'')+'</div>'; return el; }
 function renderSHr(d){ const el=document.createElement('div'); el.innerHTML='<hr class="s-hr" style="background:'+(d.color||'#e63946')+';height:'+(d.height||3)+'px">'; return el; }
 function renderSVocab(d){ const el=document.createElement('div'); const items=(d.items||[]).map((item,i)=>'<div class="vocab-item"><span class="vnum">'+(i+1)+'</span><span class="vru">'+esc(item.ru||'')+'</span>'+(item.uz?'<span class="vuz">— '+esc(item.uz)+'</span>':'')+(item.audio?'<button class="vocab-audio-btn" onclick="playAudio(\''+item.audio+'\')">▶</button>':'')+'</div>').join(''); el.innerHTML='<div class="s-section-title"><div class="s-section-bar" style="background:'+(d.bar_color||'#457b9d')+'"></div><div class="s-section-label" style="background:'+(d.bar_color||'#457b9d')+'">'+esc(d.title||'Новые слова')+'</div></div><div class="vocab-grid">'+items+'</div>'; return el; }
@@ -2327,6 +2339,520 @@ renderSDialog = function(d) {
   }
   return el;
 };
+
+// ═══════════════════════════════════════════════════════════
+// 1. XOTIRA O'YINI (Memory Card Game)
+// Juft kartochkalar — lang: uz/ru matn ko'rsatiladi
+// O'qituvchi: juft (old/orqa) kiritadi, til tanlaydi
+// O'quvchi: kartochkalarni ag'darib, juftlarini topadi
+// ═══════════════════════════════════════════════════════════
+function buildMemoryGameEditor(id, d) {
+  const pairs = (d.pairs || []).map((p, i) => '<div class="item-row">' +
+    '<input class="f-input" placeholder="Old (savol)" value="' + esc(p.front||'') + '" oninput="updateMGPair(' + id + ',' + i + ',\'front\',this.value)">' +
+    '<span style="color:var(--gray);flex-shrink:0">↔</span>' +
+    '<input class="f-input" placeholder="Orqa (javob)" value="' + esc(p.back||'') + '" oninput="updateMGPair(' + id + ',' + i + ',\'back\',this.value)">' +
+    '<button class="item-del" onclick="removeMGPair(' + id + ',' + i + ')">✕</button>' +
+    '</div>').join('');
+  return '<div class="field-row"><label>Sarlavha</label>' +
+    '<input class="f-input" value="' + esc(d.title||"Xotira o'yini") + '" oninput="updateBlockField(' + id + ',\'title\',this.value)"></div>' +
+    '<div class="field-row"><label>O\'yin tili</label>' +
+    '<select class="f-select" style="width:160px" onchange="updateBlockField(' + id + ',\'lang\',this.value)">' +
+    '<option value="uz"' + (d.lang==='uz'?' selected':'') + ">O'zbekcha</option>" +
+    '<option value="ru"' + (d.lang==='ru'?' selected':'') + '>Ruscha</option>' +
+    '</select>' +
+    '<span style="font-size:12px;color:var(--gray);margin-left:12px">Kartochkalarda shu tilda matn ko\'rsatiladi</span></div>' +
+    '<div class="field-row"><label>Juftlar</label><span style="font-size:12px;color:var(--gray)">Old (savol) ↔ Orqa (javob)</span></div>' +
+    '<div class="item-list" id="mg-list-' + id + '">' + pairs + '</div>' +
+    '<button class="add-item-btn" onclick="addMGPair(' + id + ')">+ Juft qo\'shish</button>';
+}
+function updateMGPair(id, i, field, value) {
+  const b = getBlock(id); if (!b) return;
+  b.data.pairs = b.data.pairs || [];
+  if (!b.data.pairs[i]) b.data.pairs[i] = {};
+  b.data.pairs[i][field] = value; saveBlock(id);
+}
+function addMGPair(id) {
+  const b = getBlock(id); if (!b) return;
+  b.data.pairs = b.data.pairs || [];
+  b.data.pairs.push({front:'', back:''}); saveBlock(id); rerenderBlockEditor(id);
+}
+function removeMGPair(id, i) {
+  const b = getBlock(id); if (!b) return;
+  b.data.pairs.splice(i, 1); saveBlock(id); rerenderBlockEditor(id);
+}
+
+function renderSMemoryGame(block) {
+  const d = block.data;
+  const pairs = (d.pairs || []).filter(p => p.front && p.back);
+  if (!pairs.length) { const el=document.createElement('div'); el.innerHTML='<p style="color:var(--gray)">Juftlar kiritilmagan</p>'; return el; }
+  const el = document.createElement('div');
+  const bId = block.id;
+  // Kartochkalarni tayyorlash: har juft 2 ta karta (front, back)
+  let cards = [];
+  pairs.forEach((p, i) => {
+    cards.push({id:'f'+i, pairId:i, type:'front', text: p.front});
+    cards.push({id:'b'+i, pairId:i, type:'back',  text: p.back});
+  });
+  cards = cards.sort(() => Math.random() - 0.5);
+  const langLabel = d.lang === 'ru' ? '🇷🇺 Ruscha' : "🇺🇿 O'zbekcha";
+  el.innerHTML = '<div class="s-section-title"><div class="s-section-bar" style="background:#9333ea"></div>' +
+    '<div class="s-section-label" style="background:#9333ea">🃏 ' + esc(d.title||"Xotira o'yini") + '</div></div>' +
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">' +
+    '<span style="font-size:13px;color:var(--gray)">' + langLabel + ' · ' + pairs.length + ' juft · ' + (pairs.length*2) + ' karta</span>' +
+    '<span id="mg-status-' + bId + '" style="font-size:13px;font-weight:600;color:#9333ea;margin-left:auto">🎮 O\'yinni boshlang!</span>' +
+    '<button onclick="mgRestart(' + bId + ')" style="padding:5px 14px;border-radius:8px;background:#9333ea;color:white;border:none;cursor:pointer;font-size:13px;font-weight:600">🔄 Qayta</button>' +
+    '</div>' +
+    '<div id="mg-grid-' + bId + '" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-bottom:10px"></div>' +
+    '<div id="mg-result-' + bId + '"></div>';
+
+  // State
+  window['_mg_' + bId] = {cards, flipped:[], matched:[], moves:0, pairs: pairs.length, d};
+  setTimeout(() => mgRenderGrid(bId), 0);
+  return el;
+}
+
+function mgRenderGrid(bId) {
+  const st = window['_mg_' + bId];
+  if (!st) return;
+  const grid = document.getElementById('mg-grid-' + bId);
+  if (!grid) return;
+  grid.innerHTML = '';
+  st.cards.forEach((card, idx) => {
+    const div = document.createElement('div');
+    const isFlipped  = st.flipped.some(f => f.idx === idx);
+    const isMatched  = st.matched.includes(card.pairId);
+    div.style.cssText = 'height:80px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;transition:all .3s;border:2.5px solid ' + (isMatched ? '#16a34a' : isFlipped ? '#9333ea' : '#dee2e6') + ';background:' + (isMatched ? 'rgba(22,163,74,.12)' : isFlipped ? 'rgba(147,51,234,.12)' : '#f8f9fa') + ';color:' + (isMatched ? '#16a34a' : isFlipped ? '#9333ea' : '#aaa') + ';user-select:none;position:relative;';
+    div.innerHTML = (isFlipped || isMatched) ? esc(card.text) : '<span style="font-size:28px">🃏</span>';
+    if (!isMatched && !isFlipped && st.flipped.length < 2) {
+      div.onclick = function() { mgFlip(bId, idx); };
+    }
+    grid.appendChild(div);
+  });
+}
+
+function mgFlip(bId, idx) {
+  const st = window['_mg_' + bId];
+  if (!st) return;
+  if (st.flipped.length >= 2) return;
+  if (st.matched.includes(st.cards[idx].pairId)) return;
+  if (st.flipped.some(f => f.idx === idx)) return;
+  st.flipped.push({idx, card: st.cards[idx]});
+  mgRenderGrid(bId);
+  if (st.flipped.length === 2) {
+    st.moves++;
+    const [a, b] = st.flipped;
+    if (a.card.pairId === b.card.pairId && a.card.type !== b.card.type) {
+      // Juft topildi!
+      st.matched.push(a.card.pairId);
+      st.flipped = [];
+      mgRenderGrid(bId);
+      const statusEl = document.getElementById('mg-status-' + bId);
+      if (statusEl) statusEl.textContent = '✅ ' + st.matched.length + ' / ' + st.pairs + ' juft topildi!';
+      if (st.matched.length === st.pairs) {
+        setTimeout(() => mgWin(bId), 300);
+      }
+    } else {
+      // Xato — 800ms da yopiladi
+      setTimeout(() => {
+        st.flipped = [];
+        mgRenderGrid(bId);
+      }, 900);
+    }
+  }
+}
+
+function mgWin(bId) {
+  const st = window['_mg_' + bId];
+  if (!st) return;
+  const resultEl = document.getElementById('mg-result-' + bId);
+  if (resultEl) resultEl.innerHTML = '<div style="text-align:center;padding:20px;background:rgba(22,163,74,.1);border-radius:12px;border:2px solid #16a34a">' +
+    '<div style="font-size:40px">🎉</div>' +
+    '<div style="font-size:20px;font-weight:800;color:#16a34a;margin:8px 0">Tabriklaymiz! Siz yutdingiz!</div>' +
+    '<div style="font-size:14px;color:var(--gray)">' + st.pairs + ' juft, ' + st.moves + ' urinishda</div>' +
+    '</div>';
+  const statusEl = document.getElementById('mg-status-' + bId);
+  if (statusEl) statusEl.textContent = '🏆 G\'olib!';
+  recordStudentAnswer(bId, 'memory_game', st.d.title||"Xotira o'yini", {result:'win', moves:st.moves, pairs:st.pairs}, 1, 1);
+}
+
+function mgRestart(bId) {
+  const st = window['_mg_' + bId];
+  if (!st) return;
+  st.cards = st.cards.sort(() => Math.random() - 0.5);
+  st.flipped = []; st.matched = []; st.moves = 0;
+  const resultEl = document.getElementById('mg-result-' + bId);
+  if (resultEl) resultEl.innerHTML = '';
+  const statusEl = document.getElementById('mg-status-' + bId);
+  if (statusEl) statusEl.textContent = '🎮 O\'yinni boshlang!';
+  mgRenderGrid(bId);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 2. SON TOPISH O'YINI (Number Guessing)
+// O'qituvchi: min, max, til tanlaydi
+// Qurilma: random son tanlaydi
+// O'quvchi: son kiritadi, katta/kichik maslahat oladi
+// ═══════════════════════════════════════════════════════════
+function buildNumberGuessEditor(id, d) {
+  return '<div class="field-row"><label>Sarlavha</label>' +
+    '<input class="f-input" value="' + esc(d.title||'Son topish') + '" oninput="updateBlockField(' + id + ',\'title\',this.value)"></div>' +
+    '<div class="field-row"><label>Minimal son</label>' +
+    '<input type="number" class="f-input" style="width:90px" value="' + (d.min||1) + '" oninput="updateBlockField(' + id + ',\'min\',parseInt(this.value)||1)"></div>' +
+    '<div class="field-row"><label>Maksimal son</label>' +
+    '<input type="number" class="f-input" style="width:90px" value="' + (d.max||100) + '" oninput="updateBlockField(' + id + ',\'max\',parseInt(this.value)||100)"></div>' +
+    '<div class="field-row"><label>Maslahat tili</label>' +
+    '<select class="f-select" style="width:160px" onchange="updateBlockField(' + id + ',\'lang\',this.value)">' +
+    '<option value="uz"' + (d.lang==='uz'||!d.lang?' selected':'') + ">O'zbekcha</option>" +
+    '<option value="ru"' + (d.lang==='ru'?' selected':'') + '>Ruscha</option>' +
+    '</select></div>' +
+    '<p style="font-size:12px;color:var(--gray);margin-top:6px">O\'quvchi son kiritadi. Qurilma katta yoki kichikligini aytadi.</p>';
+}
+
+function renderSNumberGuess(block) {
+  const d = block.data;
+  const min = parseInt(d.min) || 1;
+  const max = parseInt(d.max) || 100;
+  const lang = d.lang || 'uz';
+  const el = document.createElement('div');
+  const bId = block.id;
+  const secret = Math.floor(Math.random() * (max - min + 1)) + min;
+  window['_ng_' + bId] = {secret, min, max, attempts:0, won:false, lang, d};
+
+  const txt = lang === 'ru'
+    ? {title:'Угадайте число', hint:'Я загадал число от '+min+' до '+max+'. Угадай!', placeholder:'Введите число...', check:'Проверить', bigger:'Загаданное число больше!', smaller:'Загаданное число меньше!', win:'Вы угадали! Поздравляем! 🎉', attempts:'Попыток'}
+    : {title:'Sonni toping', hint:min+' dan '+max+' gacha son o\'yladim. Topling!', placeholder:'Son kiriting...', check:'Tekshirish', bigger:"O'ylagan son kattaroq!", smaller:"O'ylagan son kichikroq!", win:"Siz topdingiz! Tabriklaymiz! 🎉", attempts:'Urinish'};
+
+  el.innerHTML = '<div class="s-section-title"><div class="s-section-bar" style="background:#ea580c"></div>' +
+    '<div class="s-section-label" style="background:#ea580c">🔢 ' + esc(d.title||txt.title) + '</div></div>' +
+    '<div style="text-align:center;padding:20px 10px">' +
+    '<div style="font-size:32px;margin-bottom:12px">🎲</div>' +
+    '<div style="font-size:16px;font-weight:600;color:#ea580c;margin-bottom:20px">' + txt.hint + '</div>' +
+    '<div id="ng-attempts-' + bId + '" style="font-size:13px;color:var(--gray);margin-bottom:14px">0 ' + txt.attempts + '</div>' +
+    '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">' +
+    '<input id="ng-inp-' + bId + '" type="number" min="' + min + '" max="' + max + '" style="padding:10px 16px;border:2px solid #ea580c;border-radius:10px;font-size:18px;font-weight:700;text-align:center;width:140px;font-family:inherit;outline:none" placeholder="' + txt.placeholder + '" onkeydown="if(event.key===\'Enter\')ngCheck(' + bId + ')">' +
+    '<button onclick="ngCheck(' + bId + ')" style="padding:10px 24px;border-radius:10px;background:#ea580c;color:white;border:none;cursor:pointer;font-size:16px;font-weight:700">' + txt.check + '</button>' +
+    '</div>' +
+    '<div id="ng-msg-' + bId + '" style="margin-top:16px;min-height:32px;font-size:16px;font-weight:600"></div>' +
+    '<div id="ng-history-' + bId + '" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-height:100px;overflow-y:auto"></div>' +
+    '</div>';
+  setTimeout(() => { const inp=document.getElementById('ng-inp-'+bId); if(inp)inp.focus(); }, 100);
+  return el;
+}
+
+function ngCheck(bId) {
+  const st = window['_ng_' + bId];
+  if (!st || st.won) return;
+  const inp = document.getElementById('ng-inp-' + bId);
+  if (!inp) return;
+  const guess = parseInt(inp.value);
+  if (isNaN(guess) || guess < st.min || guess > st.max) {
+    const msg = document.getElementById('ng-msg-' + bId);
+    if (msg) { msg.textContent = st.lang==='ru' ? '⚠️ Введите число от '+st.min+' до '+st.max : '⚠️ '+st.min+' dan '+st.max+' gacha son kiriting'; msg.style.color='#ea580c'; }
+    return;
+  }
+  st.attempts++;
+  const attEl = document.getElementById('ng-attempts-' + bId);
+  const txt = st.lang==='ru' ? {bigger:'Загаданное число больше!',smaller:'Загаданное число меньше!',win:'Вы угадали! Поздравляем! 🎉',attempts:'Попыток'} : {bigger:"O'ylagan son kattaroq!",smaller:"O'ylagan son kichikroq!",win:"Siz topdingiz! Tabriklaymiz! 🎉",attempts:'Urinish'};
+  if (attEl) attEl.textContent = st.attempts + ' ' + txt.attempts;
+  const msg   = document.getElementById('ng-msg-' + bId);
+  const hist  = document.getElementById('ng-history-' + bId);
+  // History chip
+  if (hist) {
+    const chip = document.createElement('span');
+    const correct = guess === st.secret;
+    chip.style.cssText = 'padding:3px 10px;border-radius:20px;font-size:13px;font-weight:700;background:' + (correct?'#16a34a':guess<st.secret?'rgba(59,130,246,.15)':'rgba(239,68,68,.15)') + ';color:' + (correct?'white':guess<st.secret?'#3b82f6':'#ef4444') + ';border:1px solid ' + (correct?'#16a34a':guess<st.secret?'#3b82f6':'#ef4444');
+    chip.textContent = guess + (correct?' ✓':guess<st.secret?' ↑':' ↓');
+    hist.appendChild(chip);
+  }
+  if (guess === st.secret) {
+    st.won = true;
+    if (msg) { msg.innerHTML = '<div style="font-size:20px">🎉</div><div style="color:#16a34a">' + txt.win + '</div><div style="font-size:13px;color:var(--gray);margin-top:4px">' + st.attempts + ' ' + txt.attempts + '</div>'; }
+    inp.disabled = true;
+    recordStudentAnswer(bId, 'number_guess', st.d.title||'Son topish', {secret:st.secret, attempts:st.attempts, won:true}, 1, 1);
+  } else {
+    if (msg) { msg.textContent = guess < st.secret ? '📈 ' + txt.bigger : '📉 ' + txt.smaller; msg.style.color = guess < st.secret ? '#3b82f6' : '#ef4444'; }
+    inp.value = ''; inp.focus();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 3. ANAGRAM O'YINI
+// O'qituvchi: so'z + izoh kiritadi, til tanlaydi
+// O'quvchi: aralashtirilib ko'rsatilgan harflardan to'g'ri so'z hosil qiladi
+// ═══════════════════════════════════════════════════════════
+function buildAnagramEditor(id, d) {
+  const words = (d.words || []).map((w, i) => '<div class="item-row">' +
+    '<input class="f-input" placeholder="So\'z (ixtiyoriy: rus yoki uzb)" value="' + esc(w.word||'') + '" oninput="updateAnagramWord(' + id + ',' + i + ',\'word\',this.value)">' +
+    '<input class="f-input" placeholder="Maslahat/izoh (ixtiyoriy)" value="' + esc(w.hint||'') + '" oninput="updateAnagramWord(' + id + ',' + i + ',\'hint\',this.value)">' +
+    '<button class="item-del" onclick="removeAnagramWord(' + id + ',' + i + ')">✕</button>' +
+    '</div>').join('');
+  return '<div class="field-row"><label>Sarlavha</label>' +
+    '<input class="f-input" value="' + esc(d.title||'Anagram') + '" oninput="updateBlockField(' + id + ',\'title\',this.value)"></div>' +
+    '<div class="field-row"><label>Ko\'rsatma tili</label>' +
+    '<select class="f-select" style="width:160px" onchange="updateBlockField(' + id + ',\'lang\',this.value)">' +
+    '<option value="uz"' + (d.lang==='uz'||!d.lang?' selected':'') + ">O'zbekcha</option>" +
+    '<option value="ru"' + (d.lang==='ru'?' selected':'') + '>Ruscha</option>' +
+    '</select></div>' +
+    '<div class="field-row"><label>So\'zlar</label><span style="font-size:12px;color:var(--gray)">Rus yoki uzb so\'z, harflari aralashtirilib ko\'rsatiladi</span></div>' +
+    '<div class="item-list" id="an-list-' + id + '">' + words + '</div>' +
+    '<button class="add-item-btn" onclick="addAnagramWord(' + id + ')">+ So\'z qo\'shish</button>';
+}
+function updateAnagramWord(id, i, field, value) {
+  const b = getBlock(id); if (!b) return;
+  b.data.words = b.data.words || [];
+  if (!b.data.words[i]) b.data.words[i] = {};
+  b.data.words[i][field] = value; saveBlock(id);
+}
+function addAnagramWord(id) {
+  const b = getBlock(id); if (!b) return;
+  b.data.words = b.data.words || [];
+  b.data.words.push({word:'', hint:''}); saveBlock(id); rerenderBlockEditor(id);
+}
+function removeAnagramWord(id, i) {
+  const b = getBlock(id); if (!b) return;
+  b.data.words.splice(i, 1); saveBlock(id); rerenderBlockEditor(id);
+}
+
+function renderSAnagram(block) {
+  const d = block.data;
+  const words = (d.words || []).filter(w => w.word && w.word.trim().length > 1);
+  if (!words.length) { const el=document.createElement('div'); el.innerHTML='<p style="color:var(--gray)">So\'zlar kiritilmagan</p>'; return el; }
+  const el = document.createElement('div');
+  const bId = block.id;
+  const lang = d.lang || 'uz';
+  const txt = lang==='ru'
+    ? {label:'Составьте слово из букв:', check:'Проверить', next:'Следующее', hint:'Подсказка:', correct:'Правильно!', wrong:'Неверно! Правильный ответ:', score:'Результат', play:'Начать', restart:'Заново'}
+    : {label:'Harflardan so\'z tuzing:', check:'Tekshirish', next:'Keyingi', hint:'Maslahat:', correct:'To\'g\'ri!', wrong:'Xato! To\'g\'ri javob:', score:'Natija', play:'Boshlash', restart:'Qayta'};
+
+  window['_an_' + bId] = {words:[...words].sort(()=>Math.random()-.5), cur:0, score:0, done:false, d, lang, txt};
+
+  el.innerHTML = '<div class="s-section-title"><div class="s-section-bar" style="background:#16a34a"></div>' +
+    '<div class="s-section-label" style="background:#16a34a">🧩 ' + esc(d.title||'Anagram') + '</div></div>' +
+    '<div id="an-inner-' + bId + '"></div>';
+  setTimeout(() => anRenderQuestion(bId), 0);
+  return el;
+}
+
+function anShuffle(str) {
+  const arr = str.split('');
+  for (let i = arr.length-1; i > 0; i--) { const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+  // Shuffled version must differ from original
+  let result = arr.join('');
+  if (result === str && str.length > 1) return anShuffle(str);
+  return result;
+}
+
+function anRenderQuestion(bId) {
+  const st = window['_an_' + bId];
+  if (!st) return;
+  const inner = document.getElementById('an-inner-' + bId);
+  if (!inner) return;
+  if (st.cur >= st.words.length) { anShowResults(bId); return; }
+  const w = st.words[st.cur];
+  const shuffled = anShuffle(w.word.toUpperCase());
+  const pct = Math.round(st.cur / st.words.length * 100);
+  inner.innerHTML = '<div style="font-size:13px;color:var(--gray);margin-bottom:6px">' + (st.cur+1) + ' / ' + st.words.length + '</div>' +
+    '<div style="height:6px;background:#dee2e6;border-radius:4px;margin-bottom:18px;overflow:hidden"><div style="height:100%;border-radius:4px;background:#16a34a;width:' + pct + '%"></div></div>' +
+    '<div style="font-size:13px;color:var(--gray);margin-bottom:10px">' + st.txt.label + '</div>' +
+    '<div style="font-size:36px;font-weight:900;letter-spacing:8px;color:#16a34a;text-align:center;padding:16px;background:rgba(22,163,74,.08);border-radius:12px;margin-bottom:18px">' + shuffled + '</div>' +
+    (w.hint ? '<div style="font-size:13px;color:var(--gray);margin-bottom:12px;font-style:italic">💡 ' + st.txt.hint + ' ' + esc(w.hint) + '</div>' : '') +
+    '<input id="an-inp-' + bId + '" type="text" style="width:100%;padding:11px;border:2px solid #dee2e6;border-radius:8px;font-size:16px;font-family:inherit;text-transform:uppercase;outline:none" placeholder="..." onkeydown="if(event.key===\'Enter\')anCheck(' + bId + ')">' +
+    '<div style="display:flex;gap:8px;margin-top:12px">' +
+    '<button onclick="anCheck(' + bId + ')" style="padding:10px 24px;border-radius:8px;background:#16a34a;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700">' + st.txt.check + '</button>' +
+    '</div>' +
+    '<div id="an-fb-' + bId + '" style="margin-top:12px;font-size:14px;min-height:20px"></div>';
+  setTimeout(() => { const inp=document.getElementById('an-inp-'+bId); if(inp){inp.style.borderColor='#dee2e6';inp.value='';inp.focus();} }, 0);
+}
+
+function anCheck(bId) {
+  const st = window['_an_' + bId];
+  if (!st) return;
+  const inp = document.getElementById('an-inp-' + bId);
+  if (!inp) return;
+  const answer = inp.value.trim().toUpperCase();
+  const correct = st.words[st.cur].word.toUpperCase();
+  const ok = answer === correct;
+  if (ok) st.score++;
+  inp.style.borderColor = ok ? '#16a34a' : '#ef4444';
+  inp.disabled = true;
+  const fb = document.getElementById('an-fb-' + bId);
+  if (fb) fb.innerHTML = ok
+    ? '<span style="color:#16a34a;font-weight:700">✅ ' + st.txt.correct + '</span>'
+    : '<span style="color:#ef4444">❌ ' + st.txt.wrong + ' <b>' + correct + '</b></span>';
+  const nextBtn = document.createElement('button');
+  nextBtn.style.cssText = 'margin-top:12px;padding:9px 22px;border-radius:8px;background:#16a34a;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700;display:block';
+  nextBtn.textContent = st.cur+1 < st.words.length ? st.txt.next + ' →' : '📊 ' + st.txt.score;
+  nextBtn.onclick = function() { st.cur++; anRenderQuestion(bId); };
+  const inner = document.getElementById('an-inner-' + bId);
+  if (inner) inner.appendChild(nextBtn);
+}
+
+function anShowResults(bId) {
+  const st = window['_an_' + bId];
+  if (!st) return;
+  const total = st.words.length;
+  const pct = Math.round(st.score / total * 100);
+  const inner = document.getElementById('an-inner-' + bId);
+  if (!inner) return;
+  inner.innerHTML = '<div style="text-align:center;padding:20px">' +
+    '<div style="font-size:48px;font-weight:900;color:#16a34a">' + pct + '%</div>' +
+    '<div style="font-size:15px;color:var(--gray);margin-top:4px">' + st.score + ' / ' + total + ' ' + st.txt.correct + '</div>' +
+    '<button onclick="anRestart(' + bId + ')" style="margin-top:16px;padding:10px 24px;border-radius:8px;background:#16a34a;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700">🔄 ' + st.txt.restart + '</button>' +
+    '</div>';
+  recordStudentAnswer(bId, 'anagram', st.d.title||'Anagram', {score:st.score, total}, st.score, total);
+}
+
+function anRestart(bId) {
+  const st = window['_an_' + bId];
+  if (!st) return;
+  st.words = st.words.sort(() => Math.random() - 0.5);
+  st.cur = 0; st.score = 0;
+  anRenderQuestion(bId);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 4. TEZ XOTIRA (Flash Cards Memory)
+// O'qituvchi: kartochka (old/orqa), ko'rsatish vaqti belgilaydi
+// O'quvchi: karta bir necha soniya ko'rsatiladi, yashirinadi,
+//           orqasini eslab yozadi
+// ═══════════════════════════════════════════════════════════
+function buildFlashCardsEditor(id, d) {
+  const cards = (d.cards || []).map((c, i) => '<div class="item-row">' +
+    '<input class="f-input" placeholder="Ko\'rsatiladi (savol/rasm/so\'z)" value="' + esc(c.front||'') + '" oninput="updateFCCard(' + id + ',' + i + ',\'front\',this.value)">' +
+    '<span style="color:var(--gray);flex-shrink:0">→</span>' +
+    '<input class="f-input" placeholder="Eslab qolish kerak (javob)" value="' + esc(c.back||'') + '" oninput="updateFCCard(' + id + ',' + i + ',\'back\',this.value)">' +
+    '<button class="item-del" onclick="removeFCCard(' + id + ',' + i + ')">✕</button>' +
+    '</div>').join('');
+  return '<div class="field-row"><label>Sarlavha</label>' +
+    '<input class="f-input" value="' + esc(d.title||'Tez xotira') + '" oninput="updateBlockField(' + id + ',\'title\',this.value)"></div>' +
+    '<div class="field-row"><label>Ko\'rsatish vaqti (soniya)</label>' +
+    '<input type="number" class="f-input" style="width:80px" min="1" max="10" value="' + (d.flash_sec||2) + '" oninput="updateBlockField(' + id + ',\'flash_sec\',parseInt(this.value)||2)">' +
+    '<span style="font-size:12px;color:var(--gray);margin-left:10px">Karta ' + (d.flash_sec||2) + ' soniya ko\'rsatiladi, keyin yashirinadi</span></div>' +
+    '<div class="field-row"><label>Kartalar</label><span style="font-size:12px;color:var(--gray)">Ko\'rsatiladigan → Eslab qolish kerak</span></div>' +
+    '<div class="item-list" id="fc-list-' + id + '">' + cards + '</div>' +
+    '<button class="add-item-btn" onclick="addFCCard(' + id + ')">+ Karta qo\'shish</button>';
+}
+function updateFCCard(id, i, field, value) {
+  const b = getBlock(id); if (!b) return;
+  b.data.cards = b.data.cards || [];
+  if (!b.data.cards[i]) b.data.cards[i] = {};
+  b.data.cards[i][field] = value; saveBlock(id);
+}
+function addFCCard(id) {
+  const b = getBlock(id); if (!b) return;
+  b.data.cards = b.data.cards || [];
+  b.data.cards.push({front:'', back:''}); saveBlock(id); rerenderBlockEditor(id);
+}
+function removeFCCard(id, i) {
+  const b = getBlock(id); if (!b) return;
+  b.data.cards.splice(i, 1); saveBlock(id); rerenderBlockEditor(id);
+}
+
+function renderSFlashCards(block) {
+  const d = block.data;
+  const cards = (d.cards || []).filter(c => c.front && c.back);
+  if (!cards.length) { const el=document.createElement('div'); el.innerHTML='<p style="color:var(--gray)">Kartalar kiritilmagan</p>'; return el; }
+  const el = document.createElement('div');
+  const bId = block.id;
+  const flashSec = parseInt(d.flash_sec) || 2;
+  window['_fc_' + bId] = {cards: [...cards].sort(()=>Math.random()-.5), cur:0, score:0, phase:'idle', d, flashSec};
+
+  el.innerHTML = '<div class="s-section-title"><div class="s-section-bar" style="background:#b45309"></div>' +
+    '<div class="s-section-label" style="background:#b45309">⚡ ' + esc(d.title||'Tez xotira') + '</div></div>' +
+    '<div style="font-size:13px;color:var(--gray);margin-bottom:14px">Karta <b>' + flashSec + ' soniya</b> ko\'rsatiladi, keyin yashirinadi. Eslab qolgan narsangizni yozing!</div>' +
+    '<div id="fc-inner-' + bId + '"></div>';
+  setTimeout(() => fcRenderCard(bId), 0);
+  return el;
+}
+
+function fcRenderCard(bId) {
+  const st = window['_fc_' + bId];
+  if (!st) return;
+  const inner = document.getElementById('fc-inner-' + bId);
+  if (!inner) return;
+  if (st.cur >= st.cards.length) { fcShowResults(bId); return; }
+  const card = st.cards[st.cur];
+  const pct = Math.round(st.cur / st.cards.length * 100);
+  inner.innerHTML = '<div style="font-size:13px;color:var(--gray);margin-bottom:6px">' + (st.cur+1) + ' / ' + st.cards.length + '</div>' +
+    '<div style="height:6px;background:#dee2e6;border-radius:4px;margin-bottom:18px;overflow:hidden"><div style="height:100%;border-radius:4px;background:#b45309;width:' + pct + '%"></div></div>' +
+    '<div id="fc-card-' + bId + '" style="min-height:120px;background:linear-gradient(135deg,#b45309,#d97706);color:white;border-radius:16px;padding:28px;font-size:24px;font-weight:800;text-align:center;display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 4px 20px rgba(180,83,9,.3)">' +
+    esc(card.front) + '</div>' +
+    '<div id="fc-countdown-' + bId + '" style="text-align:center;font-size:13px;color:var(--gray);margin-bottom:14px">⏱ ' + st.flashSec + ' soniya ichida eslab qoling...</div>' +
+    '<div id="fc-answer-area-' + bId + '" style="display:none">' +
+    '<div style="font-size:13px;font-weight:600;color:#b45309;margin-bottom:8px">✏️ Nima ko\'rsatildi?</div>' +
+    '<input id="fc-inp-' + bId + '" type="text" style="width:100%;padding:11px;border:2px solid #dee2e6;border-radius:8px;font-size:15px;font-family:inherit;outline:none" placeholder="Esladingizmi? Yozing..." onkeydown="if(event.key===\'Enter\')fcCheck(' + bId + ')">' +
+    '<div style="display:flex;gap:8px;margin-top:10px">' +
+    '<button onclick="fcCheck(' + bId + ')" style="padding:10px 24px;border-radius:8px;background:#b45309;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700">✅ Tekshirish</button>' +
+    '</div>' +
+    '<div id="fc-fb-' + bId + '" style="margin-top:10px;font-size:14px;min-height:18px"></div>' +
+    '</div>';
+
+  // Countdown timer
+  let left = st.flashSec;
+  const countdownEl = document.getElementById('fc-countdown-' + bId);
+  const cardEl = document.getElementById('fc-card-' + bId);
+  const timer = setInterval(function() {
+    left--;
+    if (countdownEl) countdownEl.textContent = '⏱ ' + left + ' soniya...';
+    if (left <= 0) {
+      clearInterval(timer);
+      // Kartani yashir
+      if (cardEl) { cardEl.style.filter='blur(8px)'; cardEl.style.opacity='0.3'; }
+      if (countdownEl) countdownEl.textContent = '🙈 Karta yashirildi. Esladingizmi?';
+      const ansArea = document.getElementById('fc-answer-area-' + bId);
+      if (ansArea) { ansArea.style.display='block'; setTimeout(()=>{ const inp=document.getElementById('fc-inp-'+bId); if(inp)inp.focus(); }, 50); }
+    }
+  }, 1000);
+}
+
+function fcCheck(bId) {
+  const st = window['_fc_' + bId];
+  if (!st) return;
+  const inp = document.getElementById('fc-inp-' + bId);
+  if (!inp) return;
+  const answer = inp.value.trim().toLowerCase();
+  const correct = st.cards[st.cur].back.toLowerCase();
+  const ok = answer === correct || answer.includes(correct) || correct.includes(answer) && answer.length >= correct.length * 0.8;
+  if (ok) st.score++;
+  inp.disabled = true;
+  inp.style.borderColor = ok ? '#16a34a' : '#ef4444';
+  const fb = document.getElementById('fc-fb-' + bId);
+  if (fb) fb.innerHTML = ok
+    ? '<span style="color:#16a34a;font-weight:700">✅ To\'g\'ri! Yaxshi xotira!</span>'
+    : '<span style="color:#ef4444">❌ Xato. To\'g\'ri javob: <b>' + esc(st.cards[st.cur].back) + '</b></span>';
+  const inner = document.getElementById('fc-inner-' + bId);
+  if (inner) {
+    const nb = document.createElement('button');
+    nb.style.cssText = 'margin-top:12px;padding:9px 22px;border-radius:8px;background:#b45309;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700;display:block';
+    nb.textContent = st.cur+1 < st.cards.length ? 'Keyingi karta →' : '📊 Natijalar';
+    nb.onclick = function() { st.cur++; fcRenderCard(bId); };
+    inner.appendChild(nb);
+  }
+}
+
+function fcShowResults(bId) {
+  const st = window['_fc_' + bId];
+  if (!st) return;
+  const total = st.cards.length;
+  const pct = Math.round(st.score / total * 100);
+  const inner = document.getElementById('fc-inner-' + bId);
+  if (!inner) return;
+  inner.innerHTML = '<div style="text-align:center;padding:20px">' +
+    '<div style="font-size:48px;font-weight:900;color:#b45309">' + pct + '%</div>' +
+    '<div style="font-size:15px;color:var(--gray);margin:6px 0">' + st.score + ' / ' + total + " to'g'ri esladingiz" + '</div>' +
+    (pct >= 80 ? '<div style="font-size:28px">🏆 Ajoyib xotira!</div>' : pct >= 50 ? '<div style="font-size:24px">💪 Yaxshi!</div>' : '<div style="font-size:20px">📚 Ko\'proq mashq qiling!</div>') +
+    '<button onclick="fcRestart(' + bId + ')" style="margin-top:16px;padding:10px 24px;border-radius:8px;background:#b45309;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700">🔄 Qayta boshlash</button>' +
+    '</div>';
+  recordStudentAnswer(bId, 'flash_cards', st.d.title||'Tez xotira', {score:st.score, total}, st.score, total);
+}
+
+function fcRestart(bId) {
+  const st = window['_fc_' + bId];
+  if (!st) return;
+  st.cards = st.cards.sort(() => Math.random() - 0.5);
+  st.cur = 0; st.score = 0;
+  fcRenderCard(bId);
+}
 
 // ═══════════════════════════════════════════════════════════
 // INIT PATCH — theme va voices yuklanishi
