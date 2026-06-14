@@ -471,6 +471,16 @@ def upload_image():
     f.save(os.path.join(img_dir, fname))
     return jsonify({'url': f'/static/img/{fname}'})
 
+@app.route('/api/upload/video', methods=['POST'])
+def upload_video():
+    f = request.files.get('file')
+    if not f: return jsonify({'error': 'no file'}), 400
+    vid_dir = os.path.join(BASE_DIR, 'static', 'video')
+    os.makedirs(vid_dir, exist_ok=True)
+    fname = f'{datetime.utcnow().timestamp()}_{f.filename}'
+    f.save(os.path.join(vid_dir, fname))
+    return jsonify({'url': f'/static/video/{fname}'})
+
 # ─── Pages ────────────────────────────────────────────────────────────────────
 
 @app.route('/')

@@ -903,6 +903,10 @@ body.dark .gen-type-btn{background:#252340;border-color:#3d3b5a;color:#e0deef}
       <button class="add-block-btn" style="color:#ea580c;border-color:#ea580c;font-weight:800" onclick="openAddBlockModal('number_guess')">🔢 Son topish</button>
       <button class="add-block-btn" style="color:#16a34a;border-color:#16a34a;font-weight:800" onclick="openAddBlockModal('anagram')">🧩 Anagram</button>
       <button class="add-block-btn" style="color:#b45309;border-color:#b45309;font-weight:800" onclick="openAddBlockModal('flash_cards')">⚡ Tez xotira</button>
+      <button class="add-block-btn" style="color:#0369a1;border-color:#0369a1;font-weight:800" onclick="openAddBlockModal('dictation')">🎧 Diktant</button>
+      <button class="add-block-btn" style="color:#7c3aed;border-color:#7c3aed;font-weight:800" onclick="openAddBlockModal('memory_chain')">🔗 Zanjir xotira</button>
+      <button class="add-block-btn" style="color:#be123c;border-color:#be123c;font-weight:800" onclick="openAddBlockModal('role_dialog')">🎭 Rol dialog</button>
+      <button class="add-block-btn" style="color:#0f766e;border-color:#0f766e;font-weight:800" onclick="openAddBlockModal('media')">🎬 Audio/Video</button>
     </div>
     <div id="blocks-container">
       <div id="blocks-empty">
@@ -1473,8 +1477,8 @@ function renderBlocks() {
 function buildBlockCard(block, idx, total) {
   const card = document.createElement('div');
   card.className = 'block-card'; card.dataset.id = block.id;
-  const typeColors = {heading:'#e63946',vocab:'#457b9d',dialog:'#2a9d8f',fill_blank:'#2a9d8f',match:'#e76f51',quiz:'#6a4c93',crossword:'#264653',image:'#555',audio_text:'#1d3557',table:'#333',hr:'#aaa',memory_game:'#9333ea',number_guess:'#ea580c',anagram:'#16a34a',flash_cards:'#b45309'};
-  const typeNames = {heading:'Sarlavha',vocab:"So'zlar",dialog:'Dialog',fill_blank:"Bo'sh joy",match:'Moslashtir',quiz:'Test',crossword:'Krossvord',image:'Rasm',audio_text:'Matn+Ovoz',table:'Jadval',hr:'Chiziq',memory_game:"Xotira o'yini",number_guess:'Son topish',anagram:'Anagram',flash_cards:'Tez xotira'};
+  const typeColors = {heading:'#e63946',vocab:'#457b9d',dialog:'#2a9d8f',fill_blank:'#2a9d8f',match:'#e76f51',quiz:'#6a4c93',crossword:'#264653',image:'#555',audio_text:'#1d3557',table:'#333',hr:'#aaa',memory_game:'#9333ea',number_guess:'#ea580c',anagram:'#16a34a',flash_cards:'#b45309',dictation:'#0369a1',memory_chain:'#7c3aed',role_dialog:'#be123c',media:'#0f766e'};
+  const typeNames = {heading:'Sarlavha',vocab:"So'zlar",dialog:'Dialog',fill_blank:"Bo'sh joy",match:'Moslashtir',quiz:'Test',crossword:'Krossvord',image:'Rasm',audio_text:'Matn+Ovoz',table:'Jadval',hr:'Chiziq',memory_game:"Xotira o'yini",number_guess:'Son topish',anagram:'Anagram',flash_cards:'Tez xotira',dictation:'Diktant',memory_chain:'Zanjir xotira',role_dialog:'Rol dialog',media:'Audio/Video'};
   card.innerHTML = '<div class="block-header"><span class="block-drag">⠿</span><span class="block-type-badge" style="background:' + (typeColors[block.type] || '#888') + '">' + (typeNames[block.type] || block.type) + '</span><span class="block-header-title">' + getBlockPreviewTitle(block) + '</span><button class="block-ctrl-btn up" title="Yuqoriga" onclick="moveBlock(' + block.id + ',-1)"' + (idx === 0 ? ' disabled' : '') + '>↑</button><button class="block-ctrl-btn dn" title="Pastga" onclick="moveBlock(' + block.id + ',1)"' + (idx === total - 1 ? ' disabled' : '') + '>↓</button><button class="block-ctrl-btn dup" title="Nusxa" onclick="duplicateBlock(' + block.id + ')">⧉</button><button class="block-ctrl-btn del" title="O\'chirish" onclick="deleteBlock(' + block.id + ')">✕</button></div><div class="block-body" id="block-body-' + block.id + '">' + buildBlockEditor(block) + '</div>';
   return card;
 }
@@ -1496,6 +1500,10 @@ function getBlockPreviewTitle(block) {
   if (block.type === 'number_guess') return '\ud83d\udd22 ' + (d.title || 'Son topish') + ' (' + (d.min||1) + '–' + (d.max||100) + ')';
   if (block.type === 'anagram')      return '\ud83e\udde9 ' + (d.title || 'Anagram') + ' (' + (d.words||[]).length + " so'z)";
   if (block.type === 'flash_cards')  return '\u26a1 ' + (d.title || 'Tez xotira') + ' (' + (d.cards||[]).length + ' karta)';
+  if (block.type === 'dictation')    return '\ud83c\udfa7 ' + (d.title || 'Diktant') + ' (' + (d.sentences||[]).length + " gap)";
+  if (block.type === 'memory_chain') return '\ud83d\udd17 ' + (d.title || 'Zanjir xotira') + ' (' + (d.items||[]).length + " element)";
+  if (block.type === 'role_dialog')  return '\ud83c\udfad ' + (d.title || 'Rol dialog') + ' (' + (d.turns||[]).length + " navbat)";
+  if (block.type === 'media')        return '\ud83c\udfac ' + (d.title || 'Audio/Video');
   return '';
 }
 function buildBlockEditor(block) {
@@ -1517,6 +1525,10 @@ function buildBlockEditor(block) {
     case 'number_guess': return buildNumberGuessEditor(id, d);
     case 'anagram':      return buildAnagramEditor(id, d);
     case 'flash_cards':  return buildFlashCardsEditor(id, d);
+    case 'dictation':    return buildDictationEditor(id, d);
+    case 'memory_chain': return buildMemoryChainEditor(id, d);
+    case 'role_dialog':  return buildRoleDialogEditor(id, d);
+    case 'media':        return buildMediaEditor(id, d);
     default: return '<p style="color:var(--gray);font-size:13px">Sozlanmagan</p>';
   }
 }
@@ -1615,7 +1627,7 @@ async function deleteBlock(id){ await api('DELETE','/api/blocks/'+id); state.blo
 async function duplicateBlock(id){ const b=getBlock(id); if(!b)return; const nb=await api('POST','/api/blocks',{lesson_id:b.lesson_id,type:b.type,order:b.order+0.5,data:b.data}); state.blocks.push(nb); state.blocks.sort((a,b)=>a.order-b.order); state.blocks.forEach((b,i)=>b.order=i); renderBlocks(); toast('⧉ Nusxa olindi'); }
 function openAddBlockModal(type){ if(!state.currentLessonId){toast('⚠️ Avval dars tanlang');return;} addBlock(type); }
 async function addBlock(type){
-  const defaults={heading:{text:'Yangi sarlavha',level:1,color:'#e63946'},hr:{color:'#e63946',height:3},vocab:{title:'Новые слова',bar_color:'#457b9d',items:[{ru:'',uz:'',audio:''}]},dialog:{title:'Диалог',lines:[{speaker:'A',text:''},{speaker:'B',text:''}]},fill_blank:{title:'Упражнение',bar_color:'#2a9d8f',instruction:'',items:[{pre:'',answer:'',post:''}]},match:{title:'Соедините',bar_color:'#e76f51',pairs:[{left:'',right:''},{left:'',right:''}]},quiz:{title:'Тест',bar_color:'#6a4c93',questions:[{q:'',options:['',''],correct:0}]},crossword:{title:'Кроссворд',words:[]},image:{url:'',caption:'',width:100},audio_text:{text:'',audio:''},table:{title:'',headers:['Ustun 1','Ustun 2'],rows:[['',''],['','']]},vocab_timer:{title:"Lug'atni yodlang",timer_sec:60,test_order:'random',test_dir:'random',items:[{ru:'',uz:''}]},memory_game:{title:"Xotira o'yini",lang:'uz',pairs:[{front:'',back:''},{front:'',back:''}]},number_guess:{title:'Son topish',min:1,max:100,lang:'uz'},anagram:{title:'Anagram',lang:'uz',words:[{word:'',hint:''}]},flash_cards:{title:'Tez xotira',flash_sec:2,cards:[{front:'',back:''}]}};;
+  const defaults={heading:{text:'Yangi sarlavha',level:1,color:'#e63946'},hr:{color:'#e63946',height:3},vocab:{title:'Новые слова',bar_color:'#457b9d',items:[{ru:'',uz:'',audio:''}]},dialog:{title:'Диалог',lines:[{speaker:'A',text:''},{speaker:'B',text:''}]},fill_blank:{title:'Упражнение',bar_color:'#2a9d8f',instruction:'',items:[{pre:'',answer:'',post:''}]},match:{title:'Соедините',bar_color:'#e76f51',pairs:[{left:'',right:''},{left:'',right:''}]},quiz:{title:'Тест',bar_color:'#6a4c93',questions:[{q:'',options:['',''],correct:0}]},crossword:{title:'Кроссворд',words:[]},image:{url:'',caption:'',width:100},audio_text:{text:'',audio:''},table:{title:'',headers:['Ustun 1','Ustun 2'],rows:[['',''],['','']]},vocab_timer:{title:"Lug'atni yodlang",timer_sec:60,test_order:'random',test_dir:'random',items:[{ru:'',uz:''}]},memory_game:{title:"Xotira o'yini",lang:'uz',pairs:[{front:'',back:''},{front:'',back:''}]},number_guess:{title:'Son topish',min:1,max:100,lang:'uz'},anagram:{title:'Anagram',lang:'uz',words:[{word:'',hint:''}]},flash_cards:{title:'Tez xotira',flash_sec:2,cards:[{front:'',back:''}]},dictation:{title:'Diktant',lang:'ru',speed:0.8,sentences:[{text:'',hint:''}]},memory_chain:{title:'Zanjir xotira',show_sec:3,items:['','','']},role_dialog:{title:'Rol dialog',lang:'uz',student_role:'O\'quvchi',ai_role:'Sherik',scenario:'',turns:[{role:'student',prompt:'',expected:''}]},media:{title:'',type:'audio',url:'',caption:'',autoplay:false,loop:false}};;
   const nb=await api('POST','/api/blocks',{lesson_id:state.currentLessonId,type,data:defaults[type]||{}}); state.blocks.push(nb); renderBlocks(); if(state.studentOpen)renderStudentView(); setTimeout(()=>{const el=document.querySelector('[data-id="'+nb.id+'"]');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},100); toast("✅ Blok qo'shildi"); }
 
 // ═══════════════════════════════════════════════════════════
@@ -1623,7 +1635,7 @@ async function addBlock(type){
 // ═══════════════════════════════════════════════════════════
 function toggleStudentPanel(){ state.studentOpen=!state.studentOpen; const panel=document.getElementById('student-panel'); panel.classList.toggle('hidden',!state.studentOpen); if(state.studentOpen)renderStudentView(); }
 function renderStudentView(){ const content=document.getElementById('student-content'); content.innerHTML=''; [...state.blocks].sort((a,b)=>a.order-b.order).forEach(block=>{const el=renderStudentBlock(block);if(el)content.appendChild(el);}); }
-function renderStudentBlock(block){ const d=block.data; switch(block.type){case 'heading':return renderSHeading(d);case 'hr':return renderSHr(d);case 'vocab':return renderSVocab(d);case 'dialog':return renderSDialog(d);case 'fill_blank':return renderSFillBlank(block);case 'match':return renderSMatch(block);case 'quiz':return renderSQuiz(block);case 'crossword':return renderSCrossword(block);case 'image':return renderSImage(d);case 'audio_text':return renderSAudioText(d);case 'table':return renderSTable(d);case 'vocab_timer':return renderSVocabTimer(block);case 'memory_game':return renderSMemoryGame(block);case 'number_guess':return renderSNumberGuess(block);case 'anagram':return renderSAnagram(block);case 'flash_cards':return renderSFlashCards(block);default:return null;} }
+function renderStudentBlock(block){ const d=block.data; switch(block.type){case 'heading':return renderSHeading(d);case 'hr':return renderSHr(d);case 'vocab':return renderSVocab(d);case 'dialog':return renderSDialog(d);case 'fill_blank':return renderSFillBlank(block);case 'match':return renderSMatch(block);case 'quiz':return renderSQuiz(block);case 'crossword':return renderSCrossword(block);case 'image':return renderSImage(d);case 'audio_text':return renderSAudioText(d);case 'table':return renderSTable(d);case 'vocab_timer':return renderSVocabTimer(block);case 'memory_game':return renderSMemoryGame(block);case 'number_guess':return renderSNumberGuess(block);case 'anagram':return renderSAnagram(block);case 'flash_cards':return renderSFlashCards(block);case 'dictation':return renderSDictation(block);case 'memory_chain':return renderSMemoryChain(block);case 'role_dialog':return renderSRoleDialog(block);case 'media':return renderSMedia(d);default:return null;} }
 function renderSHeading(d){ const el=document.createElement('div'); const size={1:'28px',2:'22px',3:'18px',4:'15px'}[d.level||1]; el.innerHTML='<div class="s-heading" style="font-size:'+size+';color:'+(d.color||'#e63946')+'">'+esc(d.text||'')+'</div>'; return el; }
 function renderSHr(d){ const el=document.createElement('div'); el.innerHTML='<hr class="s-hr" style="background:'+(d.color||'#e63946')+';height:'+(d.height||3)+'px">'; return el; }
 function renderSVocab(d){ const el=document.createElement('div'); const items=(d.items||[]).map((item,i)=>'<div class="vocab-item"><span class="vnum">'+(i+1)+'</span><span class="vru">'+esc(item.ru||'')+'</span>'+(item.uz?'<span class="vuz">— '+esc(item.uz)+'</span>':'')+(item.audio?'<button class="vocab-audio-btn" onclick="playAudio(\''+item.audio+'\')">▶</button>':'')+'</div>').join(''); el.innerHTML='<div class="s-section-title"><div class="s-section-bar" style="background:'+(d.bar_color||'#457b9d')+'"></div><div class="s-section-label" style="background:'+(d.bar_color||'#457b9d')+'">'+esc(d.title||'Новые слова')+'</div></div><div class="vocab-grid">'+items+'</div>'; return el; }
@@ -2852,6 +2864,541 @@ function fcRestart(bId) {
   st.cards = st.cards.sort(() => Math.random() - 0.5);
   st.cur = 0; st.score = 0;
   fcRenderCard(bId);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 5. DIKTANT BLOKI
+// O'qituvchi: gaplar + maslahat, til va tezlik sozlaydi
+// O'quvchi: TTS eshitadi, eshitganlari yozadi, tekshiradi
+// ═══════════════════════════════════════════════════════════
+function buildDictationEditor(id, d) {
+  const sents = (d.sentences||[]).map((s,i)=>'<div class="item-row">'+
+    '<textarea class="f-input" rows="2" placeholder="Gap (rus yoki o\'zbek tilida)..." style="resize:vertical" oninput="updateDictSent('+id+','+i+',\'text\',this.value)">'+esc(s.text||'')+'</textarea>'+
+    '<input class="f-input" placeholder="Maslahat (ixtiyoriy)" value="'+esc(s.hint||'')+'" oninput="updateDictSent('+id+','+i+',\'hint\',this.value)" style="margin-top:4px">'+
+    '<button class="item-del" onclick="removeDictSent('+id+','+i+')">✕</button>'+
+    '</div>').join('');
+  return '<div class="field-row"><label>Sarlavha</label>'+
+    '<input class="f-input" value="'+esc(d.title||'Diktant')+'" oninput="updateBlockField('+id+',\'title\',this.value)"></div>'+
+    '<div class="field-row"><label>Til</label>'+
+    '<select class="f-select" style="width:140px" onchange="updateBlockField('+id+',\'lang\',this.value)">'+
+    '<option value="ru"'+(d.lang==='ru'||!d.lang?' selected':'')+'>🇷🇺 Ruscha</option>'+
+    '<option value="uz"'+(d.lang==='uz'?' selected':'')+">🇺🇿 O'zbekcha</option></select>"+
+    '<label style="margin-left:12px">O\'qish tezligi</label>'+
+    '<select class="f-select" style="width:120px" onchange="updateBlockField('+id+',\'speed\',parseFloat(this.value))">'+
+    '<option value="0.6"'+(d.speed==0.6?' selected':'')+'>Sekin</option>'+
+    '<option value="0.8"'+((!d.speed||d.speed==0.8)?' selected':'')+'>O\'rta</option>'+
+    '<option value="1.0"'+(d.speed==1.0?' selected':'')+'>Tez</option></select></div>'+
+    '<div class="field-row"><label>Gaplar</label><span style="font-size:12px;color:var(--gray)">Har gapga alohida qator</span></div>'+
+    '<div class="item-list" id="dict-list-'+id+'">'+sents+'</div>'+
+    '<button class="add-item-btn" onclick="addDictSent('+id+')">+ Gap qo\'shish</button>';
+}
+function updateDictSent(id,i,f,v){const b=getBlock(id);if(!b)return;b.data.sentences=b.data.sentences||[];if(!b.data.sentences[i])b.data.sentences[i]={};b.data.sentences[i][f]=v;saveBlock(id);}
+function addDictSent(id){const b=getBlock(id);if(!b)return;b.data.sentences=b.data.sentences||[];b.data.sentences.push({text:'',hint:''});saveBlock(id);rerenderBlockEditor(id);}
+function removeDictSent(id,i){const b=getBlock(id);if(!b)return;b.data.sentences.splice(i,1);saveBlock(id);rerenderBlockEditor(id);}
+
+function renderSDictation(block) {
+  const d = block.data;
+  const sents = (d.sentences||[]).filter(s=>s.text&&s.text.trim());
+  if (!sents.length) {const el=document.createElement('div');el.innerHTML='<p style="color:var(--gray)">Gaplar kiritilmagan</p>';return el;}
+  const el = document.createElement('div');
+  const bId = block.id;
+  const lang = d.lang||'ru';
+  const speed = parseFloat(d.speed)||0.8;
+  const isRu = lang==='ru';
+
+  el.innerHTML = '<div class="s-section-title"><div class="s-section-bar" style="background:#0369a1"></div>'+
+    '<div class="s-section-label" style="background:#0369a1">🎧 '+esc(d.title||'Diktant')+'</div></div>'+
+    '<p style="font-size:13px;color:var(--gray);margin-bottom:16px">'+
+    (isRu?'Har bir gapni eshiting va xuddi shunday yozing.':'Har bir gapni eshiting va xuddi shunday yozing.')+
+    '</p>'+
+    '<div id="dict-inner-'+bId+'"></div>';
+
+  window['_dict_'+bId] = {sents:[...sents], cur:0, score:0, results:[], lang, speed, d};
+  setTimeout(()=>dictRenderQuestion(bId),0);
+  return el;
+}
+
+function dictRenderQuestion(bId) {
+  const st = window['_dict_'+bId];
+  if (!st) return;
+  const inner = document.getElementById('dict-inner-'+bId);
+  if (!inner) return;
+  if (st.cur >= st.sents.length) { dictShowResults(bId); return; }
+  const s = st.sents[st.cur];
+  const pct = Math.round(st.cur/st.sents.length*100);
+  inner.innerHTML =
+    '<div style="font-size:13px;color:var(--gray);margin-bottom:6px">'+(st.cur+1)+' / '+st.sents.length+'</div>'+
+    '<div style="height:6px;background:#dee2e6;border-radius:4px;margin-bottom:18px;overflow:hidden"><div style="height:100%;border-radius:4px;background:#0369a1;width:'+pct+'%"></div></div>'+
+    '<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">'+
+    '<button id="dict-play-'+bId+'" onclick="dictPlay(\''+bId+'\')" style="padding:10px 22px;border-radius:10px;background:#0369a1;color:white;border:none;cursor:pointer;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px">▶ Eshitish</button>'+
+    '<button onclick="dictPlay(\''+bId+'\',0.5)" style="padding:10px 16px;border-radius:10px;border:1.5px solid #0369a1;color:#0369a1;background:white;cursor:pointer;font-size:13px">🐢 Sekin</button>'+
+    (s.hint?'<span style="font-size:13px;color:var(--gray);font-style:italic;align-self:center">💡 '+esc(s.hint)+'</span>':'')+
+    '</div>'+
+    '<textarea id="dict-inp-'+bId+'" rows="3" style="width:100%;padding:12px;border:2px solid #dee2e6;border-radius:10px;font-size:15px;line-height:1.6;font-family:inherit;resize:vertical;outline:none" placeholder="Eshitgan gapingizni shu yerga yozing..."></textarea>'+
+    '<div style="display:flex;gap:8px;margin-top:10px">'+
+    '<button onclick="dictCheck(\''+bId+'\')" style="padding:10px 24px;border-radius:8px;background:#0369a1;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700">✅ Tekshirish</button>'+
+    '</div>'+
+    '<div id="dict-fb-'+bId+'" style="margin-top:12px;min-height:20px;font-size:14px"></div>';
+  setTimeout(()=>dictPlay(bId), 600);
+}
+
+function dictPlay(bId, overrideSpeed) {
+  const st = window['_dict_'+bId];
+  if (!st || st.cur >= st.sents.length) return;
+  const text = st.sents[st.cur].text;
+  const speed = overrideSpeed || st.speed;
+  if (!window.speechSynthesis) { toast('❌ TTS qo\'llab-quvvatlanmaydi'); return; }
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = st.lang==='ru' ? 'ru-RU' : 'uz-UZ';
+  utt.rate = speed;
+  const voices = window.speechSynthesis.getVoices();
+  const v = voices.find(v=>v.lang.startsWith(st.lang==='ru'?'ru':'uz'));
+  if (v) utt.voice = v;
+  const btn = document.getElementById('dict-play-'+bId);
+  if (btn) { btn.textContent='⏸ To\'xtatish'; btn.style.background='#e76f51'; }
+  utt.onend = ()=>{ if(btn){btn.innerHTML='▶ Eshitish';btn.style.background='#0369a1';} };
+  window.speechSynthesis.speak(utt);
+}
+
+function dictCheck(bId) {
+  const st = window['_dict_'+bId];
+  if (!st) return;
+  const inp = document.getElementById('dict-inp-'+bId);
+  if (!inp) return;
+  const given = inp.value.trim();
+  const correct = st.sents[st.cur].text.trim();
+  // Aniqlik hisoblash (levenshtein ga o'xshash sodda yondashuv)
+  const givenW = given.toLowerCase().replace(/[.,!?;:]/g,'').split(/\s+/);
+  const correctW = correct.toLowerCase().replace(/[.,!?;:]/g,'').split(/\s+/);
+  let matches = 0;
+  correctW.forEach((w,i) => { if (givenW[i] === w) matches++; });
+  const accuracy = correctW.length > 0 ? Math.round(matches/correctW.length*100) : 0;
+  if (accuracy === 100) st.score++;
+  st.results.push({correct, given, accuracy});
+  inp.disabled = true;
+  inp.style.borderColor = accuracy>=80 ? '#16a34a' : accuracy>=50 ? '#f59e0b' : '#ef4444';
+  const fb = document.getElementById('dict-fb-'+bId);
+  const color = accuracy>=80 ? '#16a34a' : accuracy>=50 ? '#f59e0b' : '#ef4444';
+  let diffHtml = '';
+  correctW.forEach((w,i)=>{
+    const ok = givenW[i]===w;
+    diffHtml += '<span style="background:'+(ok?'rgba(22,163,74,.12)':'rgba(239,68,68,.12)')+';padding:1px 4px;border-radius:3px;margin:0 1px;color:'+(ok?'#16a34a':'#ef4444')+';font-weight:'+(ok?'400':'700')+'">'+esc(w)+'</span> ';
+  });
+  if (fb) fb.innerHTML = '<div style="font-weight:700;color:'+color+';margin-bottom:6px">'+accuracy+'% aniq</div>'+
+    '<div style="font-size:13px;color:var(--gray);margin-bottom:4px">To\'g\'ri gap:</div>'+
+    '<div style="font-size:14px;line-height:1.8">'+diffHtml+'</div>';
+  const inner = document.getElementById('dict-inner-'+bId);
+  if (inner) {
+    const nb = document.createElement('button');
+    nb.style.cssText='margin-top:12px;padding:9px 22px;border-radius:8px;background:#0369a1;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700;display:block';
+    nb.textContent = st.cur+1 < st.sents.length ? 'Keyingi gap →' : '📊 Natijalar';
+    nb.onclick = ()=>{ st.cur++; dictRenderQuestion(bId); };
+    inner.appendChild(nb);
+  }
+}
+
+function dictShowResults(bId) {
+  const st = window['_dict_'+bId];
+  if (!st) return;
+  const total = st.results.length;
+  const avgAcc = total > 0 ? Math.round(st.results.reduce((a,r)=>a+r.accuracy,0)/total) : 0;
+  const inner = document.getElementById('dict-inner-'+bId);
+  if (!inner) return;
+  const rows = st.results.map((r,i)=>'<tr>'+
+    '<td style="padding:8px 10px;font-size:12px">'+(i+1)+'</td>'+
+    '<td style="padding:8px 10px;font-size:13px">'+esc(r.correct)+'</td>'+
+    '<td style="padding:8px 10px;font-size:13px;color:'+(r.accuracy>=80?'#16a34a':r.accuracy>=50?'#f59e0b':'#ef4444')+';font-weight:600">'+esc(r.given)+'</td>'+
+    '<td style="padding:8px 10px;font-weight:700;color:'+(r.accuracy>=80?'#16a34a':r.accuracy>=50?'#f59e0b':'#ef4444')+'">'+r.accuracy+'%</td>'+
+    '</tr>').join('');
+  inner.innerHTML = '<div style="text-align:center;padding:16px 0">'+
+    '<div style="font-size:48px;font-weight:900;color:#0369a1">'+avgAcc+'%</div>'+
+    '<div style="font-size:14px;color:var(--gray);margin-top:4px">O\'rtacha aniqlik</div>'+
+    '</div>'+
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'+
+    '<thead><tr style="background:#0369a1;color:white"><th style="padding:8px 10px;text-align:left">#</th><th style="padding:8px 10px;text-align:left">To\'g\'ri gap</th><th style="padding:8px 10px;text-align:left">Siz yozdingiz</th><th style="padding:8px 10px">%</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody></table></div>'+
+    '<button onclick="dictRestart(\''+bId+'\')" style="margin-top:14px;padding:10px 24px;border-radius:8px;background:#0369a1;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700">🔄 Qayta boshlash</button>';
+  recordStudentAnswer(bId,'dictation',st.d.title||'Diktant',{avgAcc,total},Math.round(avgAcc/100*total),total);
+}
+
+function dictRestart(bId) {
+  const st = window['_dict_'+bId]; if (!st) return;
+  st.cur=0; st.score=0; st.results=[];
+  st.sents = st.sents.sort(()=>Math.random()-.5);
+  dictRenderQuestion(bId);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 6. ZANJIR XOTIRA BLOKI
+// O'qituvchi: elementlar ro'yxati, ko'rsatish vaqti
+// O'quvchi: elementlar ketma-ket ko'rsatiladi, yashiriladi,
+//           hammasi to'g'ri tartibda yoziladi
+// ═══════════════════════════════════════════════════════════
+function buildMemoryChainEditor(id, d) {
+  const items = (d.items||[]).map((item,i)=>'<div class="item-row">'+
+    '<span style="min-width:24px;font-size:12px;font-weight:700;color:var(--gray);text-align:center">'+(i+1)+'.</span>'+
+    '<input class="f-input" placeholder="Element ('+(i+1)+'-chi)" value="'+esc(item||'')+'" oninput="updateMCItem('+id+','+i+',this.value)">'+
+    '<button class="item-del" onclick="removeMCItem('+id+','+i+')">✕</button>'+
+    '</div>').join('');
+  return '<div class="field-row"><label>Sarlavha</label>'+
+    '<input class="f-input" value="'+esc(d.title||'Zanjir xotira')+'" oninput="updateBlockField('+id+',\'title\',this.value)"></div>'+
+    '<div class="field-row"><label>Ko\'rsatish vaqti (soniya/element)</label>'+
+    '<input type="number" class="f-input" style="width:80px" min="1" max="10" value="'+(d.show_sec||3)+'" oninput="updateBlockField('+id+',\'show_sec\',parseInt(this.value)||3)">'+
+    '<span style="font-size:12px;color:var(--gray);margin-left:10px">Har element shu vaqt ko\'rsatiladi</span></div>'+
+    '<div class="field-row"><label>Elementlar</label><span style="font-size:12px;color:var(--gray)">Rus/O\'zbek so\'z, raqam, ibora — istalgan narsa</span></div>'+
+    '<div class="item-list" id="mc-list-'+id+'">'+items+'</div>'+
+    '<button class="add-item-btn" onclick="addMCItem('+id+')">+ Element qo\'shish</button>';
+}
+function updateMCItem(id,i,v){const b=getBlock(id);if(!b)return;b.data.items=b.data.items||[];b.data.items[i]=v;saveBlock(id);}
+function addMCItem(id){const b=getBlock(id);if(!b)return;b.data.items=b.data.items||[];b.data.items.push('');saveBlock(id);rerenderBlockEditor(id);}
+function removeMCItem(id,i){const b=getBlock(id);if(!b)return;b.data.items.splice(i,1);saveBlock(id);rerenderBlockEditor(id);}
+
+function renderSMemoryChain(block) {
+  const d = block.data;
+  const items = (d.items||[]).filter(s=>s&&s.trim());
+  if (!items.length) {const el=document.createElement('div');el.innerHTML='<p style="color:var(--gray)">Elementlar kiritilmagan</p>';return el;}
+  const el = document.createElement('div');
+  const bId = block.id;
+  const showSec = parseInt(d.show_sec)||3;
+  window['_mc_'+bId] = {items, showSec, phase:'idle', d};
+
+  el.innerHTML = '<div class="s-section-title"><div class="s-section-bar" style="background:#7c3aed"></div>'+
+    '<div class="s-section-label" style="background:#7c3aed">🔗 '+esc(d.title||'Zanjir xotira')+'</div></div>'+
+    '<p style="font-size:13px;color:var(--gray);margin-bottom:14px">'+
+    items.length+' ta element ketma-ket ko\'rsatiladi (har biri '+showSec+' soniya). Keyin hammasini to\'g\'ri tartibda yozing!</p>'+
+    '<button id="mc-start-'+bId+'" onclick="mcStart(\''+bId+'\')" style="padding:12px 28px;border-radius:10px;background:#7c3aed;color:white;border:none;cursor:pointer;font-size:16px;font-weight:700;margin-bottom:16px">▶ Boshlash</button>'+
+    '<div id="mc-display-'+bId+'" style="min-height:80px"></div>'+
+    '<div id="mc-answer-'+bId+'" style="display:none">'+
+    '<div style="font-size:13px;font-weight:600;color:#7c3aed;margin-bottom:8px">✏️ Elementlarni to\'g\'ri tartibda yozing (vergul bilan ajrating):</div>'+
+    '<textarea id="mc-inp-'+bId+'" rows="3" style="width:100%;padding:11px;border:2px solid #dee2e6;border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;outline:none" placeholder="1-element, 2-element, 3-element..."></textarea>'+
+    '<button onclick="mcCheck(\''+bId+'\')" style="margin-top:10px;padding:10px 24px;border-radius:8px;background:#7c3aed;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700">✅ Tekshirish</button>'+
+    '<div id="mc-fb-'+bId+'" style="margin-top:10px;font-size:14px"></div>'+
+    '</div>';
+  return el;
+}
+
+function mcStart(bId) {
+  const st = window['_mc_'+bId]; if (!st) return;
+  const startBtn = document.getElementById('mc-start-'+bId);
+  if (startBtn) startBtn.style.display='none';
+  const display = document.getElementById('mc-display-'+bId);
+  let idx = 0;
+  function showNext() {
+    if (idx >= st.items.length) {
+      display.innerHTML = '<div style="text-align:center;font-size:28px;padding:20px;color:var(--gray)">🙈 Yashirildi!</div>';
+      setTimeout(()=>{
+        display.style.display='none';
+        const ans = document.getElementById('mc-answer-'+bId);
+        if (ans) { ans.style.display='block'; setTimeout(()=>{ const inp=document.getElementById('mc-inp-'+bId); if(inp)inp.focus(); },100); }
+      }, 1000);
+      return;
+    }
+    display.innerHTML = '<div style="text-align:center;background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;border-radius:16px;padding:32px;font-size:32px;font-weight:900;box-shadow:0 4px 20px rgba(124,58,237,.3);min-height:80px;display:flex;align-items:center;justify-content:center">'+
+      esc(st.items[idx])+'</div>'+
+      '<div style="text-align:center;font-size:12px;color:var(--gray);margin-top:8px">'+(idx+1)+' / '+st.items.length+'</div>';
+    idx++;
+    setTimeout(showNext, st.showSec*1000);
+  }
+  showNext();
+}
+
+function mcCheck(bId) {
+  const st = window['_mc_'+bId]; if (!st) return;
+  const inp = document.getElementById('mc-inp-'+bId); if (!inp) return;
+  const given = inp.value.split(',').map(s=>s.trim()).filter(Boolean);
+  let correct=0, total=st.items.length;
+  const resultRows = st.items.map((item,i)=>{
+    const ok = given[i] && given[i].toLowerCase()===item.toLowerCase();
+    if (ok) correct++;
+    return '<div style="display:flex;gap:8px;align-items:center;padding:6px 10px;border-radius:8px;background:'+(ok?'rgba(22,163,74,.1)':'rgba(239,68,68,.1)')+';margin-bottom:4px">'+
+      '<span style="font-size:16px">'+(ok?'✅':'❌')+'</span>'+
+      '<span style="font-weight:700;color:#7c3aed">'+(i+1)+'.</span>'+
+      '<span style="flex:1">To\'g\'ri: <b>'+esc(item)+'</b></span>'+
+      (ok?'':'<span style="color:#ef4444">Siz: '+esc(given[i]||'(bo\'sh)')+'</span>')+
+      '</div>';
+  }).join('');
+  const pct = Math.round(correct/total*100);
+  const fb = document.getElementById('mc-fb-'+bId);
+  if (fb) fb.innerHTML = '<div style="font-size:24px;font-weight:900;color:#7c3aed;text-align:center;margin-bottom:12px">'+pct+'%</div>'+resultRows+
+    '<button onclick="mcRestart(\''+bId+'\')" style="margin-top:12px;padding:9px 22px;border-radius:8px;background:#7c3aed;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700">🔄 Qayta</button>';
+  inp.disabled=true;
+  recordStudentAnswer(bId,'memory_chain',st.d.title||'Zanjir xotira',{given,items:st.items,pct},correct,total);
+}
+function mcRestart(bId) {
+  const st=window['_mc_'+bId]; if(!st)return;
+  const display=document.getElementById('mc-display-'+bId);
+  const ans=document.getElementById('mc-answer-'+bId);
+  const startBtn=document.getElementById('mc-start-'+bId);
+  const inp=document.getElementById('mc-inp-'+bId);
+  const fb=document.getElementById('mc-fb-'+bId);
+  if(display){display.innerHTML='';display.style.display='';}
+  if(ans)ans.style.display='none';
+  if(startBtn)startBtn.style.display='';
+  if(inp){inp.value='';inp.disabled=false;}
+  if(fb)fb.innerHTML='';
+}
+
+// ═══════════════════════════════════════════════════════════
+// 7. ROL DIALOG BLOKI
+// O'qituvchi: stsenariy, o'quvchi roli, sherikning javoblari
+// O'quvchi: o'z rolini o'ynaydi, sherik TTS bilan javob beradi
+// ═══════════════════════════════════════════════════════════
+function buildRoleDialogEditor(id, d) {
+  const turns = (d.turns||[]).map((t,i)=>'<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px">'+
+    '<div class="field-row"><label>Navbat '+(i+1)+'</label>'+
+    '<select class="f-select" style="width:140px;flex:0" onchange="updateRDTurn('+id+','+i+',\'role\',this.value)">'+
+    '<option value="student"'+(t.role==='student'?' selected':'')+'>👨‍🎓 O\'quvchi</option>'+
+    '<option value="partner"'+(t.role==='partner'?' selected':'')+'>🤝 Sherik</option>'+
+    '</select>'+
+    '<button class="item-del" onclick="removeRDTurn('+id+','+i+')">✕</button></div>'+
+    (t.role==='student'?
+      '<div class="field-row"><label>Ko\'rsatma</label><input class="f-input" placeholder="O\'quvchiga: nima deyishi kerak?" value="'+esc(t.prompt||'')+'" oninput="updateRDTurn('+id+','+i+',\'prompt\',this.value)"></div>'+
+      '<div class="field-row"><label>Kutilgan javob</label><input class="f-input" placeholder="Namunaviy to\'g\'ri javob..." value="'+esc(t.expected||'')+'" oninput="updateRDTurn('+id+','+i+',\'expected\',this.value)"></div>'
+    :
+      '<div class="field-row"><label>Sherik matni</label><textarea class="f-input" rows="2" style="resize:vertical" oninput="updateRDTurn('+id+','+i+',\'text\',this.value)">'+esc(t.text||'')+'</textarea></div>'
+    )+'</div>').join('');
+  return '<div class="field-row"><label>Sarlavha</label>'+
+    '<input class="f-input" value="'+esc(d.title||'Rol dialog')+'" oninput="updateBlockField('+id+',\'title\',this.value)"></div>'+
+    '<div class="field-row"><label>Stsenariy</label>'+
+    '<input class="f-input" placeholder="Masalan: Do\'konda xarid qilmoqdasiz..." value="'+esc(d.scenario||'')+'" oninput="updateBlockField('+id+',\'scenario\',this.value)"></div>'+
+    '<div class="field-row"><label>O\'quvchi roli</label>'+
+    '<input class="f-input" style="width:160px;flex:0" placeholder="Mijoz, Sayohatchi..." value="'+esc(d.student_role||"O'quvchi")+'" oninput="updateBlockField('+id+',\'student_role\',this.value)">'+
+    '<label style="margin-left:10px">Sherik roli</label>'+
+    '<input class="f-input" style="width:160px;flex:0" placeholder="Sotuvchi, Yo\'l ko\'rsatuvchi..." value="'+esc(d.ai_role||'Sherik')+'" oninput="updateBlockField('+id+',\'ai_role\',this.value)"></div>'+
+    '<div class="field-row"><label>Til</label>'+
+    '<select class="f-select" style="width:140px" onchange="updateBlockField('+id+',\'lang\',this.value)">'+
+    '<option value="uz"'+(d.lang==='uz'||!d.lang?' selected':'')+">O'zbekcha</option>"+
+    '<option value="ru"'+(d.lang==='ru'?' selected':'')+'>Ruscha</option></select></div>'+
+    '<div style="font-size:12px;font-weight:600;color:var(--gray);margin-bottom:8px">Navbatlar:</div>'+
+    '<div id="rd-list-'+id+'">'+turns+'</div>'+
+    '<div style="display:flex;gap:8px;margin-top:8px">'+
+    '<button class="add-item-btn" style="flex:1" onclick="addRDTurn('+id+',\'student\')">+ O\'quvchi navbati</button>'+
+    '<button class="add-item-btn" style="flex:1;border-color:#be123c;color:#be123c" onclick="addRDTurn('+id+',\'partner\')">+ Sherik navbati</button>'+
+    '</div>';
+}
+function updateRDTurn(id,i,f,v){const b=getBlock(id);if(!b)return;b.data.turns=b.data.turns||[];if(!b.data.turns[i])b.data.turns[i]={};b.data.turns[i][f]=v;saveBlock(id);rerenderBlockEditor(id);}
+function addRDTurn(id,role){const b=getBlock(id);if(!b)return;b.data.turns=b.data.turns||[];b.data.turns.push(role==='student'?{role:'student',prompt:'',expected:''}:{role:'partner',text:''});saveBlock(id);rerenderBlockEditor(id);}
+function removeRDTurn(id,i){const b=getBlock(id);if(!b)return;b.data.turns.splice(i,1);saveBlock(id);rerenderBlockEditor(id);}
+
+function renderSRoleDialog(block) {
+  const d = block.data;
+  const turns = (d.turns||[]).filter(t=>t.role);
+  const el = document.createElement('div');
+  const bId = block.id;
+  const lang = d.lang||'uz';
+  const isRu = lang==='ru';
+
+  el.innerHTML = '<div class="s-section-title"><div class="s-section-bar" style="background:#be123c"></div>'+
+    '<div class="s-section-label" style="background:#be123c">🎭 '+esc(d.title||'Rol dialog')+'</div></div>'+
+    (d.scenario?'<div style="background:rgba(190,18,60,.07);border-left:4px solid #be123c;padding:12px 16px;border-radius:0 10px 10px 0;font-size:14px;margin-bottom:16px;font-style:italic">📋 '+esc(d.scenario)+'</div>':'')+
+    '<div style="display:flex;gap:12px;margin-bottom:14px;font-size:13px">'+
+    '<span style="padding:4px 12px;border-radius:20px;background:rgba(190,18,60,.1);color:#be123c;font-weight:700">👨‍🎓 Sizning rolingiz: '+esc(d.student_role||"O'quvchi")+'</span>'+
+    '<span style="padding:4px 12px;border-radius:20px;background:rgba(124,58,237,.1);color:#7c3aed;font-weight:700">🤝 Sherik: '+esc(d.ai_role||'Sherik')+'</span>'+
+    '</div>'+
+    '<div id="rd-dialog-'+bId+'"></div>'+
+    '<div id="rd-inner-'+bId+'"></div>';
+
+  window['_rd_'+bId] = {turns, cur:0, results:[], lang, d};
+  setTimeout(()=>rdRenderTurn(bId),0);
+  return el;
+}
+
+function rdRenderTurn(bId) {
+  const st = window['_rd_'+bId]; if (!st) return;
+  const inner = document.getElementById('rd-inner-'+bId); if (!inner) return;
+  if (st.cur >= st.turns.length) { rdShowResults(bId); return; }
+  const turn = st.turns[st.cur];
+  // Dialog tarixini ko'rsat
+  const dialogEl = document.getElementById('rd-dialog-'+bId);
+  if (dialogEl) {
+    let html = '';
+    st.results.forEach(r=>{
+      const isStudent = r.role==='student';
+      html += '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:flex-start;flex-direction:'+(isStudent?'row-reverse':'row')+'">'+
+        '<div style="background:'+(isStudent?'#be123c':'#7c3aed')+';color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">'+(isStudent?'👨':'🤝')+'</div>'+
+        '<div style="max-width:70%;background:'+(isStudent?'rgba(190,18,60,.08)':'rgba(124,58,237,.08)')+';border-radius:12px;padding:10px 14px;font-size:14px;border:1px solid '+(isStudent?'rgba(190,18,60,.2)':'rgba(124,58,237,.2)')+'">'+
+        esc(r.text)+'</div></div>';
+    });
+    dialogEl.innerHTML = html;
+  }
+  if (turn.role === 'partner') {
+    // Sherik navbati — TTS bilan o'qiydi
+    inner.innerHTML = '<div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.3);border-radius:12px;padding:14px;margin-bottom:12px;display:flex;align-items:center;gap:12px">'+
+      '<span style="font-size:20px">🤝</span>'+
+      '<span style="font-size:15px;font-style:italic">'+esc(turn.text||'')+'</span>'+
+      '<button onclick="rdSpeak(\''+bId+'\',\''+esc(turn.text||'').replace(/'/g,"\\'")+'\')" style="padding:5px 12px;border-radius:6px;background:#7c3aed;color:white;border:none;cursor:pointer;font-size:12px;margin-left:auto;flex-shrink:0">🔊 Eshit</button>'+
+      '</div>'+
+      '<button onclick="rdNextTurn(\''+bId+'\')" style="padding:10px 24px;border-radius:8px;background:#be123c;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700">Davom etish →</button>';
+    st.results.push({role:'partner', text:turn.text||''});
+    // Avtomatik TTS
+    setTimeout(()=>rdSpeak(bId, turn.text||''), 400);
+  } else {
+    // O'quvchi navbati
+    inner.innerHTML = '<div style="background:rgba(190,18,60,.07);border:1px solid rgba(190,18,60,.2);border-radius:10px;padding:12px 16px;margin-bottom:12px">'+
+      '<div style="font-size:12px;font-weight:700;color:#be123c;margin-bottom:6px">👨‍🎓 Sizning navbatingiz</div>'+
+      (turn.prompt?'<div style="font-size:13px;color:var(--gray);margin-bottom:10px;font-style:italic">💡 '+esc(turn.prompt)+'</div>':'')+
+      '</div>'+
+      '<textarea id="rd-inp-'+bId+'" rows="3" style="width:100%;padding:11px;border:2px solid #dee2e6;border-radius:8px;font-size:15px;font-family:inherit;resize:vertical;outline:none" placeholder="Javobingizni bu yerga yozing..."></textarea>'+
+      '<div style="display:flex;gap:8px;margin-top:10px">'+
+      '<button onclick="rdCheckTurn(\''+bId+'\')" style="padding:10px 24px;border-radius:8px;background:#be123c;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700">✅ Yuborish</button>'+
+      '<button onclick="rdSpeak(\''+bId+'\',document.getElementById(\'rd-inp-'+bId+'\').value)" style="padding:10px 16px;border-radius:8px;border:1.5px solid #be123c;color:#be123c;background:white;cursor:pointer;font-size:14px">🔊 O\'qib eshit</button>'+
+      '</div>'+
+      '<div id="rd-fb-'+bId+'" style="margin-top:10px;font-size:14px;min-height:20px"></div>';
+    setTimeout(()=>{ const inp=document.getElementById('rd-inp-'+bId); if(inp)inp.focus(); },100);
+  }
+}
+
+function rdSpeak(bId, text) {
+  const st = window['_rd_'+bId]; if (!st) return;
+  if (!text||!text.trim()) return;
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = st.lang==='ru' ? 'ru-RU' : 'uz-UZ';
+  utt.rate = 0.85;
+  const v = window.speechSynthesis.getVoices().find(v=>v.lang.startsWith(st.lang==='ru'?'ru':'uz'));
+  if (v) utt.voice = v;
+  window.speechSynthesis.speak(utt);
+}
+
+function rdCheckTurn(bId) {
+  const st = window['_rd_'+bId]; if (!st) return;
+  const inp = document.getElementById('rd-inp-'+bId); if (!inp) return;
+  const given = inp.value.trim();
+  if (!given) { toast('⚠️ Javobingizni yozing'); return; }
+  const turn = st.turns[st.cur];
+  const expected = turn.expected||'';
+  let feedback = '';
+  if (expected) {
+    const sim = rdSimilarity(given.toLowerCase(), expected.toLowerCase());
+    const color = sim>0.75?'#16a34a':sim>0.4?'#f59e0b':'#ef4444';
+    feedback = '<div style="font-size:13px;margin-top:8px">'+
+      '<span style="color:'+color+';font-weight:700">'+(sim>0.75?'✅ Ajoyib!':sim>0.4?'🆗 Yaxshi urinish':'💡 Ko\'rib chiqing')+'</span>'+
+      (sim<0.9?'<div style="margin-top:4px;color:var(--gray)">Namunaviy javob: <i>'+esc(expected)+'</i></div>':'')+
+      '</div>';
+  }
+  const fb = document.getElementById('rd-fb-'+bId);
+  if (fb) fb.innerHTML = feedback;
+  inp.disabled = true;
+  st.results.push({role:'student', text:given, expected});
+  const nb = document.createElement('button');
+  nb.style.cssText='margin-top:10px;padding:9px 22px;border-radius:8px;background:#be123c;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700;display:block';
+  nb.textContent = st.cur+1 < st.turns.length ? 'Davom etish →' : '📊 Dialog tugadi';
+  nb.onclick = ()=>rdNextTurn(bId);
+  const inner = document.getElementById('rd-inner-'+bId);
+  if (inner) inner.appendChild(nb);
+}
+
+function rdSimilarity(a, b) {
+  const longer = a.length>b.length?a:b;
+  if (!longer.length) return 1.0;
+  const distance = levenshtein(a,b);
+  return (longer.length-distance)/longer.length;
+}
+function levenshtein(a,b){
+  const m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);
+  for(let j=0;j<=n;j++)d[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=a[i-1]===b[j-1]?d[i-1][j-1]:1+Math.min(d[i-1][j],d[i][j-1],d[i-1][j-1]);
+  return d[m][n];
+}
+function rdNextTurn(bId) { const st=window['_rd_'+bId];if(!st)return;st.cur++;rdRenderTurn(bId); }
+
+function rdShowResults(bId) {
+  const st = window['_rd_'+bId]; if (!st) return;
+  const inner = document.getElementById('rd-inner-'+bId); if (!inner) return;
+  const studentTurns = st.results.filter(r=>r.role==='student');
+  inner.innerHTML = '<div style="text-align:center;padding:16px 0">'+
+    '<div style="font-size:32px">🎉</div>'+
+    '<div style="font-size:20px;font-weight:800;color:#be123c;margin:8px 0">Dialog tugadi!</div>'+
+    '<div style="font-size:14px;color:var(--gray)">'+studentTurns.length+' ta navbatda qatnashdingiz</div>'+
+    '</div>'+
+    '<button onclick="rdRestart(\''+bId+'\')" style="padding:10px 24px;border-radius:8px;background:#be123c;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700">🔄 Qayta boshlash</button>';
+  recordStudentAnswer(bId,'role_dialog',st.d.title||'Rol dialog',{turns:st.results.length},1,1);
+}
+
+function rdRestart(bId) {
+  const st=window['_rd_'+bId];if(!st)return;
+  st.cur=0;st.results=[];
+  const dialogEl=document.getElementById('rd-dialog-'+bId);
+  if(dialogEl)dialogEl.innerHTML='';
+  rdRenderTurn(bId);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 8. AUDIO / VIDEO BLOKI
+// O'qituvchi: URL kiritadi yoki fayl yuklaydi (audio/video)
+// Sarlavha, izoh, youtube embed, autoplay sozlamalari
+// ═══════════════════════════════════════════════════════════
+function buildMediaEditor(id, d) {
+  return '<div class="field-row"><label>Sarlavha</label>'+
+    '<input class="f-input" value="'+esc(d.title||'')+'" oninput="updateBlockField('+id+',\'title\',this.value)" placeholder="Media sarlavhasi..."></div>'+
+    '<div class="field-row"><label>Tur</label>'+
+    '<select class="f-select" style="width:130px" onchange="updateBlockField('+id+',\'type\',this.value);rerenderBlockEditor('+id+')">'+
+    '<option value="audio"'+((!d.type||d.type==='audio')?' selected':'')+'>🎵 Audio</option>'+
+    '<option value="video"'+(d.type==='video'?' selected':'')+'>🎬 Video</option>'+
+    '<option value="youtube"'+(d.type==='youtube'?' selected':'')+'>▶️ YouTube</option>'+
+    '</select></div>'+
+    (d.type==='youtube'?
+      '<div class="field-row"><label>YouTube URL/ID</label>'+
+      '<input class="f-input" value="'+esc(d.url||'')+'" oninput="updateBlockField('+id+',\'url\',this.value)" placeholder="https://youtube.com/watch?v=... yoki video ID"></div>'
+    :
+      '<div class="field-row"><label>URL</label>'+
+      '<input class="f-input" value="'+esc(d.url||'')+'" oninput="updateBlockField('+id+',\'url\',this.value)" placeholder="https://... yoki /static/audio/..."></div>'+
+      '<div class="field-row"><label>Fayl yuklash</label>'+
+      '<input type="file" accept="'+(d.type==='video'?'video/*':'audio/*')+'" onchange="uploadMediaFile('+id+',this,\''+d.type+'\')" style="font-size:13px;flex:1"></div>'
+    )+
+    '<div class="field-row"><label>Izoh</label>'+
+    '<input class="f-input" value="'+esc(d.caption||'')+'" oninput="updateBlockField('+id+',\'caption\',this.value)" placeholder="Ixtiyoriy izoh..."></div>'+
+    '<div class="field-row">'+
+    '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;min-width:auto">'+
+    '<input type="checkbox" '+(d.autoplay?'checked':'')+' onchange="updateBlockField('+id+',\'autoplay\',this.checked)">'+
+    'Avtomatik boshlash</label>'+
+    '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-left:16px;min-width:auto">'+
+    '<input type="checkbox" '+(d.loop?'checked':'')+' onchange="updateBlockField('+id+',\'loop\',this.checked)">'+
+    'Takrorlash (loop)</label>'+
+    '</div>';
+}
+
+async function uploadMediaFile(id, input, type) {
+  const f = input.files[0]; if (!f) return;
+  const fd = new FormData(); fd.append('file', f);
+  const endpoint = type === 'video' ? '/api/upload/video' : '/api/upload/audio';
+  try {
+    const r = await fetch(endpoint, {method:'POST', body:fd});
+    const j = await r.json();
+    if (j.url) { updateBlockField(id, 'url', j.url); rerenderBlockEditor(id); toast('✅ Fayl yuklandi!'); }
+  } catch(e) { toast('❌ Yuklash xatosi'); }
+}
+
+function renderSMedia(d) {
+  const el = document.createElement('div');
+  const type = d.type || 'audio';
+  let mediaHtml = '';
+  if (type === 'youtube') {
+    const ytId = (d.url||'').match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/)?.[1] || d.url;
+    mediaHtml = ytId
+      ? '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px;margin-top:8px">'+
+        '<iframe src="https://www.youtube.com/embed/'+ytId+(d.autoplay?'?autoplay=1':'')+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allowfullscreen allow="autoplay"></iframe></div>'
+      : '<p style="color:#ef4444;padding:12px">⚠️ YouTube URL noto\'g\'ri</p>';
+  } else if (type === 'video') {
+    mediaHtml = d.url
+      ? '<video controls style="width:100%;border-radius:12px;margin-top:8px;background:#000"'+(d.autoplay?' autoplay':'')+
+        (d.loop?' loop':'')+' src="'+esc(d.url)+'"></video>'
+      : '<div style="padding:20px;text-align:center;color:var(--gray);background:#f0f4f8;border-radius:12px;margin-top:8px">🎬 Video URL kiritilmagan</div>';
+  } else {
+    mediaHtml = d.url
+      ? '<audio controls style="width:100%;margin-top:8px"'+(d.autoplay?' autoplay':'')+
+        (d.loop?' loop':'')+' src="'+esc(d.url)+'"></audio>'
+      : '<div style="padding:16px;text-align:center;color:var(--gray);background:#f0f4f8;border-radius:12px;margin-top:8px">🎵 Audio URL kiritilmagan</div>';
+  }
+  const icon = type==='youtube'?'▶️':type==='video'?'🎬':'🎵';
+  const label = type==='youtube'?'YouTube':type==='video'?'Video':'Audio';
+  el.innerHTML = '<div class="s-section-title"><div class="s-section-bar" style="background:#0f766e"></div>'+
+    '<div class="s-section-label" style="background:#0f766e">'+icon+' '+(d.title||label)+'</div></div>'+
+    mediaHtml+
+    (d.caption?'<p style="font-size:13px;color:var(--gray);margin-top:8px;font-style:italic">'+esc(d.caption)+'</p>':'');
+  return el;
 }
 
 // ═══════════════════════════════════════════════════════════
