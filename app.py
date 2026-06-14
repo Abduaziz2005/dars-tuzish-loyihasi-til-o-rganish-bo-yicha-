@@ -556,7 +556,7 @@ def seed_demo():
     
     db.session.commit()
     
-    # Дарс 3: МОЯ СЕМЬЯ (Family - Red Kalinka A1)
+    # Дарс 3: МОЯ СЕМЬЯ (Family - Red Kalinka A1) - COMPLETE VERSION
     lesson3 = Lesson(title='Дарс 3: МОЯ СЕМЬЯ', subtitle='A1', order=3)
     db.session.add(lesson3)
     db.session.flush()
@@ -565,46 +565,60 @@ def seed_demo():
         (0, 'heading', {'text': 'МОЯ СЕМЬЯ - Oila', 'level': 1, 'color': '#e63946', 'bg': ''}),
         (1, 'hr', {'color': '#e63946'}),
         
-        # Текст: Моя семья
-        (2, 'audio_text', {
+        # Новые слова (1-qism)
+        (2, 'vocab', {
+            'title': 'Янги сўзлар (Новые слова)', 'bar_color': '#457b9d',
+            'items': [
+                {'ru': 'Давайте познакомимся!', 'uz': 'Tanishamiz!', 'audio': ''},
+                {'ru': 'семья', 'uz': 'oila', 'audio': ''},
+                {'ru': 'родители', 'uz': 'ota-ona', 'audio': ''},
+                {'ru': 'отец (папа)', 'uz': 'ota (opa)', 'audio': ''},
+                {'ru': 'мать (мама)', 'uz': 'ona (oyi)', 'audio': ''},
+                {'ru': 'муж', 'uz': 'eri', 'audio': ''},
+                {'ru': 'жена', 'uz': 'xotini', 'audio': ''},
+                {'ru': 'дети', 'uz': 'bolalar', 'audio': ''},
+                {'ru': 'сын', 'uz': 'o\'g\'ul', 'audio': ''},
+                {'ru': 'дочь', 'uz': 'qiz', 'audio': ''},
+                {'ru': 'брат', 'uz': 'aka', 'audio': ''},
+                {'ru': 'сестра', 'uz': 'singil', 'audio': ''},
+                {'ru': 'бабушка', 'uz': 'buvi', 'audio': ''},
+                {'ru': 'дедушка', 'uz': 'buva', 'audio': ''},
+                {'ru': 'внук', 'uz': 'nevara', 'audio': ''},
+                {'ru': 'внучка', 'uz': 'nevara (qiz)', 'audio': ''},
+                {'ru': 'племянник', 'uz': 'xojanining o\'g\'ul', 'audio': ''},
+                {'ru': 'племянница', 'uz': 'xojanining qiz', 'audio': ''},
+                {'ru': 'тётя', 'uz': 'xoja (ayol)', 'audio': ''},
+                {'ru': 'дядя', 'uz': 'xoja', 'audio': ''},
+                {'ru': 'собака', 'uz': 'it', 'audio': ''},
+                {'ru': 'кошка', 'uz': 'mushuk', 'audio': ''},
+                {'ru': 'где?', 'uz': 'qaerda?', 'audio': ''},
+                {'ru': 'Вот ...', 'uz': 'Mana...', 'audio': ''},
+            ]
+        }),
+        
+        # Диалог 1 (1-qism)
+        (3, 'dialog', {
+            'title': 'Диалог 1 (Один): Oila tanishuvi',
+            'lines': [
+                {'speaker': 'A', 'text': '- Meňa зовут Наташа. Это моя семья.'},
+                {'speaker': 'B', 'text': '- Наташа, кто это?'},
+                {'speaker': 'A', 'text': '- Это моя мама. Её зовут Татьяна Михайловна.'},
+                {'speaker': 'B', 'text': '- А это твой отец?'},
+                {'speaker': 'A', 'text': '- Нет, это мой дедушка. Его зовут Михаил Иванович.'},
+                {'speaker': 'B', 'text': '- А где твой отец?'},
+                {'speaker': 'A', 'text': '- Вот он. Его зовут Антон.'},
+            ]
+        }),
+        
+        # Текст: Моя семья (2-qism boshlanish)
+        (4, 'audio_text', {
             'title': 'Matn: Моя семья',
             'audio': '',
             'text': 'Давайте познакомимся! Меня зовут Мария. Моя фамилия - Иванова. Это моя семья.\n\nЭто мой отец. Его зовут Николай. А это моя мать. Её зовут Наталья. Мой папа и моя мама – это мои родители.\n\nА это мой брат. Его зовут Андрей. Это его жена. Её зовут Катя. Это их дети: сын Дима и дочь Наташа. Дима – мой племянник, а Наташа – моя племянница. Я – их тётя.\n\nА это моя бабушка и мой дедушка. Я – их внучка, а Андрей – их внук.\n\nЭто моя тётя Елена и её муж Михаил. Михаил – мой дядя, а я – его племянница.\n\nВот наш дом. Это наша собака. Его зовут Шарик. А где наша кошка? Вот она! Мурка!'
         }),
         
-        # Новые слова
-        (3, 'vocab', {
-            'title': 'Янги сўзлар (Новые слова)', 'bar_color': '#457b9d',
-            'items': [
-                {'ru': 'семья', 'uz': 'oila', 'audio': ''},
-                {'ru': 'отец', 'uz': 'ota', 'audio': ''},
-                {'ru': 'мать', 'uz': 'ona', 'audio': ''},
-                {'ru': 'папа', 'uz': 'opa', 'audio': ''},
-                {'ru': 'мама', 'uz': 'oyi', 'audio': ''},
-                {'ru': 'родители', 'uz': 'ota-ona', 'audio': ''},
-                {'ru': 'брат', 'uz': 'aka', 'audio': ''},
-                {'ru': 'сестра', 'uz': 'singil', 'audio': ''},
-                {'ru': 'жена', 'uz': 'xotini', 'audio': ''},
-                {'ru': 'муж', 'uz': 'eri', 'audio': ''},
-                {'ru': 'сын', 'uz': 'o\'g\'ul', 'audio': ''},
-                {'ru': 'дочь', 'uz': 'qiz', 'audio': ''},
-                {'ru': 'дети', 'uz': 'bolalar', 'audio': ''},
-                {'ru': 'племянник', 'uz': 'xojanining o\'g\'ul', 'audio': ''},
-                {'ru': 'племянница', 'uz': 'xojanining qiz', 'audio': ''},
-                {'ru': 'дядя', 'uz': 'xoja', 'audio': ''},
-                {'ru': 'тётя', 'uz': 'xoja (ayol)', 'audio': ''},
-                {'ru': 'дедушка', 'uz': 'buva', 'audio': ''},
-                {'ru': 'бабушка', 'uz': 'buvi', 'audio': ''},
-                {'ru': 'внук', 'uz': 'nevara', 'audio': ''},
-                {'ru': 'внучка', 'uz': 'nevara (qiz)', 'audio': ''},
-                {'ru': 'дом', 'uz': 'uy', 'audio': ''},
-                {'ru': 'собака', 'uz': 'it', 'audio': ''},
-                {'ru': 'кошка', 'uz': 'mushuk', 'audio': ''},
-            ]
-        }),
-        
-        # Вопросы к тексту
-        (4, 'fill_blank', {
+        # Вопросы к тексту (2-qism)
+        (5, 'fill_blank', {
             'title': 'Savollarga javob bering (Matnni o\'qib)',
             'bar_color': '#e76f51',
             'instruction': 'Matndan foydalanaraki javoblarni to\'ldiring:',
@@ -620,8 +634,8 @@ def seed_demo():
             ]
         }),
         
-        # Машқ 1: Определите род слов
-        (5, 'fill_blank', {
+        # Машқ 1: Определите род слов (2-qism)
+        (6, 'fill_blank', {
             'title': 'Машқ 1: Rod soznlarini aniqlang',
             'bar_color': '#2a9d8f',
             'instruction': 'Soznlarning rodini (род) yozing:',
@@ -647,8 +661,8 @@ def seed_demo():
             ]
         }),
         
-        # Машқ 2: Заполните пропуски
-        (6, 'fill_blank', {
+        # Машқ 2: Заполните пропуски (2-qism)
+        (7, 'fill_blank', {
             'title': 'Машқ 2: Prorskini to\'ldiring (Ima / Jego / Yeyo)',
             'bar_color': '#2a9d8f',
             'instruction': 'Namuna: Это мой отец Николай. → Его имя - Николай. Его зовут Николай.',
@@ -663,11 +677,11 @@ def seed_demo():
             ]
         }),
         
-        # Машқ 3: Закончите предложения
-        (7, 'fill_blank', {
+        # Машқ 3: Закончите предложения (2-qism)
+        (8, 'fill_blank', {
             'title': 'Машқ 3: Gaplarni davom ettirisng',
             'bar_color': '#2a9d8f',
-            'instruction': 'Namuna: Это моя мама. Надежда – её мать. Надежда – моя бабушка. А я – её внучка / внучка.',
+            'instruction': 'Namuna: Это моя мама. Надежда – её мать. Надежда – моя бабушка. А я – её внучка.',
             'items': [
                 {'pre': '1. Это моя жена. Наташа – её дочь. Наташа -', 'answer': 'моя дочь', 'post': ''},
                 {'pre': '2. Это моя жена. Наташа – её дочь. Наташа -', 'answer': 'моя дочь', 'post': ''},
@@ -676,8 +690,8 @@ def seed_demo():
             ]
         }),
         
-        # Машқ 4: Образуйте притяжательные местоимения
-        (8, 'fill_blank', {
+        # Машқ 4: Образуйте притяжательные местоимения (2-qism)
+        (9, 'fill_blank', {
             'title': 'Машқ 4: Birgalik sozlarni yasang',
             'bar_color': '#2a9d8f',
             'instruction': '(он) собака → его собака | (ты) кошка → твоя кошка',
@@ -704,7 +718,7 @@ def seed_demo():
         }),
         
         # Quiz
-        (9, 'quiz', {
+        (10, 'quiz', {
             'title': 'Мини-тест: Oila mavzusi',
             'bar_color': '#6a4c93',
             'questions': [
@@ -737,7 +751,7 @@ def seed_demo():
         }),
         
         # Vocab timer
-        (10, 'vocab_timer', {
+        (11, 'vocab_timer', {
             'title': 'Луғат вақти: Oila sozlarini yodlab oling (150 s)',
             'timer_sec': 150,
             'test_order': 'random',
