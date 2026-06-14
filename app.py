@@ -407,16 +407,74 @@ def seed_demo():
             ]
         }),
         
-        # Упражнение 4: Выберите подходящие формы местоимений
-        (9, 'fill_blank', {
-            'title': 'Машқ 4: Birgalik sozlarining to\'g\'ri shaklini tanlang',
+        # Упражнение 5: Заполните пропуски в тексте
+        (12, 'fill_blank', {
+            'title': 'Машқ 5: Matnda prorskini to\'ldiring',
             'bar_color': '#2a9d8f',
-            'instruction': 'Мена (а) зовут Лена. (Твоё) зовут Саша. (Его) зовут Джон.',
+            'instruction': 'Birgalik sozlarini tanlanib matnni to\'ldiring:',
             'items': [
-                {'pre': 'Мена', 'answer': '(а)', 'post': 'зовут Лена. Твоё зовут Саша. Его зовут Джон.'},
-                {'pre': 'Моя', 'answer': 'фамилия', 'post': '- Петров. Твоя фамилия - Иванов. Его фамилия - Смит.'},
-                {'pre': 'Моё', 'answer': 'отчество', 'post': '- Иванович. Твоё отчество - Петрович. Его отчество - Александрович.'},
-                {'pre': 'Мое', 'answer': 'имя', 'post': '- Таня. Твоё имя - Саша. Его имя - Лин.'},
+                {'pre': 'Меня зовут Антон.', 'answer': 'Моя', 'post': 'фамилия - Иванов. Моё отчество - Николаевич.'},
+                {'pre': 'Это', 'answer': 'мой', 'post': 'друг. Его зовут Джон. Его фамилия - Паркер. Это подруга. Её зовут Наташа. Её фамилия - Романова.'},
+                {'pre': 'А как', 'answer': 'вас', 'post': 'зовут? Как ваша фамилия? Как ваше отчество?'},
+            ]
+        }),
+        
+        # Упражнение 6: Вставьте притяжательные местоимения
+        (13, 'fill_blank', {
+            'title': 'Машқ 6: Birgalik sozlarini to\'g\'ri joyga qo\'ying',
+            'bar_color': '#2a9d8f',
+            'instruction': 'мой, твой, наш, ваш so\'zlarini tanlanib to\'ldiring:',
+            'items': [
+                {'pre': 'мой:', 'answer': 'мой', 'post': 'друг / моя подруга / моё имя'},
+                {'pre': 'твой:', 'answer': 'твой', 'post': 'студент / твоя фамилия / твоё отчество'},
+                {'pre': 'наш:', 'answer': 'наш', 'post': 'преподаватель / наша студентка / наше утро'},
+                {'pre': 'ваш:', 'answer': 'ваш', 'post': 'вопрос / ваша книга / ваше упражнение'},
+            ]
+        }),
+        
+        # Упражнение 7: Заполните пропуски
+        (14, 'fill_blank', {
+            'title': 'Машқ 7: Prorskini to\'ldiring',
+            'bar_color': '#2a9d8f',
+            'instruction': 'Birgalik sozlarini bilgan holda to\'ldiring:',
+            'items': [
+                {'pre': '- Кто это? Это', 'answer': 'моя', 'post': 'подруга. Её зовут Лена.'},
+                {'pre': '- Кто это? Это', 'answer': 'наш', 'post': 'преподаватель. Его зовут Николай Петрович.'},
+                {'pre': '- Кто это? Это', 'answer': 'его', 'post': 'коллега. Её зовут Ольга Романова.'},
+                {'pre': '- Кто это? Это', 'answer': 'мой', 'post': 'студент. Его зовут Стив.'},
+                {'pre': '- Кто это? Это', 'answer': 'ваша', 'post': 'мать. Её зовут Татьяна.'},
+                {'pre': '- Кто это? Это', 'answer': 'твоя', 'post': 'студентка. Её зовут Марта.'},
+                {'pre': '- Кто это? Это я.', 'answer': 'Мое', 'post': 'имя - Виктор.'},
+            ]
+        }),
+        
+        # Упражнение 8: Обсуждение по примеру
+        (15, 'fill_blank', {
+            'title': 'Машқ 8: Namuna bo\'yicha dialog tuzilng',
+            'bar_color': '#2a9d8f',
+            'instruction': 'Namuna: Это мой подруга Синтия. → Её зовут Синтия. Её имя - Синтия.',
+            'items': [
+                {'pre': '- Это я, Паблю. →', 'answer': 'Его зовут Паблю', 'post': ''},
+                {'pre': '- Это мой друг Джон. →', 'answer': 'Его зовут Джон', 'post': ''},
+                {'pre': '- Это ты, Саманта. →', 'answer': 'Её зовут Саманта', 'post': ''},
+                {'pre': '- Это вы, Иван Иванович? →', 'answer': 'Вас зовут Иван Иванович', 'post': ''},
+                {'pre': '- Это мой коллега Стив. →', 'answer': 'Его зовут Стив', 'post': ''},
+            ]
+        }),
+        
+        # О себе - Open-ended questions
+        (16, 'fill_blank', {
+            'title': 'О себе: O\'zingiz haqida javob bering',
+            'bar_color': '#e76f51',
+            'instruction': 'Quyidagi savollarga javob bering:',
+            'items': [
+                {'pre': '1. Как тебе зовут?', 'answer': '[Sizning ismingiz]', 'post': ''},
+                {'pre': '2. Как твой фамилия?', 'answer': '[Sizning familiyangiz]', 'post': ''},
+                {'pre': '3. Как твое отчество?', 'answer': '[Sizning otchestvoingiz]', 'post': ''},
+                {'pre': '4. Ты преподаватель? Ты студент?', 'answer': '[Ha yoki Yo\'q]', 'post': ''},
+                {'pre': '5. А твой преподаватель? Как его зовут? Как его фамилия?', 'answer': '[O\'qituvchingizning ismi]', 'post': ''},
+                {'pre': '6. А твой друг? Как его зовут? Как его фамилия?', 'answer': '[Do\'stingizning ismi]', 'post': ''},
+                {'pre': '7. А твоя подруга? Как её зовут? Как её фамилия?', 'answer': '[Do\'stingizning ismi (ayol)]', 'post': ''},
             ]
         }),
         
@@ -453,10 +511,10 @@ def seed_demo():
             ]
         }),
         
-        # Vocab timer - yangilangan
-        (11, 'vocab_timer', {
-            'title': 'Луғат вақти: Birgalik va Rod soznalarini yodlab oling (150 s)',
-            'timer_sec': 150,
+        # Vocab timer - final - yangilangan
+        (17, 'vocab_timer', {
+            'title': 'Yakuniy Luғat vaqti: Dars 2 barcha soznlarini yodlab oling (200 s)',
+            'timer_sec': 200,
             'test_order': 'random',
             'test_dir': 'random',
             'items': [
@@ -468,15 +526,25 @@ def seed_demo():
                 {'ru': 'твоя', 'uz': 'sening (ayol)'},
                 {'ru': 'твоё', 'uz': 'sening (jansiz)'},
                 {'ru': 'твои', 'uz': 'sening (ko\'p)'},
-                {'ru': 'его', 'uz': 'uning (erkak/ayol/jansiz)'},
+                {'ru': 'его', 'uz': 'uning (erkak)'},
                 {'ru': 'её', 'uz': 'uning (ayol)'},
-                {'ru': 'наш', 'uz': 'bizning'},
-                {'ru': 'ваш', 'uz': 'sizning'},
+                {'ru': 'наш', 'uz': 'bizning (erkak)'},
+                {'ru': 'наша', 'uz': 'bizning (ayol)'},
+                {'ru': 'наше', 'uz': 'bizning (jansiz)'},
+                {'ru': 'наши', 'uz': 'bizning (ko\'p)'},
+                {'ru': 'ваш', 'uz': 'sizning (erkak)'},
+                {'ru': 'ваша', 'uz': 'sizning (ayol)'},
+                {'ru': 'ваше', 'uz': 'sizning (jansiz)'},
+                {'ru': 'ваши', 'uz': 'sizning (ko\'p)'},
                 {'ru': 'их', 'uz': 'ularning'},
-                {'ru': 'друг', 'uz': 'do\'st (he)'},
-                {'ru': 'подруга', 'uz': 'do\'st (she)'},
-                {'ru': 'студент', 'uz': 'talaba (he)'},
-                {'ru': 'студентка', 'uz': 'talaba (she)'},
+                {'ru': 'друг', 'uz': 'do\'st'},
+                {'ru': 'подруга', 'uz': 'do\'st (ayol)'},
+                {'ru': 'коллега', 'uz': 'hamkasb'},
+                {'ru': 'преподаватель', 'uz': 'o\'qituvchi'},
+                {'ru': 'мать', 'uz': 'ona'},
+                {'ru': 'отчество', 'uz': 'otchestvo'},
+                {'ru': 'фамилия', 'uz': 'familiya'},
+                {'ru': 'имя', 'uz': 'ism'},
             ]
         }),
     ]
