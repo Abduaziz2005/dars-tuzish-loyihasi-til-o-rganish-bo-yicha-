@@ -335,19 +335,32 @@ def seed_demo():
             ]
         }),
         
-        # Грамматика: Таблица possessive
+        # Грамматика: Таблица 1 - Род существительных (он, она, оно)
         (5, 'table', {
-            'title': 'Грамматика: Биргалик сўзлари (Мой, Моя, Моё, Мои)',
-            'headers': ['Shaxsi Soz', 'Erkak (m)', 'Ayol (f)', 'Jansiz (n)', 'Ko\'plik (pl)', 'Tarjima'],
+            'title': 'Грамматика Таблица 1: Род существительных (он, она, оно)',
+            'headers': ['Erkak (он)', 'Ayol (она)', 'Jansiz (оно)'],
             'rows': [
-                ['я (men)', 'мой', 'моя', 'моё', 'мои', 'mening'],
-                ['ты (sen)', 'твой', 'твоя', 'твоё', 'твои', 'sening'],
-                ['он (u-erkak)', 'его', 'его', 'его', 'его', 'uning'],
-                ['она (u-ayol)', 'её', 'её', 'её', 'её', 'uning'],
-                ['оно (jansiz)', 'его', 'его', 'его', 'его', 'uning'],
-                ['мы (biz)', 'наш', 'наша', 'наше', 'наши', 'bizning'],
-                ['вы (siz)', 'ваш', 'ваша', 'ваше', 'ваши', 'sizning'],
-                ['они (ular)', 'их', 'их', 'их', 'их', 'ularning'],
+                ['друг', 'подруга', 'утро'],
+                ['студент', 'студентка', 'отчество'],
+                ['чай', 'Наташа', 'упражнение'],
+                ['день', 'фамилия', 'море'],
+                ['преподаватель', 'мать', 'имя'],
+                ['согласная б', 'а / я в', 'о / е мя'],
+            ]
+        }),
+        
+        # Грамматика: Таблица 2 - Притяжательные местоимения
+        (6, 'table', {
+            'title': 'Грамматика Таблица 2: Притяжательные местоимения (Birgalik sozneri)',
+            'headers': ['М. (erkak)', 'Ж. (ayol)', 'Ср. (jansiz)', 'Мн. ч. (ko\'plik)'],
+            'rows': [
+                ['мой', 'моя', 'моё', 'мои'],
+                ['твой', 'твоя', 'твоё', 'твои'],
+                ['его', 'его', 'его', 'его'],
+                ['её', 'её', 'её', 'её'],
+                ['наш', 'наша', 'наше', 'наши'],
+                ['ваш', 'ваша', 'ваше', 'ваши'],
+                ['их', 'их', 'их', 'их'],
             ]
         }),
         
@@ -365,9 +378,51 @@ def seed_demo():
             ]
         }),
         
-        # Упражнение 2: Quiz
-        (7, 'quiz', {
-            'title': 'Мини-тест: "Это мой друг" mavzusi',
+        # Упражнение 2: Определите род слов
+        (7, 'fill_blank', {
+            'title': 'Машқ 2: Rod soznalarini aniqlang (он, она, оно)',
+            'bar_color': '#2a9d8f',
+            'instruction': 'Rod katugoriyasini toping:',
+            'items': [
+                {'pre': 'подруга -', 'answer': 'она', 'post': ''},
+                {'pre': 'студент -', 'answer': 'он', 'post': ''},
+                {'pre': 'книга -', 'answer': 'она', 'post': ''},
+                {'pre': 'имя -', 'answer': 'оно', 'post': ''},
+                {'pre': 'день -', 'answer': 'он', 'post': ''},
+                {'pre': 'вечер -', 'answer': 'он', 'post': ''},
+                {'pre': 'утро -', 'answer': 'оно', 'post': ''},
+            ]
+        }),
+        
+        # Упражнение 3: Переформулируйте предложения
+        (8, 'fill_blank', {
+            'title': 'Машқ 3: Gaplarni o\'zgartiring (Мной имя / Меня зовут)',
+            'bar_color': '#2a9d8f',
+            'instruction': 'Namuna: Мое имя - Наташа. → Меня зовут Наташа.',
+            'items': [
+                {'pre': 'Твое имя - Лаура. →', 'answer': 'Тебя зовут Лаура', 'post': ''},
+                {'pre': 'Его имя - Стивен. →', 'answer': 'Его зовут Стивен', 'post': ''},
+                {'pre': 'Ваше имя - Иван. →', 'answer': 'Вас зовут Иван', 'post': ''},
+                {'pre': 'Её имя - Таня. →', 'answer': 'Её зовут Таня', 'post': ''},
+            ]
+        }),
+        
+        # Упражнение 4: Выберите подходящие формы местоимений
+        (9, 'fill_blank', {
+            'title': 'Машқ 4: Birgalik sozlarining to\'g\'ri shaklini tanlang',
+            'bar_color': '#2a9d8f',
+            'instruction': 'Мена (а) зовут Лена. (Твоё) зовут Саша. (Его) зовут Джон.',
+            'items': [
+                {'pre': 'Мена', 'answer': '(а)', 'post': 'зовут Лена. Твоё зовут Саша. Его зовут Джон.'},
+                {'pre': 'Моя', 'answer': 'фамилия', 'post': '- Петров. Твоя фамилия - Иванов. Его фамилия - Смит.'},
+                {'pre': 'Моё', 'answer': 'отчество', 'post': '- Иванович. Твоё отчество - Петрович. Его отчество - Александрович.'},
+                {'pre': 'Мое', 'answer': 'имя', 'post': '- Таня. Твоё имя - Саша. Его имя - Лин.'},
+            ]
+        }),
+        
+        # Упражнение 5: Quiz
+        (10, 'quiz', {
+            'title': 'Мини-тест: "Это мой друг" mavzusi - Grammatika',
             'bar_color': '#6a4c93',
             'questions': [
                 {
@@ -376,32 +431,32 @@ def seed_demo():
                     'correct': 1
                 },
                 {
-                    'q': '2. "Мой" сўзининг маъноси?',
-                    'options': ['sening', 'mening', 'bizning', 'ularning'],
+                    'q': '2. "друг" сўзининг rodi?',
+                    'options': ['она (ayol)', 'он (erkak)', 'оно (jansiz)', 'они (ko\'p)'],
                     'correct': 1
                 },
                 {
-                    'q': '3. "Это моя подруга" ўнинг маъноси?',
-                    'options': ['Bu mening do\'stim (erkak)', 'Bu mening do\'stim (ayol)', 'Bu mening hamkasbim', 'Bu mening o\'qituvchim'],
-                    'correct': 1
+                    'q': '3. "подруга" сўзининг rodi?',
+                    'options': ['она', 'он', 'оно', 'они'],
+                    'correct': 0
                 },
                 {
-                    'q': '4. "Очень приятно" қай вақтда айтилади?',
-                    'options': ['Xatora qilganda', 'Kimsa bilan tanishganda', 'Xuddi bo\'lganda', 'Raqs qilayotganda'],
-                    'correct': 1
+                    'q': '4. "Его имя - Антон" қай шакли to\'g\'ri?',
+                    'options': ['Его зовут Антон', 'Ему зовут Антон', 'Его зовут Антона', 'Его зовут Антона'],
+                    'correct': 0
                 },
                 {
-                    'q': '5. "Здравствуйте" кайси шакли сўз?',
-                    'options': ['Notasmiy salom', 'Rasmiy salom', 'Shaxsiy salom', 'Jinniy salom'],
+                    'q': '5. Притяжательный местоимение (birgalik sozlari) қайси?',
+                    'options': ['я, ты, он', 'мой, твой, его', 'какой, какая, какое', 'что, кто, где'],
                     'correct': 1
                 },
             ]
         }),
         
-        # Vocab timer
-        (8, 'vocab_timer', {
-            'title': 'Луғат вақти: Биргалик сўзларни ёдлаб олинг (120 сония)',
-            'timer_sec': 120,
+        # Vocab timer - yangilangan
+        (11, 'vocab_timer', {
+            'title': 'Луғат вақти: Birgalik va Rod soznalarini yodlab oling (150 s)',
+            'timer_sec': 150,
             'test_order': 'random',
             'test_dir': 'random',
             'items': [
@@ -413,10 +468,15 @@ def seed_demo():
                 {'ru': 'твоя', 'uz': 'sening (ayol)'},
                 {'ru': 'твоё', 'uz': 'sening (jansiz)'},
                 {'ru': 'твои', 'uz': 'sening (ko\'p)'},
-                {'ru': 'друг', 'uz': 'do\'st'},
-                {'ru': 'подруга', 'uz': 'do\'st (ayol)'},
-                {'ru': 'очень приятно', 'uz': 'juda xursand'},
-                {'ru': 'мне тоже', 'uz': 'men ham'},
+                {'ru': 'его', 'uz': 'uning (erkak/ayol/jansiz)'},
+                {'ru': 'её', 'uz': 'uning (ayol)'},
+                {'ru': 'наш', 'uz': 'bizning'},
+                {'ru': 'ваш', 'uz': 'sizning'},
+                {'ru': 'их', 'uz': 'ularning'},
+                {'ru': 'друг', 'uz': 'do\'st (he)'},
+                {'ru': 'подруга', 'uz': 'do\'st (she)'},
+                {'ru': 'студент', 'uz': 'talaba (he)'},
+                {'ru': 'студентка', 'uz': 'talaba (she)'},
             ]
         }),
     ]
