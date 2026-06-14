@@ -106,67 +106,164 @@ def init_db():
             seed_demo()
 
 def seed_demo():
-    lesson = Lesson(title='Урок 9: Дни недели и время', subtitle='A1', order=1)
-    db.session.add(lesson)
+    # Dars 1: СТУДЕНТ! (Greetings & Introduction - Red Kalinka A1)
+    lesson1 = Lesson(title='Дарс 1: СТУДЕНТ!', subtitle='A1', order=1)
+    db.session.add(lesson1)
     db.session.flush()
 
-    blocks_data = [
-        (0, 'heading', {'text': 'ДНИ НЕДЕЛИ И ВРЕМЯ', 'level': 1, 'color': '#e63946', 'bg': ''}),
+    blocks_data_1 = [
+        (0, 'heading', {'text': 'СТУДЕНТ! Salomlashish va Tanishish', 'level': 1, 'color': '#e63946', 'bg': ''}),
         (1, 'hr', {'color': '#e63946'}),
+        
+        # Новые слова
         (2, 'vocab', {
-            'title': 'Новые слова', 'bar_color': '#457b9d',
+            'title': 'Янги сўзлар (Новые слова)', 'bar_color': '#457b9d',
             'items': [
-                {'ru': 'понедельник', 'uz': 'dushanba',    'audio': ''},
-                {'ru': 'вторник',     'uz': 'seshanba',    'audio': ''},
-                {'ru': 'среда',       'uz': 'chorshanba',  'audio': ''},
-                {'ru': 'четверг',     'uz': 'payshanba',   'audio': ''},
-                {'ru': 'пятница',     'uz': 'juma',        'audio': ''},
-                {'ru': 'суббота',     'uz': 'shanba',      'audio': ''},
-                {'ru': 'воскресенье', 'uz': 'yakshanba',   'audio': ''},
-                {'ru': 'сегодня',     'uz': 'bugun',       'audio': ''},
-                {'ru': 'вчера',       'uz': 'kecha',       'audio': ''},
-                {'ru': 'время',       'uz': 'vaqt',        'audio': ''},
+                {'ru': 'Привет!', 'uz': 'Salom!', 'audio': ''},
+                {'ru': 'Доброе утро!', 'uz': 'Xayrli tong!', 'audio': ''},
+                {'ru': 'Добрый день!', 'uz': 'Xayrli kun!', 'audio': ''},
+                {'ru': 'Добрый вечер!', 'uz': 'Xayrli kech!', 'audio': ''},
+                {'ru': 'тоже', 'uz': 'ham', 'audio': ''},
+                {'ru': 'очень', 'uz': 'juda', 'audio': ''},
+                {'ru': 'Как дела?', 'uz': 'Qalaysan?', 'audio': ''},
+                {'ru': 'Как у тебя дела?', 'uz': 'Sening qalaying?', 'audio': ''},
+                {'ru': 'Как у вас дела?', 'uz': 'Sizning qalaying?', 'audio': ''},
+                {'ru': 'А у тебя?', 'uz': 'Seningcha?', 'audio': ''},
+                {'ru': 'А у вас?', 'uz': 'Sizingcha?', 'audio': ''},
+                {'ru': 'отлично', 'uz': 'juda yaxshi', 'audio': ''},
+                {'ru': 'хорошо - плохо', 'uz': 'yaxshi - yomon', 'audio': ''},
+                {'ru': 'нормально', 'uz': 'oddiy', 'audio': ''},
+                {'ru': 'пока', 'uz': 'xayr', 'audio': ''},
+                {'ru': 'студент', 'uz': 'talaba', 'audio': ''},
+                {'ru': 'студентка', 'uz': 'talaba (ayol)', 'audio': ''},
+                {'ru': 'спасибо', 'uz': 'rahmat', 'audio': ''},
+                {'ru': 'Как вас зовут?', 'uz': 'Ismingiz nima?', 'audio': ''},
+                {'ru': 'Меня зовут...', 'uz': 'Mening ismim...', 'audio': ''},
+                {'ru': 'я', 'uz': 'men', 'audio': ''},
+                {'ru': 'ты', 'uz': 'sen', 'audio': ''},
+                {'ru': 'он', 'uz': 'u', 'audio': ''},
+                {'ru': 'она', 'uz': 'u (ayol)', 'audio': ''},
+                {'ru': 'оно', 'uz': 'u (jansiz)', 'audio': ''},
+                {'ru': 'мы', 'uz': 'biz', 'audio': ''},
+                {'ru': 'вы', 'uz': 'siz', 'audio': ''},
+                {'ru': 'они', 'uz': 'ular', 'audio': ''},
             ]
         }),
-        (3, 'fill_blank', {
-            'title': 'Упражнение 1', 'bar_color': '#2a9d8f',
-            'instruction': 'Поставьте слово «час» в подходящую форму',
-            'items': [
-                {'pre': 'Сейчас четыре',  'answer': 'часа',   'post': 'дня.'},
-                {'pre': 'Сейчас восемь',  'answer': 'часов',  'post': 'вечера.'},
-                {'pre': 'Сейчас 1',       'answer': 'час',    'post': 'ночи.'},
-                {'pre': 'Сейчас десять',  'answer': 'часов',  'post': 'утра.'},
+        
+        # Диалог 1
+        (3, 'dialog', {
+            'title': 'Диалог 1 (Один - Один): Salomlashish',
+            'lines': [
+                {'speaker': 'A', 'text': 'Привет, Антон!'},
+                {'speaker': 'B', 'text': 'Привёт, Наташа!'},
+                {'speaker': 'A', 'text': 'Как дела?'},
+                {'speaker': 'B', 'text': 'Спасибо, хорошо. А у тебя?'},
+                {'speaker': 'A', 'text': 'Тоже хорошо.'},
+                {'speaker': 'B', 'text': 'Пока.'},
+                {'speaker': 'A', 'text': 'Пока.'},
             ]
         }),
-        (4, 'quiz', {
-            'title': 'Мини-тест', 'bar_color': '#6a4c93',
+        
+        # Диалог 2
+        (4, 'dialog', {
+            'title': 'Диалог 2 (Два): Rasmiy salomlashish',
+            'lines': [
+                {'speaker': 'A', 'text': 'Привёт, Катя!'},
+                {'speaker': 'B', 'text': 'Доброе утро, Саша!'},
+                {'speaker': 'A', 'text': 'Как дела?'},
+                {'speaker': 'B', 'text': 'Нормально. А у тебя?'},
+                {'speaker': 'A', 'text': 'Тоже нормально.'},
+                {'speaker': 'B', 'text': 'Пока!'},
+                {'speaker': 'A', 'text': 'Пока!'},
+            ]
+        }),
+        
+        # Грамматика: Таблица местоимений
+        (5, 'table', {
+            'title': 'Грамматика: Местоимения (Hamma kelishdagi)',
+            'headers': ['Именительный падеж', 'Винительный падеж (Объект)', 'Перевод на Ўзбекча'],
+            'rows': [
+                ['я', 'меня', 'men'],
+                ['ты', 'тебя', 'sen'],
+                ['он', 'его', 'u (erkak)'],
+                ['она', 'её', 'u (ayol)'],
+                ['оно', 'его', 'u (jansiz)'],
+                ['мы', 'нас', 'biz'],
+                ['вы', 'вас', 'siz'],
+                ['они', 'их', 'ular'],
+            ]
+        }),
+        
+        # Упражнение 1: Заполнение пропусков
+        (6, 'fill_blank', {
+            'title': 'Машқ 1: Сўзни то\'лдириб чиқинг',
+            'bar_color': '#2a9d8f',
+            'instruction': 'Тўғри жавобни танланг:',
+            'items': [
+                {'pre': '- Привет!', 'answer': 'Привет', 'post': '!'},
+                {'pre': '- Как дела?', 'answer': 'Хорошо', 'post': '.'},
+                {'pre': '- Спасибо,', 'answer': 'спасибо', 'post': '. А у тебя?'},
+                {'pre': '- Я студент,', 'answer': 'студентка', 'post': '.'},
+            ]
+        }),
+        
+        # Quiz
+        (7, 'quiz', {
+            'title': 'Мини-тест: Қайси варианти тўғри?',
+            'bar_color': '#6a4c93',
             'questions': [
-                {'q': 'Какой день идёт после среды?',
-                 'options': ['вторник','четверг','пятница','суббота'], 'correct': 1},
-                {'q': 'Первый день рабочей недели — это:',
-                 'options': ['воскресенье','суббота','понедельник','пятница'], 'correct': 2},
+                {
+                    'q': '1. "Привет" нинг маъноси қай варианты тўғри?',
+                    'options': ['Xayrli kech!', 'Salom!', 'Rahmat', 'Xayr'],
+                    'correct': 1
+                },
+                {
+                    'q': '2. Рас шахсий сўзнинг номи (личное местоимение) қайси?',
+                    'options': ['они', 'очень', 'студент', 'спасибо'],
+                    'correct': 0
+                },
+                {
+                    'q': '3. "Добрый день!" қай вақтда айтилади?',
+                    'options': ['Тонг вақтида', 'Kun o\'rtasida', 'Кеч вақтида', 'Туни'],
+                    'correct': 1
+                },
+                {
+                    'q': '4. "Как у вас дела?" - бу қайси шакли сўз?',
+                    'options': ['Раsmiy', 'Notаsmiy', 'Qimosiy', 'Ziyoiy'],
+                    'correct': 0
+                },
+                {
+                    'q': '5. "они" сўзининг маъноси?',
+                    'options': ['u (erkak)', 'biz', 'ular', 'siz'],
+                    'correct': 2
+                },
             ]
         }),
-        (5, 'vocab_timer', {
-            'title': 'Лug\'atni yodlang (kunlar)',
-            'timer_sec': 90,
+        
+        # Vocab timer
+        (8, 'vocab_timer', {
+            'title': 'Луғат вақти: Сўзларни ёдлаб олинг (120 сония)',
+            'timer_sec': 120,
             'test_order': 'random',
             'test_dir': 'random',
             'items': [
-                {'ru': 'понедельник', 'uz': 'dushanba'},
-                {'ru': 'вторник',     'uz': 'seshanba'},
-                {'ru': 'среда',       'uz': 'chorshanba'},
-                {'ru': 'четверг',     'uz': 'payshanba'},
-                {'ru': 'пятница',     'uz': 'juma'},
-                {'ru': 'суббота',     'uz': 'shanba'},
-                {'ru': 'воскресенье', 'uz': 'yakshanba'},
+                {'ru': 'Привет!', 'uz': 'Salom!'},
+                {'ru': 'Доброе утро!', 'uz': 'Xayrli tong!'},
+                {'ru': 'Добрый день!', 'uz': 'Xayrli kun!'},
+                {'ru': 'Добрый вечер!', 'uz': 'Xayrli kech!'},
+                {'ru': 'Как дела?', 'uz': 'Qalaysan?'},
+                {'ru': 'спасибо', 'uz': 'rahmat'},
+                {'ru': 'пока', 'uz': 'xayr'},
+                {'ru': 'студент', 'uz': 'talaba'},
             ]
         }),
     ]
-    for order, btype, bdata in blocks_data:
-        b = Block(lesson_id=lesson.id, type=btype, order=order,
+    
+    for order, btype, bdata in blocks_data_1:
+        b = Block(lesson_id=lesson1.id, type=btype, order=order,
                   data=json.dumps(bdata, ensure_ascii=False))
         db.session.add(b)
+    
     db.session.commit()
 
 # ─── API: Rol (session) ───────────────────────────────────────────────────────
