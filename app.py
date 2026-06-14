@@ -481,6 +481,51 @@ def upload_video():
     f.save(os.path.join(vid_dir, fname))
     return jsonify({'url': f'/static/video/{fname}'})
 
+
+# ─── API: HTML + ZIP Export ────────────────────────────────────────────────────
+
+@app.route('/api/export/zip', methods=['POST'])
+def export_zip():
+    import zipfile as _zf, io, re as _re
+    d = request.json or {}
+    lesson_ids   = d.get('lesson_ids', [])
+    site_title   = d.get('site_title', 'Mening Darslarim')
+    dark_theme   = d.get('dark_theme', False)
+    hide_answers = d.get('hide_answers', True)
+    if not lesson_ids:
+        return jsonify({'error': 'Hech qanday dars tanlanmagan'}), 400
+    lessons_data = []
+    for lid in lesson_ids:
+        lesson = Lesson.query.get(lid)
+        if not lesson: continue
+        blocks = Block.query.filter_by(lesson_id=lid).order_by(Block.order).all()
+        lessons_data.append({
+            'id': lesson.id, 'title': lesson.title, 'subtitle': lesson.subtitle,
+            'blocks': [{'type':b.type,'order':b.order,'data':json.loads(b.data or '{}')} for b in blocks]
+        })
+    if not lessons_data:
+        return jsonify({'error': 'Darslar topilmadi'}), 404
+    media_urls = set()
+    url_patt = _re.compile(r'(?:static)/(audio|video|img)/([^"\'> \n]+)')
+    for les in lessons_data:
+        for blk in les['blocks']:
+            for m in url_patt.finditer(json.dumps(blk['data'])):
+                media_urls.add(f"static/{m.group(1)}/{m.group(2)}")
+    html_content = _build_site_html(lessons_data, site_title, dark_theme, hide_answers)
+    buf = io.BytesIO()
+    with _zf.ZipFile(buf, 'w', _zf.ZIP_DEFLATED) as zfile:
+        zfile.writestr('index.html', html_content.encode('utf-8'))
+        for url in media_urls:
+            rel_path = 'media/' + url.replace('static/', '', 1)
+            abs_path = os.path.join(BASE_DIR, url)
+            if os.path.exists(abs_path):
+                zfile.write(abs_path, rel_path)
+    buf.seek(0)
+    safe = ''.join(c if c.isalnum() or c in '-_ ' else '_' for c in site_title)[:40]
+    from flask import Response
+    return Response(buf.read(), mimetype='application/zip',
+                    headers={'Content-Disposition': 'attachment; filename="' + safe + '_sayt.zip"'})
+
 # ─── Pages ────────────────────────────────────────────────────────────────────
 
 @app.route('/')
@@ -495,3 +540,503 @@ if __name__ == '__main__':
     init_db()
     print('\n🚀  LangLearn ishga tushdi!  →  http://127.0.0.1:5000\n')
     app.run(debug=True, port=5000)
+
+def _build_site_html(lessons_data, site_title, dark_theme, hide_answers):
+    """Darslardan to'liq offline HTML sayt yasaydi"""
+    import json as _json, re as _re, random as _random
+
+    def fix_url(s):
+        if not s: return s
+        return _re.sub(r'(?:/static/|static/)(audio|video|img)/([^"\'>\s]+)',
+                       r'media/\1/\2', str(s))
+
+    def esc(s):
+        return str(s).replace('&','&amp;').replace('<','&lt;').replace('>','&gt;').replace('"','&quot;')
+
+    def build_block_html(blk):
+        t = blk['type']
+        d = blk['data']
+
+        if t == 'heading':
+            sizes = {'1':'2rem','2':'1.6rem','3':'1.3rem','4':'1.1rem'}
+            sz = sizes.get(str(d.get('level',1)),'2rem')
+            lv = d.get('level',1)
+            return f'<h{lv} class="s-heading" style="font-size:{sz};color:{esc(d.get("color","#e63946"))}">{esc(d.get("text",""))}</h{lv}>\n'
+
+        if t == 'hr':
+            return f'<hr style="height:{d.get("height",3)}px;background:{esc(d.get("color","#e63946"))};border:none;border-radius:2px;margin:12px 0">\n'
+
+        if t == 'image':
+            url = fix_url(d.get('url',''))
+            if not url: return ''
+            cap = esc(d.get('caption',''))
+            w = d.get('width',100)
+            return f'<div class="media-block"><img src="{esc(url)}" style="width:{w}%;border-radius:10px;max-width:100%" alt="{cap}">{f"<p class=media-caption>{cap}</p>" if cap else ""}</div>\n'
+
+        if t == 'audio_text':
+            au = fix_url(d.get('audio',''))
+            tx = esc(d.get('text',''))
+            atag = f'<audio controls src="{esc(au)}" style="width:100%;margin-bottom:12px"></audio>' if au else ''
+            return f'<div class="block-card">{atag}<div style="font-size:15px;line-height:1.8">{tx}</div></div>\n'
+
+        if t == 'media':
+            mt = d.get('type','audio')
+            url = fix_url(d.get('url',''))
+            title = esc(d.get('title',''))
+            cap = esc(d.get('caption',''))
+            icon = '▶️' if mt=='youtube' else ('🎬' if mt=='video' else '🎵')
+            hdr = f'<div class="sec-bar" style="background:#0f766e">{icon} {title}</div>' if title else ''
+            if mt == 'youtube':
+                yt = _re.search(r'(?:v=|youtu\.be/|embed/)([\w-]{11})', url or '')
+                yid = yt.group(1) if yt else url
+                inner = f'<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px"><iframe src="https://www.youtube.com/embed/{yid}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allowfullscreen></iframe></div>'
+            elif mt == 'video':
+                inner = f'<video controls src="{esc(url)}" style="width:100%;border-radius:10px;background:#000"></video>' if url else ''
+            else:
+                inner = f'<audio controls src="{esc(url)}" style="width:100%"></audio>' if url else ''
+            return f'<div class="block-card">{hdr}{inner}{f"<p class=media-caption>{cap}</p>" if cap else ""}</div>\n'
+
+        if t == 'vocab':
+            items = d.get('items',[])
+            bar = esc(d.get('bar_color','#457b9d'))
+            title = esc(d.get('title',"So'zlar"))
+            rows = ''
+            for i,item in enumerate(items):
+                au = fix_url(item.get('audio',''))
+                abtn = f'<button class="play-btn" onclick="playAudio(\'{esc(au)}\')">🔊</button>' if au else ''
+                rows += f'<div class="vocab-item"><span class="vnum">{i+1}</span><span class="vru">{esc(item.get("ru",""))}</span><span class="vuz">— {esc(item.get("uz",""))}</span>{abtn}</div>'
+            return f'<div class="block-card"><div class="sec-bar" style="background:{bar}">📖 {title}</div><div class="vocab-grid">{rows}</div></div>\n'
+
+        if t == 'dialog':
+            lines = d.get('lines',[])
+            title = esc(d.get('title','Dialog'))
+            rows = ''
+            for l in lines:
+                sp = l.get('speaker','A')
+                rows += f'<div class="d-line"><span class="d-sp {esc(sp)}">{esc(sp)}</span><span class="d-txt">{esc(l.get("text",""))}</span></div>'
+            return f'<div class="block-card"><div class="d-title">💬 {title}</div>{rows}</div>\n'
+
+        if t == 'fill_blank':
+            items = d.get('items',[])
+            title = esc(d.get('title','Mashq'))
+            instr = esc(d.get('instruction',''))
+            bar = esc(d.get('bar_color','#2a9d8f'))
+            rows = ''
+            for i,item in enumerate(items):
+                ans = esc(item.get('answer',''))
+                pre = esc(item.get('pre',''))
+                post = esc(item.get('post',''))
+                if hide_answers:
+                    inp = f'<input class="blank-inp" data-answer="{ans}" placeholder="...">'
+                else:
+                    inp = f'<span class="blank-answer">{ans}</span>'
+                rows += f'<div class="fb-row"><span class="fb-num">{i+1}</span>{pre} {inp} {post}</div>'
+            chk = '<button class="check-btn" onclick="checkFillBlank(this)">✔ Tekshirish</button><div class="fb-score"></div>' if hide_answers else ''
+            return f'<div class="block-card"><div class="sec-bar" style="background:{bar}">✏️ {title}</div>{f"<p class=instruction>{instr}</p>" if instr else ""}<div class="fb-list">{rows}</div>{chk}</div>\n'
+
+        if t == 'match':
+            pairs = d.get('pairs',[])
+            title = esc(d.get('title','Moslashtirish'))
+            bar = esc(d.get('bar_color','#e76f51'))
+            left = ''.join(f'<div class="match-item" data-idx="{i}" data-side="left">{esc(p.get("left",""))}</div>' for i,p in enumerate(pairs))
+            shuffled = pairs[:]
+            _random.shuffle(shuffled)
+            right = ''.join(f'<div class="match-item" data-orig="{next((j for j,p in enumerate(pairs) if p.get("right")==s.get("right")),0)}" data-side="right">{esc(s.get("right",""))}</div>' for s in shuffled)
+            return f'<div class="block-card"><div class="sec-bar" style="background:{bar}">🔗 {title}</div><div class="match-grid"><div class="match-col">{left}</div><div class="match-col">{right}</div></div><div class="match-score"></div></div>\n'
+
+        if t == 'quiz':
+            qs = d.get('questions',[])
+            title = esc(d.get('title','Test'))
+            bar = esc(d.get('bar_color','#6a4c93'))
+            inner = ''
+            for qi,q in enumerate(qs):
+                opts = ''.join(f'<button class="quiz-opt" onclick="answerQuiz(this,{oi},{q.get("correct",0)},\'q{qi}_{id(qs)}\')">{esc(o)}</button>' for oi,o in enumerate(q.get('options',[])))
+                inner += f'<div class="quiz-q" id="q{qi}_{id(qs)}"><div class="q-text">{qi+1}. {esc(q.get("q",""))}</div><div class="quiz-opts">{opts}</div></div>'
+            return f'<div class="block-card"><div class="sec-bar" style="background:{bar}">🧠 {title}</div><div class="quiz-inner">{inner}</div></div>\n'
+
+        if t == 'table':
+            hdrs = d.get('headers',[])
+            rows = d.get('rows',[])
+            title = esc(d.get('title',''))
+            th = ''.join(f'<th>{esc(h)}</th>' for h in hdrs)
+            tbody = ''.join(f'<tr>{"".join(f"<td>{esc(c)}</td>" for c in r)}</tr>' for r in rows)
+            hdr = f'<div class="sec-bar" style="background:#1d3557">📊 {title}</div>' if title else ''
+            return f'<div class="block-card">{hdr}<div style="overflow-x:auto"><table class="s-table"><thead><tr>{th}</tr></thead><tbody>{tbody}</tbody></table></div></div>\n'
+
+        if t == 'vocab_timer':
+            items = d.get('items',[])
+            title = esc(d.get('title','Lug\'at'))
+            tsec = int(d.get('timer_sec',60))
+            rows = ''.join(f'<div class="vocab-item"><span class="vnum">{i+1}</span><span class="vru">{esc(it.get("ru",""))}</span><span class="vuz">— {esc(it.get("uz",""))}</span></div>' for i,it in enumerate(items))
+            return f'<div class="block-card"><div class="sec-bar" style="background:#0ea5e9">⏱ {title}</div><p style="font-size:13px;color:#6c757d;margin-bottom:8px">Yodlash uchun: {tsec} soniya</p><div class="vocab-grid">{rows}</div></div>\n'
+
+        if t == 'dictation':
+            sents = d.get('sentences',[])
+            title = esc(d.get('title','Diktant'))
+            spd = d.get('speed',0.8)
+            lang = d.get('lang','ru')
+            inner = ''
+            for i,s in enumerate(sents):
+                txt = esc(s.get('text',''))
+                hint = esc(s.get('hint',''))
+                if hide_answers:
+                    inner += f'<div class="dict-row"><span class="dict-num">{i+1}</span><button class="play-btn" onclick="ttsPlay(\'{s.get("text","")}\',\'{lang}\',{spd})">▶ Eshit</button><textarea class="dict-inp" rows="2" placeholder="Eshitib yozing..."></textarea><div class="dict-ans" data-answer="{txt}" style="display:none"></div>{f"<div class=hint>💡 {hint}</div>" if hint else ""}<button class="check-btn" onclick="checkDictRow(this)">✔</button><div class="dict-fb"></div></div>'
+                else:
+                    inner += f'<div class="dict-row"><span class="dict-num">{i+1}</span><div class="dict-show">{txt}</div></div>'
+            return f'<div class="block-card"><div class="sec-bar" style="background:#0369a1">🎧 {title}</div>{inner}</div>\n'
+
+        if t == 'memory_chain':
+            items = d.get('items',[])
+            title = esc(d.get('title','Zanjir xotira'))
+            tsec = int(d.get('show_sec',3))
+            chips = ''.join(f'<span class="chain-chip">{esc(it)}</span>' for it in items if it)
+            uid = str(abs(hash(str(items))))
+            return f'<div class="block-card"><div class="sec-bar" style="background:#7c3aed">🔗 {title}</div><p style="font-size:13px;color:#6c757d">Har element {tsec} soniya ko\'rsatiladi.</p><div class="chain-chips" id="cc{uid}">{chips}</div><button class="check-btn" onclick="startChain(this,{tsec},{uid})">▶ Boshlash</button><div class="chain-area" id="ca{uid}" style="display:none"><textarea class="chain-inp" rows="2" placeholder="Elementlarni vergul bilan..."></textarea><button class="check-btn" onclick="checkChain(this)">✔ Tekshirish</button><div class="chain-fb"></div></div></div>\n'
+
+        if t == 'role_dialog':
+            turns = d.get('turns',[])
+            title = esc(d.get('title','Rol dialog'))
+            scen = esc(d.get('scenario',''))
+            lang = d.get('lang','uz')
+            srole = esc(d.get('student_role',"O'quvchi"))
+            prole = esc(d.get('ai_role','Sherik'))
+            inner = ''
+            for turn in turns:
+                role = turn.get('role','partner')
+                if role == 'partner':
+                    txt = esc(turn.get('text',''))
+                    inner += f'<div class="rd-partner"><span class="rd-avatar">🤝</span><div class="rd-bubble partner">{txt} <button class="play-btn" onclick="ttsPlay(\'{turn.get("text","")}\',\'{lang}\',0.85)">🔊</button></div></div>'
+                else:
+                    prompt = esc(turn.get('prompt',''))
+                    inner += f'<div class="rd-student"><div class="rd-prompt">{f"<div class=hint>💡 {prompt}</div>" if prompt else ""}<textarea class="rd-inp" rows="2" placeholder="Sizning javobingiz..."></textarea><button class="play-btn" onclick="ttsPlay(this.previousElementSibling.value,\'{lang}\',0.9)">🔊</button></div></div>'
+            return f'<div class="block-card"><div class="sec-bar" style="background:#be123c">🎭 {title}</div>{f"<div class=scenario>{scen}</div>" if scen else ""}<div style="display:flex;gap:10px;margin-bottom:12px"><span class="role-badge-s">👨‍🎓 {srole}</span><span class="role-badge-p">🤝 {prole}</span></div><div class="rd-dialog">{inner}</div></div>\n'
+
+        if t == 'memory_game':
+            pairs = d.get('pairs',[])
+            title = esc(d.get('title',"Xotira o'yini"))
+            uid = str(abs(hash(str(pairs))))
+            pairs_json = _json.dumps(pairs).replace("'", "\\'")
+            return f'<div class="block-card"><div class="sec-bar" style="background:#9333ea">🃏 {title}</div><p style="font-size:13px;color:#6c757d;margin-bottom:12px">{len(pairs)} juft — bosib juftlarini toping!</p><div class="mg-grid" id="mg{uid}"></div><script>initMemGame(document.getElementById("mg{uid}"),{_json.dumps(pairs)});</script></div>\n'
+
+        if t == 'number_guess':
+            mn = int(d.get('min',1)); mx = int(d.get('max',100))
+            lng = d.get('lang','uz')
+            title = esc(d.get('title','Son topish'))
+            hint = f"{mn} dan {mx} gacha son o'yladim!" if lng=='uz' else f"Я загадал число от {mn} до {mx}!"
+            uid = str(abs(hash(title+str(mn)+str(mx))))
+            return f'<div class="block-card"><div class="sec-bar" style="background:#ea580c">🔢 {title}</div><p class="ng-hint">{hint}</p><div class="ng-wrap"><input id="ngi{uid}" type="number" min="{mn}" max="{mx}" class="ng-inp" placeholder="Son..." onkeydown="if(event.key===\'Enter\')ngCheck(\'{uid}\',{mn},{mx},\'{lng}\')"><button class="check-btn" onclick="ngCheck(\'{uid}\',{mn},{mx},\'{lng}\')">Tekshirish</button></div><div class="ng-history" id="ngh{uid}"></div><div class="ng-msg" id="ngm{uid}"></div><script>window._ng_{uid}=Math.floor(Math.random()*({mx}-{mn}+1))+{mn};</script></div>\n'
+
+        if t == 'anagram':
+            words = [w for w in d.get('words',[]) if w.get('word')]
+            title = esc(d.get('title','Anagram'))
+            uid = str(abs(hash(str(words))))
+            return f'<div class="block-card"><div class="sec-bar" style="background:#16a34a">🧩 {title}</div><div class="an-inner" id="an{uid}" data-words=\'{_json.dumps(words)}\' data-lang="{d.get("lang","uz")}"><button class="check-btn" onclick="initAnagramInline(document.getElementById(\'an{uid}\'))">▶ Boshlash</button></div></div>\n'
+
+        if t == 'flash_cards':
+            cards = [c for c in d.get('cards',[]) if c.get('front')]
+            title = esc(d.get('title','Tez xotira'))
+            fsec = int(d.get('flash_sec',2))
+            uid = str(abs(hash(str(cards))))
+            return f'<div class="block-card"><div class="sec-bar" style="background:#b45309">⚡ {title}</div><p style="font-size:13px;color:#6c757d;margin-bottom:10px">Karta {fsec} soniya ko\'rsatiladi.</p><div class="fc-inner" id="fc{uid}" data-cards=\'{_json.dumps(cards)}\' data-sec="{fsec}"><button class="check-btn" onclick="initFlashInline(document.getElementById(\'fc{uid}\'))">▶ Boshlash</button></div></div>\n'
+
+        return ''
+
+    # Barcha darslar
+    lessons_html = ''
+    for les in lessons_data:
+        lid = les['id']
+        blist = ''.join(build_block_html(b) for b in sorted(les['blocks'], key=lambda x: x['order']))
+        lessons_html += f'<section class="lesson-section" id="lesson-{lid}">{blist}</section>\n'
+
+    nav_items = ''
+    for i,les in enumerate(lessons_data):
+        sub = f'<small>{esc(les["subtitle"])}</small>' if les.get('subtitle') else ''
+        nav_items += f'<a class="nav-item" href="#lesson-{les["id"]}" onclick="showLesson({les["id"]});return false"><span class="nav-num">{i+1}</span><span class="nav-txt">{esc(les["title"])}{sub}</span></a>'
+
+    # CSS
+    bg = '#12121f' if dark_theme else '#f0f4f8'
+    txt = '#e0deef' if dark_theme else '#212529'
+    card = '#1c1a2e' if dark_theme else '#ffffff'
+    sb = '#0d0d1a' if dark_theme else '#1d3557'
+    brd = '#2d2b45' if dark_theme else '#dee2e6'
+
+    css = f"""
+:root{{--bg:{bg};--txt:{txt};--card:{card};--sb:{sb};--brd:{brd};
+  --green:#2a9d8f;--blue:#457b9d;--red:#e63946;--gray:#6c757d;--r:10px;}}
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;}}
+#sidebar{{width:270px;min-height:100vh;background:var(--sb);color:#fff;display:flex;flex-direction:column;transition:width .3s;position:sticky;top:0;height:100vh;overflow:hidden;flex-shrink:0;z-index:100;}}
+#sidebar.collapsed{{width:52px;}}
+#sb-head{{padding:14px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.1);flex-shrink:0;min-height:52px;}}
+#sb-toggle{{background:none;border:none;color:#fff;cursor:pointer;font-size:20px;padding:4px 6px;border-radius:6px;flex-shrink:0;transition:background .15s;}}
+#sb-toggle:hover{{background:rgba(255,255,255,.15);}}
+#sb-title{{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;transition:opacity .2s,width .2s;}}
+#sidebar.collapsed #sb-title{{opacity:0;width:0;pointer-events:none;}}
+#nav-list{{overflow-y:auto;flex:1;padding:6px;}}
+.nav-item{{display:flex;gap:8px;align-items:center;padding:10px 10px;color:rgba(255,255,255,.8);text-decoration:none;font-size:13px;border-radius:8px;margin-bottom:3px;transition:all .15s;overflow:hidden;}}
+.nav-item:hover,.nav-item.active{{background:rgba(255,255,255,.15);color:#fff;}}
+.nav-num{{background:rgba(255,255,255,.2);border-radius:6px;min-width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}}
+.nav-txt{{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:opacity .2s;}}
+.nav-txt small{{display:block;font-size:11px;opacity:.6;}}
+#sidebar.collapsed .nav-txt{{opacity:0;width:0;pointer-events:none;}}
+#main-content{{flex:1;overflow-y:auto;padding:24px;max-width:860px;margin:0 auto;width:100%;}}
+.lesson-section{{display:none;animation:fi .3s ease;}}
+.lesson-section.active{{display:block;}}
+@keyframes fi{{from{{opacity:0;transform:translateY(8px)}}to{{opacity:1;transform:none}}}}
+.block-card{{background:var(--card);border-radius:var(--r);border:1.5px solid var(--brd);box-shadow:0 2px 12px rgba(0,0,0,.08);padding:20px;margin-bottom:16px;overflow:hidden;}}
+.sec-bar{{color:#fff;margin:-20px -20px 14px;padding:10px 18px;font-size:14px;font-weight:700;border-radius:8px 8px 0 0;}}
+.s-heading{{font-weight:900;line-height:1.2;margin-bottom:8px;}}
+.vocab-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;}}
+.vocab-item{{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--brd);border-radius:8px;background:var(--card);font-size:14px;}}
+.vnum{{background:var(--blue);color:#fff;border-radius:4px;min-width:22px;text-align:center;font-size:11px;font-weight:700;padding:1px 4px;}}
+.vru{{font-weight:600;flex:1;}}.vuz{{color:var(--gray);font-size:13px;}}
+.d-line{{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start;}}
+.d-sp{{font-size:11px;font-weight:700;color:#fff;border-radius:4px;padding:2px 6px;flex-shrink:0;margin-top:2px;}}
+.d-sp.A{{background:var(--blue)}}.d-sp.B{{background:var(--green)}}
+.d-txt{{font-size:14px;line-height:1.5;}} .d-title{{font-weight:700;margin-bottom:10px;}}
+.fb-list{{display:flex;flex-direction:column;gap:8px;}}
+.fb-row{{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:15px;}}
+.fb-num{{background:var(--green);color:#fff;border-radius:4px;padding:1px 6px;font-size:12px;font-weight:700;flex-shrink:0;}}
+.blank-inp{{border:none;border-bottom:2px solid var(--blue);padding:2px 6px;font-size:15px;min-width:80px;text-align:center;background:transparent;font-family:inherit;outline:none;color:inherit;}}
+.blank-inp.correct{{border-color:var(--green);color:var(--green)}}.blank-inp.wrong{{border-color:var(--red);color:var(--red)}}
+.blank-answer{{font-weight:700;color:var(--green);border-bottom:2px solid var(--green);padding:0 6px;}}
+.instruction{{font-size:13px;color:var(--gray);font-style:italic;margin-bottom:10px;}}
+.fb-score,.match-score{{font-size:13px;font-weight:600;margin-top:8px;color:var(--green);}}
+.match-grid{{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}}
+.match-col{{display:flex;flex-direction:column;gap:6px;}}
+.match-item{{padding:9px 12px;border-radius:8px;font-size:14px;cursor:pointer;border:2px solid var(--brd);text-align:center;font-weight:600;transition:all .15s;user-select:none;background:var(--card);}}
+.match-item:hover{{border-color:var(--blue);}}.match-item.selected{{border-color:#f59e0b;background:rgba(245,158,11,.1);}}
+.match-item.matched{{border-color:var(--green);background:rgba(42,157,143,.1);cursor:default;opacity:.7;}}
+.match-item.wrong-flash{{border-color:var(--red);background:rgba(239,68,68,.08);}}
+.quiz-q{{margin-bottom:14px;}}.q-text{{font-size:15px;font-weight:700;margin-bottom:8px;}}
+.quiz-opts{{display:flex;flex-direction:column;gap:6px;}}
+.quiz-opt{{padding:10px 14px;border-radius:8px;border:2px solid var(--brd);font-size:14px;cursor:pointer;text-align:left;background:var(--card);transition:all .15s;color:inherit;}}
+.quiz-opt:hover:not(:disabled){{border-color:var(--blue);}}.quiz-opt.correct{{border-color:var(--green);background:rgba(42,157,143,.1);color:var(--green);font-weight:600;}}
+.quiz-opt.wrong{{border-color:var(--red);background:rgba(239,68,68,.08);color:var(--red);}}
+.s-table{{width:100%;border-collapse:collapse;font-size:13px;}}
+.s-table th{{background:#1d3557;color:#fff;padding:8px 12px;text-align:left;}}
+.s-table td{{padding:8px 12px;border-bottom:1px solid var(--brd);}}
+.check-btn{{padding:8px 18px;border-radius:8px;background:var(--green);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;margin-top:8px;transition:filter .15s;}}
+.check-btn:hover{{filter:brightness(1.1);}} .check-btn:disabled{{opacity:.5;cursor:not-allowed;}}
+.play-btn{{padding:4px 10px;border-radius:6px;background:var(--blue);color:#fff;border:none;cursor:pointer;font-size:12px;}}
+.media-block{{text-align:center;margin-bottom:16px;}} .media-caption{{font-size:12px;color:var(--gray);margin-top:6px;font-style:italic;}}
+.dict-row{{display:flex;align-items:flex-start;gap:8px;margin-bottom:12px;flex-wrap:wrap;}}
+.dict-num{{background:var(--blue);color:#fff;border-radius:4px;min-width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:4px;}}
+.dict-inp{{flex:1;min-width:160px;padding:8px;border:1.5px solid var(--brd);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;min-height:40px;background:var(--card);color:inherit;}}
+.hint{{font-size:12px;color:var(--gray);font-style:italic;width:100%;padding-left:0;}} .dict-show{{font-size:14px;line-height:1.6;}}
+.chain-chips{{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}}
+.chain-chip{{padding:6px 14px;border-radius:20px;background:#7c3aed;color:#fff;font-size:14px;font-weight:600;}}
+.chain-inp{{width:100%;padding:9px;border:1.5px solid var(--brd);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;min-height:42px;background:var(--card);color:inherit;margin-bottom:4px;}}
+.scenario{{background:rgba(190,18,60,.08);border-left:4px solid #be123c;padding:10px 14px;border-radius:0 8px 8px 0;font-size:14px;font-style:italic;margin-bottom:12px;}}
+.rd-dialog{{display:flex;flex-direction:column;gap:10px;}} .rd-partner,.rd-student{{display:flex;gap:8px;align-items:flex-start;}}
+.rd-student{{flex-direction:row-reverse;}} .rd-avatar{{width:32px;height:32px;border-radius:50%;background:#7c3aed;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}}
+.rd-bubble{{max-width:72%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.5;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);}}
+.rd-inp{{width:100%;padding:8px;border:1.5px solid var(--brd);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;min-height:44px;background:var(--card);color:inherit;}}
+.rd-prompt{{flex:1;display:flex;flex-direction:column;align-items:flex-end;}}
+.role-badge-s{{padding:3px 10px;border-radius:20px;background:rgba(190,18,60,.1);color:#be123c;font-size:12px;font-weight:600;}}
+.role-badge-p{{padding:3px 10px;border-radius:20px;background:rgba(124,58,237,.1);color:#7c3aed;font-size:12px;font-weight:600;}}
+.ng-hint{{font-size:14px;color:#ea580c;font-weight:600;margin-bottom:12px;}}
+.ng-wrap{{display:flex;gap:8px;align-items:center;}}
+.ng-inp{{padding:9px 14px;border:2px solid #ea580c;border-radius:8px;font-size:16px;font-weight:700;text-align:center;width:120px;font-family:inherit;outline:none;background:var(--card);color:inherit;}}
+.ng-history{{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}}
+.mg-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;}}
+.mg-card{{height:72px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;border:2px solid var(--brd);background:var(--card);transition:all .2s;user-select:none;}}
+.mg-card.open{{border-color:#9333ea;background:rgba(147,51,234,.1);color:#9333ea;}}
+.mg-card.matched{{border-color:var(--green);background:rgba(42,157,143,.1);color:var(--green);cursor:default;}}
+@media(max-width:640px){{
+  body{{flex-direction:column;}}
+  #sidebar{{width:100%;min-height:auto;height:auto;position:static;}}
+  #sidebar.collapsed{{width:100%;height:52px;}}
+  #nav-list{{display:flex;overflow-x:auto;padding:4px 6px;}}
+  .nav-item{{flex-shrink:0;}}
+  #main-content{{padding:12px;}}
+}}"""
+
+    js = """
+// Sidebar toggle
+(function(){
+  var sb=document.getElementById('sidebar');
+  var btn=document.getElementById('sb-toggle');
+  function restore(){var v=localStorage.getItem('sb_c');if(v==='1'){sb.classList.add('collapsed');btn.textContent='☰';}}
+  btn.addEventListener('click',function(){sb.classList.toggle('collapsed');btn.textContent=sb.classList.contains('collapsed')?'☰':'✕';localStorage.setItem('sb_c',sb.classList.contains('collapsed')?'1':'0');});
+  restore();
+})();
+
+function showLesson(id){
+  document.querySelectorAll('.lesson-section').forEach(function(s){s.classList.remove('active');});
+  var sec=document.getElementById('lesson-'+id);
+  if(sec)sec.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(function(a){a.classList.toggle('active',a.getAttribute('href')==='#lesson-'+id);});
+  localStorage.setItem('al',id);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// Restore
+(function(){
+  var saved=localStorage.getItem('al');
+  var all=document.querySelectorAll('.lesson-section');
+  if(!all.length)return;
+  var shown=false;
+  all.forEach(function(s){if(s.id==='lesson-'+saved){s.classList.add('active');shown=true;}});
+  if(!shown&&all[0])all[0].classList.add('active');
+  var active=document.querySelector('.lesson-section.active');
+  if(active){document.querySelectorAll('.nav-item').forEach(function(a){a.classList.toggle('active',a.getAttribute('href')==='#'+active.id);});}
+})();
+
+function ttsPlay(text,lang,rate){if(!text||!window.speechSynthesis)return;window.speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(text);u.lang=lang==='ru'?'ru-RU':'uz-UZ';u.rate=rate||0.9;var v=window.speechSynthesis.getVoices().find(function(v){return v.lang.startsWith(lang==='ru'?'ru':'uz');});if(v)u.voice=v;window.speechSynthesis.speak(u);}
+function playAudio(src){try{new Audio(src).play();}catch(e){}}
+
+function checkFillBlank(btn){var card=btn.closest('.block-card');var c=0,t=0;card.querySelectorAll('.blank-inp').forEach(function(inp){var a=inp.dataset.answer.trim().toLowerCase();inp.classList.remove('correct','wrong');if(inp.value.trim().toLowerCase()===a){inp.classList.add('correct');c++;}else{inp.classList.add('wrong');}t++;});var s=card.querySelector('.fb-score');if(s)s.textContent='Natija: '+c+'/'+t+' ('+(t?Math.round(c/t*100):0)+'%)';}
+
+function checkDictRow(btn){var row=btn.closest('.dict-row');var inp=row.querySelector('.dict-inp');var ans=row.querySelector('.dict-ans');if(!inp||!ans)return;var fb=row.querySelector('.dict-fb');var ok=inp.value.trim().toLowerCase()===ans.dataset.answer.trim().toLowerCase();inp.style.borderColor=ok?'#2a9d8f':'#e63946';if(fb)fb.innerHTML=ok?'<span style="color:#2a9d8f;font-weight:700">✅ To\\'g\\'ri!</span>':'<span style="color:#e63946">❌ To\\'g\\'ri: <b>'+ans.dataset.answer+'</b></span>';btn.disabled=true;}
+
+document.addEventListener('click',function(e){
+  var item=e.target.closest('.match-item');
+  if(!item||item.classList.contains('matched'))return;
+  var card=item.closest('.block-card');
+  var sel=card.querySelector('.match-item.selected');
+  if(!sel){item.classList.add('selected');return;}
+  if(sel===item){sel.classList.remove('selected');return;}
+  if(item.dataset.side===sel.dataset.side){sel.classList.remove('selected');item.classList.add('selected');return;}
+  var li=sel.dataset.side==='left'?sel:item;
+  var ri=sel.dataset.side==='right'?sel:item;
+  if(parseInt(li.dataset.idx)===parseInt(ri.dataset.orig)){
+    li.classList.remove('selected');li.classList.add('matched');ri.classList.add('matched');
+    var sc=card.querySelector('.match-score');
+    var total=card.querySelectorAll('.match-item[data-side="left"]').length;
+    var done=card.querySelectorAll('.match-item.matched').length/2;
+    if(sc)sc.textContent='✅ '+done+'/'+total+' juft'+(done===total?' 🎉':'');
+  }else{
+    sel.classList.add('wrong-flash');item.classList.add('wrong-flash');
+    setTimeout(function(){sel.classList.remove('wrong-flash','selected');item.classList.remove('wrong-flash');},700);
+  }
+});
+
+function answerQuiz(btn,chosen,correct,qid){
+  var q=document.getElementById(qid);if(!q)return;
+  q.querySelectorAll('.quiz-opt').forEach(function(b,i){b.disabled=true;if(i===correct)b.classList.add('correct');else if(i===chosen&&chosen!==correct)b.classList.add('wrong');});
+}
+
+function ngCheck(uid,min,max,lang){
+  var inp=document.getElementById('ngi'+uid);if(!inp)return;
+  var guess=parseInt(inp.value);if(isNaN(guess))return;
+  var secret=window['_ng_'+uid];
+  var hist=document.getElementById('ngh'+uid);var msg=document.getElementById('ngm'+uid);
+  var chip=document.createElement('span');
+  chip.style.cssText='padding:3px 10px;border-radius:20px;font-size:13px;font-weight:700;border:1px solid;margin:2px;display:inline-block;';
+  if(guess===secret){
+    chip.textContent=guess+' ✓';chip.style.background='rgba(42,157,143,.1)';chip.style.borderColor='#2a9d8f';chip.style.color='#2a9d8f';
+    if(hist)hist.appendChild(chip);
+    if(msg)msg.innerHTML='<span style="color:#2a9d8f;font-size:18px">🎉 '+(lang==='ru'?'Правильно!':'To\\'g\\'ri! Topdingiz!')+'</span>';
+    inp.disabled=true;
+  }else{
+    var dir=guess<secret?(lang==='ru'?'📈 Число больше!':'📈 Son kattaroq!'):(lang==='ru'?'📉 Число меньше!':'📉 Son kichikroq!');
+    chip.textContent=guess+(guess<secret?' ↑':' ↓');chip.style.background=guess<secret?'rgba(59,130,246,.1)':'rgba(239,68,68,.08)';chip.style.borderColor=guess<secret?'#3b82f6':'#ef4444';chip.style.color=guess<secret?'#3b82f6':'#ef4444';
+    if(hist)hist.appendChild(chip);
+    if(msg){msg.textContent=dir;msg.style.color=guess<secret?'#3b82f6':'#ef4444';}
+    inp.value='';inp.focus();
+  }
+}
+
+function initAnagramInline(div){
+  var words=JSON.parse(div.dataset.words||'[]');var lang=div.dataset.lang||'uz';
+  var cur=0,score=0;
+  function shuffle(s){var a=s.split('');for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a.join('');}
+  function renderQ(){
+    if(cur>=words.length){div.innerHTML='<div style="text-align:center"><div style="font-size:36px;font-weight:900;color:#16a34a">'+Math.round(score/words.length*100)+'%</div><div>'+score+'/'+words.length+'</div></div>';return;}
+    var w=words[cur];var sh=shuffle(w.word.toUpperCase());
+    div.innerHTML='<div style="font-size:26px;font-weight:900;letter-spacing:5px;color:#16a34a;text-align:center;padding:12px;background:rgba(22,163,74,.08);border-radius:10px;margin-bottom:12px">'+sh+'</div>'+(w.hint?'<div style="font-size:13px;color:#6c757d;font-style:italic;margin-bottom:8px">💡 '+w.hint+'</div>':'')+'<input style="width:100%;padding:9px;border:2px solid #dee2e6;border-radius:8px;font-size:15px;text-transform:uppercase;outline:none;font-family:inherit;color:inherit;background:var(--card);margin-bottom:8px" placeholder="...">'+'<button class="check-btn" onclick="(function(b){var inp=b.previousElementSibling;var ok=inp.value.trim().toUpperCase()===\\''+w.word.toUpperCase()+'\\';if(ok)score++;inp.disabled=true;inp.style.borderColor=ok?\\'#2a9d8f\\':\\'#e63946\\';var fb=document.createElement(\\'div\\');fb.style.marginTop=\\'6px\\';fb.innerHTML=ok?\\'<span style=color:#2a9d8f;font-weight:700>✅ To\\\\x27g\\\\x27ri!</span>\\':\\'<span style=color:#e63946>❌ To\\\\x27g\\\\x27ri: <b>'+w.word+'</b></span>\\';b.parentElement.appendChild(fb);var nb=document.createElement(\\'button\\');nb.className=\\'check-btn\\';nb.style.marginLeft=\\'8px\\';nb.textContent=cur+1<words.length?\\'Keyingi →\\':\\'📊 Natija\\';nb.onclick=function(){cur++;renderQ();};b.parentElement.appendChild(nb);b.remove();})(this)">✅ Tekshirish</button>';
+  }
+  renderQ();
+}
+
+function initFlashInline(div){
+  var cards=JSON.parse(div.dataset.cards||'[]').sort(function(){return Math.random()-.5;});
+  var sec=parseInt(div.dataset.sec)||2;var cur=0,score=0;
+  function next(){
+    if(cur>=cards.length){div.innerHTML='<div style="text-align:center"><div style="font-size:36px;font-weight:900;color:#b45309">'+Math.round(score/cards.length*100)+'%</div><div>'+score+'/'+cards.length+'</div></div>';return;}
+    var c=cards[cur];
+    div.innerHTML='<div style="background:linear-gradient(135deg,#b45309,#d97706);color:#fff;border-radius:12px;padding:20px;font-size:22px;font-weight:800;text-align:center;margin-bottom:12px">'+c.front+'</div>'+'<div id="fc-cd" style="text-align:center;font-size:13px;color:#6c757d;margin-bottom:10px">⏱ '+sec+' soniya...</div>'+'<div id="fc-ans" style="display:none"><input style="width:100%;padding:9px;border:2px solid #dee2e6;border-radius:8px;font-size:14px;font-family:inherit;background:var(--card);color:inherit;margin-bottom:8px;outline:none" placeholder="Esladingizmi? Yozing..."><button class="check-btn" onclick="(function(b){var inp=b.previousElementSibling;var ok=inp.value.trim().toLowerCase()===\\''+c.back.toLowerCase()+'\\';if(ok)score++;inp.disabled=true;inp.style.borderColor=ok?\\'#2a9d8f\\':\\'#e63946\\';var fb=document.createElement(\\'div\\');fb.innerHTML=ok?\\'<span style=color:#2a9d8f;font-weight:700>✅</span>\\':\\'<span style=color:#e63946>❌ <b>'+c.back+'</b></span>\\';b.parentElement.appendChild(fb);var nb=document.createElement(\\'button\\');nb.className=\\'check-btn\\';nb.style.marginLeft=\\'8px\\';nb.textContent=cur+1<cards.length?\\'Keyingi →\\':\\'📊\\';nb.onclick=function(){cur++;next();};b.parentElement.appendChild(nb);b.remove();})(this)">✅ Tekshirish</button></div>';
+    var left=sec;var cd=setInterval(function(){left--;var el=div.querySelector('#fc-cd');if(el)el.textContent='⏱ '+left+' soniya...';if(left<=0){clearInterval(cd);var card=div.querySelector('div:first-child');if(card){card.style.filter='blur(6px)';card.style.opacity='.3';}var ans=div.querySelector('#fc-ans');if(ans)ans.style.display='block';}},1000);
+  }
+  next();
+}
+
+function initMemGame(grid,pairs){
+  var cards=[];
+  pairs.forEach(function(p,i){cards.push({pairId:i,text:p.front});cards.push({pairId:i,text:p.back});});
+  cards=cards.sort(function(){return Math.random()-.5;});
+  var sel=null,matched=[],busy=false;
+  function render(){
+    grid.innerHTML='';
+    cards.forEach(function(c,idx){
+      var div=document.createElement('div');div.className='mg-card';
+      var isOpen=sel&&sel.idx===idx;var isDone=matched.indexOf(c.pairId)>=0;
+      if(isDone){div.classList.add('matched');div.textContent=c.text;}
+      else if(isOpen){div.classList.add('open');div.textContent=c.text;}
+      else{div.innerHTML='<span style="font-size:22px">🃏</span>';}
+      if(!isDone&&!isOpen&&!busy){div.onclick=function(){
+        if(busy)return;
+        if(!sel){sel={idx:idx,card:c};render();return;}
+        if(sel.card.pairId===c.pairId&&sel.idx!==idx){
+          matched.push(c.pairId);sel=null;render();
+        }else{
+          busy=true;var prev=sel;sel=null;render();
+          setTimeout(function(){busy=false;sel={idx:idx,card:c};render();},800);
+        }
+      };}
+      grid.appendChild(div);
+    });
+  }
+  render();
+}
+
+function startChain(btn,sec,uid){
+  var div=btn.closest('.block-card');
+  var chips=Array.from(div.querySelectorAll('.chain-chip')).map(function(c){return c.textContent;});
+  var cc=div.querySelector('#cc'+uid);if(cc)cc.style.display='none';
+  var idx=0;btn.disabled=true;btn.textContent='⏳';
+  function show(){
+    if(idx>=chips.length){btn.textContent='✅';var ca=div.querySelector('#ca'+uid);if(ca)ca.style.display='block';return;}
+    btn.textContent='👁 '+chips[idx];idx++;setTimeout(show,sec*1000);
+  }
+  show();
+}
+function checkChain(btn){
+  var div=btn.closest('.block-card');var inp=div.querySelector('.chain-inp');
+  var chips=Array.from(div.querySelectorAll('.chain-chip')).map(function(c){return c.textContent;});
+  var given=inp.value.split(',').map(function(s){return s.trim();});
+  var correct=0;
+  var fb=div.querySelector('.chain-fb');
+  var rows=chips.map(function(c,i){var ok=given[i]&&given[i].toLowerCase()===c.toLowerCase();if(ok)correct++;return'<span style="padding:3px 8px;border-radius:6px;background:'+(ok?'rgba(42,157,143,.1)':'rgba(239,68,68,.08)')+';border:1px solid '+(ok?'#2a9d8f':'#ef4444')+';color:'+(ok?'#2a9d8f':'#ef4444')+';font-size:13px;margin:2px;display:inline-block">'+(i+1)+'. '+c+'</span>';}).join('');
+  if(fb)fb.innerHTML=rows+'<div style="font-weight:700;margin-top:8px;color:#7c3aed">'+Math.round(correct/chips.length*100)+'%</div>';
+  btn.disabled=true;inp.disabled=true;
+}
+"""
+
+    first_id = lessons_data[0]['id'] if lessons_data else ''
+    html = f"""<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{esc(site_title)}</title>
+<style>{css}</style>
+</head>
+<body>
+<aside id="sidebar">
+  <div id="sb-head">
+    <button id="sb-toggle" title="Yig'ish / Ochish">✕</button>
+    <span id="sb-title">📚 {esc(site_title)}</span>
+  </div>
+  <nav id="nav-list">{nav_items}</nav>
+</aside>
+<div id="main-content">
+  {lessons_html}
+</div>
+<script>
+{js}
+</script>
+</body>
+</html>"""
+    return html

@@ -860,6 +860,7 @@ body.dark .gen-type-btn{background:#252340;border-color:#3d3b5a;color:#e0deef}
   <span class="role-badge" id="role-badge" style="display:none"></span>
   <button class="tb-btn" id="btn-results" style="display:none" onclick="openResultsScreen()">📊 Natijalar</button>
   <button class="tb-btn" id="btn-export-urok" style="display:none" onclick="exportCurrentLesson()">⬇ .urok yuborish</button>
+  <button class="tb-btn" id="btn-export-zip" style="display:none" onclick="openZipExportModal()" title="HTML sayt sifatida ZIP">📦 HTML Sayt</button>
   <button class="split-toggle" onclick="toggleStudentPanel()">👁 O'quvchi paneli</button>
   <button class="tb-btn" onclick="openTeacherPreview()" style="background:rgba(255,255,255,.12)">🔍 Preview</button>
   <button class="tb-btn" id="theme-btn" onclick="toggleTheme()" style="background:rgba(255,255,255,.08)" title="Mavzu">🌙</button>
@@ -1131,6 +1132,59 @@ body.dark .gen-type-btn{background:#252340;border-color:#3d3b5a;color:#e0deef}
   </div>
 </div>
 
+<!-- ZIP Export Modal -->
+<div id="zip-export-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9500;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:20px;width:580px;max-width:95vw;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.3);overflow:hidden" id="zip-box">
+    <div style="background:linear-gradient(135deg,#0f766e,#0d9488);color:white;padding:20px 24px;display:flex;align-items:center;gap:14px;flex-shrink:0">
+      <span style="font-size:24px">📦</span>
+      <div style="flex:1">
+        <div style="font-size:17px;font-weight:800">HTML Sayt sifatida eksport</div>
+        <div style="font-size:12px;opacity:.8;margin-top:2px">Darsliklarni offline HTML saytga aylantirish</div>
+      </div>
+      <button onclick="closeZipExportModal()" style="padding:6px 12px;border-radius:8px;background:rgba(255,255,255,.15);color:white;border:none;cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:22px">
+      <!-- Sayt nomi -->
+      <div style="margin-bottom:18px">
+        <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px">📝 Sayt nomi</label>
+        <input id="zip-site-title" type="text" value="Mening Darslarim" style="width:100%;padding:10px 14px;border:1.5px solid #dee2e6;border-radius:10px;font-size:14px;font-family:inherit;outline:none">
+      </div>
+      <!-- Darslar tanlash -->
+      <div style="margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <label style="font-size:13px;font-weight:600;color:#374151">📚 Darslarni tanlang</label>
+          <button onclick="zipSelectAll()" style="padding:3px 12px;border-radius:6px;border:1px solid #dee2e6;background:white;cursor:pointer;font-size:12px">Hammasi</button>
+          <button onclick="zipClearAll()" style="padding:3px 12px;border-radius:6px;border:1px solid #dee2e6;background:white;cursor:pointer;font-size:12px">Tozalash</button>
+        </div>
+        <div id="zip-lesson-list" style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;border:1px solid #dee2e6;border-radius:10px;padding:10px"></div>
+      </div>
+      <!-- Qo'shimcha sozlamalar -->
+      <div style="background:#f8fffe;border:1px solid #99f6e4;border-radius:10px;padding:14px;margin-bottom:18px">
+        <div style="font-size:13px;font-weight:600;color:#0f766e;margin-bottom:10px">⚙️ Sozlamalar</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="zip-include-answers" checked> Test javoblarini yashirish (o'quvchi uchun)</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="zip-dark-theme"> Qorang'i mavzuda</label>
+      </div>
+      <!-- Tuzilish haqida -->
+      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:14px;font-size:12px;color:#0369a1">
+        <div style="font-weight:700;margin-bottom:6px">📁 ZIP ichida nimalar bo'ladi:</div>
+        <code style="display:block;line-height:2;color:#1e40af">
+          📄 index.html — Asosiy sayt<br>
+          📁 media/ — Barcha audio, video, rasmlar<br>
+          &nbsp;&nbsp;🎵 audio/...<br>
+          &nbsp;&nbsp;🎬 video/...<br>
+          &nbsp;&nbsp;🖼️ img/...
+        </code>
+      </div>
+    </div>
+    <div style="padding:16px 22px;border-top:1px solid #dee2e6;display:flex;gap:10px;justify-content:flex-end;flex-shrink:0">
+      <button onclick="closeZipExportModal()" style="padding:10px 20px;border-radius:10px;background:#f8f9fa;border:1px solid #dee2e6;color:#555;cursor:pointer;font-size:14px">Bekor</button>
+      <button id="zip-generate-btn" onclick="generateZipSite()" style="padding:10px 26px;border-radius:10px;background:#0f766e;color:white;border:none;cursor:pointer;font-size:14px;font-weight:700">📦 ZIP Yaratish</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal -->
 <div id="modal-overlay" onclick="closeModal(event)">
   <div class="modal-box" id="modal-box"></div>
@@ -1244,6 +1298,8 @@ function applyRoleUI(role) {
     if (btnRes) btnRes.style.display = '';
     if (btnExp) btnExp.style.display = '';
     if (urokPnl) urokPnl.style.display = '';
+    const btnZip = document.getElementById('btn-export-zip');
+    if (btnZip) btnZip.style.display = '';
     if (sidebar) sidebar.style.display = '';
     if (edPanel) edPanel.style.display = '';
     if (subBanner) subBanner.style.display = 'none';
@@ -3399,6 +3455,115 @@ function renderSMedia(d) {
     mediaHtml+
     (d.caption?'<p style="font-size:13px;color:var(--gray);margin-top:8px;font-style:italic">'+esc(d.caption)+'</p>':'');
   return el;
+}
+
+// ═══════════════════════════════════════════════════════════
+// HTML SAYT ZIP EXPORT
+// ═══════════════════════════════════════════════════════════
+function openZipExportModal() {
+  const overlay = document.getElementById('zip-export-overlay');
+  if (!overlay) { toast('⚠️ Modal topilmadi'); return; }
+  overlay.style.display = 'flex';
+  const listEl = document.getElementById('zip-lesson-list');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+  if (!state.lessons.length) {
+    listEl.innerHTML = '<p style="padding:12px;color:var(--gray);font-size:13px">Darslar yo\'q</p>';
+    return;
+  }
+  state.lessons.forEach(l => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;background:white';
+    div.dataset.id = l.id;
+    div.innerHTML = '<input type="checkbox" id="zl-' + l.id + '" checked style="width:16px;height:16px;cursor:pointer;accent-color:#0f766e">' +
+      '<label for="zl-' + l.id + '" style="flex:1;cursor:pointer;font-size:13px;font-weight:600">' + esc(l.title) +
+      (l.subtitle ? '<small style="display:block;color:var(--gray);font-weight:400">' + esc(l.subtitle) + '</small>' : '') + '</label>' +
+      '<span style="font-size:11px;color:var(--gray)">' + l.block_count + ' blok</span>';
+    div.onclick = function(e) {
+      if (e.target.tagName === 'INPUT') return;
+      const cb = div.querySelector('input');
+      cb.checked = !cb.checked;
+      div.style.background = cb.checked ? 'rgba(15,118,110,.07)' : 'white';
+      div.style.borderColor = cb.checked ? '#0f766e' : 'var(--border)';
+    };
+    const cb = div.querySelector('input');
+    div.style.background = 'rgba(15,118,110,.07)';
+    div.style.borderColor = '#0f766e';
+    cb.addEventListener('change', function() {
+      div.style.background = this.checked ? 'rgba(15,118,110,.07)' : 'white';
+      div.style.borderColor = this.checked ? '#0f766e' : 'var(--border)';
+    });
+    listEl.appendChild(div);
+  });
+}
+
+function closeZipExportModal() {
+  const overlay = document.getElementById('zip-export-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function zipSelectAll() {
+  document.querySelectorAll('#zip-lesson-list input[type="checkbox"]').forEach(cb => {
+    cb.checked = true;
+    const div = cb.closest('div');
+    if (div) { div.style.background = 'rgba(15,118,110,.07)'; div.style.borderColor = '#0f766e'; }
+  });
+}
+
+function zipClearAll() {
+  document.querySelectorAll('#zip-lesson-list input[type="checkbox"]').forEach(cb => {
+    cb.checked = false;
+    const div = cb.closest('div');
+    if (div) { div.style.background = 'white'; div.style.borderColor = 'var(--border)'; }
+  });
+}
+
+async function generateZipSite() {
+  const lessonIds = [];
+  document.querySelectorAll('#zip-lesson-list input[type="checkbox"]:checked').forEach(cb => {
+    const id = parseInt(cb.id.replace('zl-', ''));
+    if (!isNaN(id)) lessonIds.push(id);
+  });
+  if (!lessonIds.length) { toast('⚠️ Kamida bitta dars tanlang!'); return; }
+
+  const siteTitle  = (document.getElementById('zip-site-title').value || 'Mening Darslarim').trim();
+  const darkTheme  = document.getElementById('zip-dark-theme').checked;
+  const hideAns    = document.getElementById('zip-include-answers').checked;
+
+  const btn = document.getElementById('zip-generate-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Tayyorlanmoqda...';
+
+  try {
+    const resp = await fetch('/api/export/zip', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        lesson_ids: lessonIds,
+        site_title: siteTitle,
+        dark_theme: darkTheme,
+        hide_answers: hideAns
+      })
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.error || 'Server xatosi');
+    }
+    const blob = await resp.blob();
+    const safe = siteTitle.replace(/[^\w\- ]/g, '_').slice(0, 40);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = safe + '_sayt.zip';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('✅ ZIP fayl yuklab olindi!');
+    closeZipExportModal();
+  } catch(e) {
+    toast('❌ Xato: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📦 ZIP Yaratish';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
