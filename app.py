@@ -265,6 +265,168 @@ def seed_demo():
         db.session.add(b)
     
     db.session.commit()
+    
+    # Dars 2: ЭТО МОЙ ДРУГ (Family & Friends - Red Kalinka A1)
+    lesson2 = Lesson(title='Дарс 2: ЭТО МОЙ ДРУГ', subtitle='A1', order=2)
+    db.session.add(lesson2)
+    db.session.flush()
+
+    blocks_data_2 = [
+        (0, 'heading', {'text': 'ЭТО МОЙ ДРУГ - Oila va Do\'stlar', 'level': 1, 'color': '#e63946', 'bg': ''}),
+        (1, 'hr', {'color': '#e63946'}),
+        
+        # Новые слова
+        (2, 'vocab', {
+            'title': 'Янги сўзлар (Новые слова)', 'bar_color': '#457b9d',
+            'items': [
+                {'ru': 'Здравствуйте!', 'uz': 'Assalamu alaikum! (rasmiy)', 'audio': ''},
+                {'ru': 'Как ваша фамилия?', 'uz': 'Sizning familiyangiz nima?', 'audio': ''},
+                {'ru': 'Моя фамилия ...', 'uz': 'Mening familiyam...', 'audio': ''},
+                {'ru': 'Как ваше отчество?', 'uz': 'Sizning otchestvoingiz nima?', 'audio': ''},
+                {'ru': 'Моё отчество ...', 'uz': 'Mening otchestvom...', 'audio': ''},
+                {'ru': 'Как ваше имя?', 'uz': 'Sizning ismingiz nima?', 'audio': ''},
+                {'ru': 'Моё имя ...', 'uz': 'Mening ismim...', 'audio': ''},
+                {'ru': 'очень приятно', 'uz': 'juda xursand', 'audio': ''},
+                {'ru': 'мне тоже', 'uz': 'men ham', 'audio': ''},
+                {'ru': 'друг', 'uz': 'do\'st', 'audio': ''},
+                {'ru': 'подруга', 'uz': 'do\'st (ayol)', 'audio': ''},
+                {'ru': 'коллега', 'uz': 'hamkasb', 'audio': ''},
+                {'ru': 'преподаватель', 'uz': 'o\'qituvchi', 'audio': ''},
+                {'ru': 'упражнение', 'uz': 'mashq', 'audio': ''},
+                {'ru': 'книга', 'uz': 'kitob', 'audio': ''},
+                {'ru': 'Что это?', 'uz': 'Bu nima?', 'audio': ''},
+                {'ru': 'Кто это?', 'uz': 'Bu kim?', 'audio': ''},
+                {'ru': 'Это мой друг', 'uz': 'Bu mening do\'stim', 'audio': ''},
+                {'ru': 'Это моя подруга', 'uz': 'Bu mening do\'stim (ayol)', 'audio': ''},
+                {'ru': 'Это мой коллега', 'uz': 'Bu mening hamkasbim', 'audio': ''},
+                {'ru': 'до свидания', 'uz': 'xayr', 'audio': ''},
+                {'ru': 'до завтра', 'uz': 'ertangi kun ko\'rinishmiz', 'audio': ''},
+                {'ru': 'пожалуйста', 'uz': 'iltimos', 'audio': ''},
+                {'ru': 'извини', 'uz': 'kechirasiz', 'audio': ''},
+                {'ru': 'извините', 'uz': 'kechirasiz (rasmiy)', 'audio': ''},
+                {'ru': 'ничего', 'uz': 'hechnarsa emas', 'audio': ''},
+                {'ru': 'можно?', 'uz': 'oladimi?', 'audio': ''},
+                {'ru': 'вопрос', 'uz': 'savol', 'audio': ''},
+            ]
+        }),
+        
+        # Диалог 1
+        (3, 'dialog', {
+            'title': 'Диалог 1 (Один): Do\'st bilan tanishish',
+            'lines': [
+                {'speaker': 'A', 'text': 'Здравствуйте! Меня зовут Наташа. А вас?'},
+                {'speaker': 'B', 'text': 'А меня зовут Иван.'},
+                {'speaker': 'A', 'text': 'Очень приятно.'},
+                {'speaker': 'B', 'text': 'Мне тоже.'},
+                {'speaker': 'A', 'text': 'До свидания.'},
+                {'speaker': 'B', 'text': 'До завтра.'},
+            ]
+        }),
+        
+        # Диалог 2
+        (4, 'dialog', {
+            'title': 'Диалог 2 (Два): Oila tanitish',
+            'lines': [
+                {'speaker': 'A', 'text': 'Добрый день. Меня зовут Антон Иванович Макаров. А вас?'},
+                {'speaker': 'B', 'text': 'Меня зовут Елена Борисовна Иванова.'},
+                {'speaker': 'A', 'text': 'Очень приятно.'},
+                {'speaker': 'B', 'text': 'Мне тоже. До свидания.'},
+                {'speaker': 'A', 'text': 'До свидания.'},
+            ]
+        }),
+        
+        # Грамматика: Таблица possessive
+        (5, 'table', {
+            'title': 'Грамматика: Биргалик сўзлари (Мой, Моя, Моё, Мои)',
+            'headers': ['Shaxsi Soz', 'Erkak (m)', 'Ayol (f)', 'Jansiz (n)', 'Ko\'plik (pl)', 'Tarjima'],
+            'rows': [
+                ['я (men)', 'мой', 'моя', 'моё', 'мои', 'mening'],
+                ['ты (sen)', 'твой', 'твоя', 'твоё', 'твои', 'sening'],
+                ['он (u-erkak)', 'его', 'его', 'его', 'его', 'uning'],
+                ['она (u-ayol)', 'её', 'её', 'её', 'её', 'uning'],
+                ['оно (jansiz)', 'его', 'его', 'его', 'его', 'uning'],
+                ['мы (biz)', 'наш', 'наша', 'наше', 'наши', 'bizning'],
+                ['вы (siz)', 'ваш', 'ваша', 'ваше', 'ваши', 'sizning'],
+                ['они (ular)', 'их', 'их', 'их', 'их', 'ularning'],
+            ]
+        }),
+        
+        # Упражнение 1: Заполнение пропусков
+        (6, 'fill_blank', {
+            'title': 'Машқ 1: Мой, моя, моё ёки твой, твоя, твоё танланг',
+            'bar_color': '#2a9d8f',
+            'instruction': 'Тўғри жавобни танланг:',
+            'items': [
+                {'pre': 'Это', 'answer': 'мой', 'post': 'друг. (erkak)'},
+                {'pre': 'Это', 'answer': 'моя', 'post': 'подруга. (ayol)'},
+                {'pre': 'Это', 'answer': 'мой', 'post': 'коллега. (erkak)'},
+                {'pre': 'Где', 'answer': 'твоя', 'post': 'книга? (ayol)'},
+                {'pre': 'Где', 'answer': 'мой', 'post': 'преподаватель? (erkak)'},
+            ]
+        }),
+        
+        # Упражнение 2: Quiz
+        (7, 'quiz', {
+            'title': 'Мини-тест: "Это мой друг" mavzusi',
+            'bar_color': '#6a4c93',
+            'questions': [
+                {
+                    'q': '1. "Что это?" нинг маъноси?',
+                    'options': ['Bu kim?', 'Bu nima?', 'Qaysi?', 'Qachon?'],
+                    'correct': 1
+                },
+                {
+                    'q': '2. "Мой" сўзининг маъноси?',
+                    'options': ['sening', 'mening', 'bizning', 'ularning'],
+                    'correct': 1
+                },
+                {
+                    'q': '3. "Это моя подруга" ўнинг маъноси?',
+                    'options': ['Bu mening do\'stim (erkak)', 'Bu mening do\'stim (ayol)', 'Bu mening hamkasbim', 'Bu mening o\'qituvchim'],
+                    'correct': 1
+                },
+                {
+                    'q': '4. "Очень приятно" қай вақтда айтилади?',
+                    'options': ['Xatora qilganda', 'Kimsa bilan tanishganda', 'Xuddi bo\'lganda', 'Raqs qilayotganda'],
+                    'correct': 1
+                },
+                {
+                    'q': '5. "Здравствуйте" кайси шакли сўз?',
+                    'options': ['Notasmiy salom', 'Rasmiy salom', 'Shaxsiy salom', 'Jinniy salom'],
+                    'correct': 1
+                },
+            ]
+        }),
+        
+        # Vocab timer
+        (8, 'vocab_timer', {
+            'title': 'Луғат вақти: Биргалик сўзларни ёдлаб олинг (120 сония)',
+            'timer_sec': 120,
+            'test_order': 'random',
+            'test_dir': 'random',
+            'items': [
+                {'ru': 'мой', 'uz': 'mening (erkak)'},
+                {'ru': 'моя', 'uz': 'mening (ayol)'},
+                {'ru': 'моё', 'uz': 'mening (jansiz)'},
+                {'ru': 'мои', 'uz': 'mening (ko\'p)'},
+                {'ru': 'твой', 'uz': 'sening (erkak)'},
+                {'ru': 'твоя', 'uz': 'sening (ayol)'},
+                {'ru': 'твоё', 'uz': 'sening (jansiz)'},
+                {'ru': 'твои', 'uz': 'sening (ko\'p)'},
+                {'ru': 'друг', 'uz': 'do\'st'},
+                {'ru': 'подруга', 'uz': 'do\'st (ayol)'},
+                {'ru': 'очень приятно', 'uz': 'juda xursand'},
+                {'ru': 'мне тоже', 'uz': 'men ham'},
+            ]
+        }),
+    ]
+    
+    for order, btype, bdata in blocks_data_2:
+        b = Block(lesson_id=lesson2.id, type=btype, order=order,
+                  data=json.dumps(bdata, ensure_ascii=False))
+        db.session.add(b)
+    
+    db.session.commit()
 
 # ─── API: Rol (session) ───────────────────────────────────────────────────────
 
