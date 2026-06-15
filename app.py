@@ -5,7 +5,11 @@ import json, os, copy
 
 app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{BASE_DIR}/data/langlearn.db'
+DATA_DIR   = os.path.join(BASE_DIR, 'data')
+AUDIO_DIR  = os.path.join(BASE_DIR, 'static', 'audio')
+IMAGE_DIR  = os.path.join(BASE_DIR, 'static', 'img')
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DATA_DIR}/langlearn.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'langlearn-secret-2024'
 
@@ -50,10 +54,11 @@ class StudentProgress(db.Model):
 # ─── Init DB ──────────────────────────────────────────────────────────────────
 
 def init_db():
-    os.makedirs('data', exist_ok=True)
+    os.makedirs(DATA_DIR, exist_ok=True)
     with app.app_context():
         db.create_all()
-        if Lesson.query.count() == 0:
+        count = db.session.execute(db.select(db.func.count()).select_from(Lesson)).scalar()
+        if count == 0:
             seed_demo()
 
 def seed_demo():
@@ -143,7 +148,7 @@ def seed_demo():
 
 @app.route('/api/lessons', methods=['GET'])
 def get_lessons():
-    lessons = Lesson.query.order_by(Lesson.order).all()
+    lessons = db.session.execute(db.select(Lesson).order_by(Lesson.order)).scalars().all()
     return jsonify([{
         'id': l.id, 'title': l.title, 'subtitle': l.subtitle,
         'order': l.order, 'block_count': len(l.blocks)
@@ -152,16 +157,18 @@ def get_lessons():
 @app.route('/api/lessons', methods=['POST'])
 def create_lesson():
     d = request.json
-    max_order = db.session.query(db.func.max(Lesson.order)).scalar() or 0
-    lesson = Lesson(title=d['title'], subtitle=d.get('subtitle',''),
-                    order=max_order+1)
+    max_order = db.session.execute(db.select(db.func.max(Lesson.order))).scalar() or 0
+    lesson = Lesson(title=d['title'], subtitle=d.get('subtitle', ''),
+                    order=max_order + 1)
     db.session.add(lesson)
     db.session.commit()
     return jsonify({'id': lesson.id, 'title': lesson.title})
 
 @app.route('/api/lessons/<int:lid>', methods=['PUT'])
 def update_lesson(lid):
-    lesson = Lesson.query.get_or_404(lid)
+    lesson = db.session.get(Lesson, lid)
+    if not lesson:
+        return jsonify({'error': 'Not found'}), 404
     d = request.json
     if 'title' in d: lesson.title = d['title']
     if 'subtitle' in d: lesson.subtitle = d['subtitle']
@@ -170,17 +177,21 @@ def update_lesson(lid):
 
 @app.route('/api/lessons/<int:lid>', methods=['DELETE'])
 def delete_lesson(lid):
-    lesson = Lesson.query.get_or_404(lid)
+    lesson = db.session.get(Lesson, lid)
+    if not lesson:
+        return jsonify({'error': 'Not found'}), 404
     db.session.delete(lesson)
     db.session.commit()
     return jsonify({'ok': True})
 
 @app.route('/api/lessons/<int:lid>/duplicate', methods=['POST'])
 def duplicate_lesson(lid):
-    orig = Lesson.query.get_or_404(lid)
-    max_order = db.session.query(db.func.max(Lesson.order)).scalar() or 0
+    orig = db.session.get(Lesson, lid)
+    if not orig:
+        return jsonify({'error': 'Not found'}), 404
+    max_order = db.session.execute(db.select(db.func.max(Lesson.order))).scalar() or 0
     new_l = Lesson(title=orig.title + ' (копия)', subtitle=orig.subtitle,
-                   order=max_order+1)
+                   order=max_order + 1)
     db.session.add(new_l)
     db.session.flush()
     for b in orig.blocks:
@@ -193,18 +204,21 @@ def duplicate_lesson(lid):
 
 @app.route('/api/lessons/<int:lid>/blocks', methods=['GET'])
 def get_blocks(lid):
-    blocks = Block.query.filter_by(lesson_id=lid).order_by(Block.order).all()
+    blocks = db.session.execute(
+        db.select(Block).filter_by(lesson_id=lid).order_by(Block.order)
+    ).scalars().all()
     return jsonify([b.to_dict() for b in blocks])
 
 @app.route('/api/blocks', methods=['POST'])
 def create_block():
     d = request.json
-    max_order = db.session.query(db.func.max(Block.order))\
-                  .filter(Block.lesson_id==d['lesson_id']).scalar() or 0
+    max_order = db.session.execute(
+        db.select(db.func.max(Block.order)).where(Block.lesson_id == d['lesson_id'])
+    ).scalar() or 0
     block = Block(
         lesson_id = d['lesson_id'],
         type      = d['type'],
-        order     = d.get('order', max_order+1),
+        order     = d.get('order', max_order + 1),
         data      = json.dumps(d.get('data', {}), ensure_ascii=False)
     )
     db.session.add(block)
@@ -213,7 +227,9 @@ def create_block():
 
 @app.route('/api/blocks/<int:bid>', methods=['PUT'])
 def update_block(bid):
-    block = Block.query.get_or_404(bid)
+    block = db.session.get(Block, bid)
+    if not block:
+        return jsonify({'error': 'Not found'}), 404
     d = request.json
     if 'data' in d:
         block.data = json.dumps(d['data'], ensure_ascii=False)
@@ -224,7 +240,9 @@ def update_block(bid):
 
 @app.route('/api/blocks/<int:bid>', methods=['DELETE'])
 def delete_block(bid):
-    block = Block.query.get_or_404(bid)
+    block = db.session.get(Block, bid)
+    if not block:
+        return jsonify({'error': 'Not found'}), 404
     db.session.delete(block)
     db.session.commit()
     return jsonify({'ok': True})
@@ -233,7 +251,9 @@ def delete_block(bid):
 def reorder_blocks():
     items = request.json  # [{id, order}, ...]
     for item in items:
-        Block.query.filter_by(id=item['id']).update({'order': item['order']})
+        block = db.session.get(Block, item['id'])
+        if block:
+            block.order = item['order']
     db.session.commit()
     return jsonify({'ok': True})
 
@@ -241,14 +261,19 @@ def reorder_blocks():
 
 @app.route('/api/progress/<int:bid>', methods=['GET'])
 def get_progress(bid):
-    p = StudentProgress.query.filter_by(block_id=bid).first()
-    if not p: return jsonify({'answers': {}, 'score': 0})
+    p = db.session.execute(
+        db.select(StudentProgress).filter_by(block_id=bid)
+    ).scalar_one_or_none()
+    if not p:
+        return jsonify({'answers': {}, 'score': 0})
     return jsonify({'answers': json.loads(p.answers), 'score': p.score})
 
 @app.route('/api/progress/<int:bid>', methods=['POST'])
 def save_progress(bid):
     d = request.json
-    p = StudentProgress.query.filter_by(block_id=bid).first()
+    p = db.session.execute(
+        db.select(StudentProgress).filter_by(block_id=bid)
+    ).scalar_one_or_none()
     if not p:
         p = StudentProgress(block_id=bid)
         db.session.add(p)
@@ -257,37 +282,37 @@ def save_progress(bid):
     db.session.commit()
     return jsonify({'ok': True})
 
-# ─── Upload audio ─────────────────────────────────────────────────────────────
+# ─── Upload audio / image ─────────────────────────────────────────────────────
 
 @app.route('/api/upload/audio', methods=['POST'])
 def upload_audio():
     f = request.files.get('file')
-    if not f: return jsonify({'error': 'no file'}), 400
-    os.makedirs('static/audio', exist_ok=True)
+    if not f:
+        return jsonify({'error': 'no file'}), 400
+    os.makedirs(AUDIO_DIR, exist_ok=True)
     fname = f'{datetime.utcnow().timestamp()}_{f.filename}'
-    path = f'static/audio/{fname}'
-    f.save(path)
+    f.save(os.path.join(AUDIO_DIR, fname))
     return jsonify({'url': f'/static/audio/{fname}'})
 
 @app.route('/api/upload/image', methods=['POST'])
 def upload_image():
     f = request.files.get('file')
-    if not f: return jsonify({'error': 'no file'}), 400
-    os.makedirs('static/img', exist_ok=True)
+    if not f:
+        return jsonify({'error': 'no file'}), 400
+    os.makedirs(IMAGE_DIR, exist_ok=True)
     fname = f'{datetime.utcnow().timestamp()}_{f.filename}'
-    path = f'static/img/{fname}'
-    f.save(path)
+    f.save(os.path.join(IMAGE_DIR, fname))
     return jsonify({'url': f'/static/img/{fname}'})
 
 # ─── Pages ────────────────────────────────────────────────────────────────────
 
 @app.route('/')
 def index():
-    return send_from_directory('templates', 'index.html')
+    return send_from_directory(BASE_DIR, 'index.html')
 
 @app.route('/static/<path:filename>')
 def static_files(filename):
-    return send_from_directory('static', filename)
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), filename)
 
 if __name__ == '__main__':
     init_db()
