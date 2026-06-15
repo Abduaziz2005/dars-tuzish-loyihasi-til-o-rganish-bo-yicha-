@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify, send_from_directory, session
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta
 import json, os, copy, base64, zlib, hashlib, secrets
 from sqlalchemy import or_, and_
 
@@ -13,20 +13,14 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{BASE_DIR}/data/langlearn.db
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'langlearn-secret-2024'
 
-# O'qituvchi paroli — SHA-256 hash of '200519992806'
 TEACHER_PASS_HASH = hashlib.sha256(b'200519992806').hexdigest()
-
-# .urok fayl magic bytes
 UROK_MAGIC   = b'UROKFILE'
 UROK_VERSION = 2
-
-# ─── Shifrlash yordamchilari ──────────────────────────────────────────────────
 
 def _xor_bytes(data: bytes, key: bytes) -> bytes:
     return bytes(b ^ key[i % len(key)] for i, b in enumerate(data))
 
 def encode_urok(payload: dict) -> str:
-    """dict → shifrlangan base64 string (.urok fayl ichiga yoziladi)"""
     raw        = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
     compressed = zlib.compress(raw, level=9)
     key        = b'LangLearn2024xK9'
@@ -35,7 +29,6 @@ def encode_urok(payload: dict) -> str:
     return base64.b64encode(final).decode('ascii')
 
 def decode_urok(b64_str: str) -> dict:
-    """shifrlangan base64 string → dict"""
     try:
         raw = base64.b64decode(b64_str.strip())
     except Exception:
@@ -53,58 +46,137 @@ def decode_urok(b64_str: str) -> dict:
 db = SQLAlchemy(app)
 
 class User(db.Model):
-    """Talaba / O'qituvchi"""
     id         = db.Column(db.Integer, primary_key=True)
     name       = db.Column(db.String(200), nullable=False)
     email      = db.Column(db.String(200), unique=True, nullable=False)
-    role       = db.Column(db.String(20), default='student')  # 'student' yoki 'teacher'
+    role       = db.Column(db.String(20), default='student')
     is_blocked = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationships
     chat_messages = db.relationship('ChatMessage', backref='user', lazy=True, cascade='all, delete-orphan')
     groups = db.relationship('Group', secondary='group_members', backref='members')
     created_groups = db.relationship('Group', backref='created_by_user', foreign_keys='Group.created_by')
+    announcements = db.relationship('Announcement', backref='created_by_user', foreign_keys='Announcement.created_by')
+    attendance = db.relationship('Attendance', backref='user', lazy=True, cascade='all, delete-orphan')
+    resources = db.relationship('Resource', backref='uploaded_by_user', foreign_keys='Resource.uploaded_by')
+    videos = db.relationship('Video', backref='uploaded_by_user', foreign_keys='Video.uploaded_by')
+    video_progress = db.relationship('VideoProgress', backref='user', lazy=True, cascade='all, delete-orphan')
+    announcements_read = db.relationship('AnnouncementRead', backref='user', lazy=True, cascade='all, delete-orphan')
+
+group_members = db.Table('group_members',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('group_id', db.Integer, db.ForeignKey('group.id'), primary_key=True)
+)
 
 class Group(db.Model):
-    """O'quvchilar guruhi"""
     id         = db.Column(db.Integer, primary_key=True)
     name       = db.Column(db.String(200), nullable=False)
     description = db.Column(db.String(500), default='')
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationships
     messages = db.relationship('ChatMessage', backref='group', lazy=True, cascade='all, delete-orphan')
-
-# Association table for group members
-group_members = db.Table('group_members',
-    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
-    db.Column('group_id', db.Integer, db.ForeignKey('group.id'), primary_key=True)
-)
+    schedules = db.relationship('Schedule', backref='group', lazy=True, cascade='all, delete-orphan')
+    announcements = db.relationship('Announcement', backref='group', lazy=True, cascade='all, delete-orphan')
 
 class ChatMessage(db.Model):
-    """Chat xabarlari"""
     id         = db.Column(db.Integer, primary_key=True)
     user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     text       = db.Column(db.Text, nullable=False)
-    
-    # Chat turi: 'personal' (1-1), 'group' (guruh), 'global' (hamma)
-    chat_type  = db.Column(db.String(20), default='global')  
-    
-    # Receiver (personal chat uchun)
+    chat_type  = db.Column(db.String(20), default='global')
     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    
-    # Group (group chat uchun)
     group_id   = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)
-    
-    # Blok qilganlar
-    blocked_for_users = db.Column(db.Text, default='{}')  # JSON: {user_id: True, ...}
-    
+    blocked_for_users = db.Column(db.Text, default='{}')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    receiver = db.relationship('User', foreign_keys=[receiver_id])
+
+# ─── NEW: Announcement System ────────────────────��─────────────────────
+
+class Announcement(db.Model):
+    """O'qituvchining elomlari"""
+    id         = db.Column(db.Integer, primary_key=True)
+    group_id   = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title      = db.Column(db.String(300), nullable=False)
+    content    = db.Column(db.Text, nullable=False)
+    is_pinned  = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationship
-    receiver = db.relationship('User', foreign_keys=[receiver_id])
+    read_by = db.relationship('AnnouncementRead', backref='announcement', lazy=True, cascade='all, delete-orphan')
+
+class AnnouncementRead(db.Model):
+    """Talaba elon o'qidi yoki yo'q"""
+    id             = db.Column(db.Integer, primary_key=True)
+    announcement_id = db.Column(db.Integer, db.ForeignKey('announcement.id'), nullable=False)
+    user_id        = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    read_at        = db.Column(db.DateTime, default=datetime.utcnow)
+
+# ─── NEW: Schedule & Calendar ──────────────────────────────────────────
+
+class Schedule(db.Model):
+    """Dars jadavali, topshiriq muddati, testlar"""
+    id         = db.Column(db.Integer, primary_key=True)
+    group_id   = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
+    title      = db.Column(db.String(300), nullable=False)
+    description = db.Column(db.Text, default='')
+    event_type = db.Column(db.String(50), default='lesson')  # 'lesson', 'assignment', 'test', 'meeting'
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time   = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# ─── NEW: Resource Library ──────────────────────────────────────────
+
+class Resource(db.Model):
+    """PDF, E-books, va boshqa resurslar"""
+    id         = db.Column(db.Integer, primary_key=True)
+    group_id   = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title      = db.Column(db.String(300), nullable=False)
+    description = db.Column(db.Text, default='')
+    file_url   = db.Column(db.String(500), nullable=False)
+    file_type  = db.Column(db.String(50))  # 'pdf', 'doc', 'video', 'audio', 'link'
+    file_size  = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# ─── NEW: Attendance Tracking ──────────────────────────────────────────
+
+class Attendance(db.Model):
+    """Darsga qatnashish"""
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    group_id   = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
+    status     = db.Column(db.String(20), default='present')  # 'present', 'absent', 'late', 'excused'
+    date       = db.Column(db.Date, nullable=False)
+    notes      = db.Column(db.String(500), default='')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# ─── NEW: Video Hosting & Streaming ────────────────────────────────────
+
+class Video(db.Model):
+    """Dars videolari"""
+    id         = db.Column(db.Integer, primary_key=True)
+    group_id   = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title      = db.Column(db.String(300), nullable=False)
+    description = db.Column(db.Text, default='')
+    video_url  = db.Column(db.String(500), nullable=False)
+    duration   = db.Column(db.Integer, default=0)  # soniyada
+    thumbnail  = db.Column(db.String(500), default='')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    progress = db.relationship('VideoProgress', backref='video', lazy=True, cascade='all, delete-orphan')
+
+class VideoProgress(db.Model):
+    """Video ko'rish progres (qaydan ko'rdi)"""
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    video_id   = db.Column(db.Integer, db.ForeignKey('video.id'), nullable=False)
+    current_time = db.Column(db.Integer, default=0)  # soniyada
+    is_completed = db.Column(db.Boolean, default=False)
+    watch_time = db.Column(db.Integer, default=0)  # umumiy ko'rish vaqti
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# ─── Existing Models ──────────────────────────────────────────────────
 
 class Lesson(db.Model):
     id         = db.Column(db.Integer, primary_key=True)
@@ -112,9 +184,7 @@ class Lesson(db.Model):
     subtitle   = db.Column(db.String(200), default='')
     order      = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    blocks     = db.relationship('Block', backref='lesson', lazy=True,
-                                 cascade='all, delete-orphan',
-                                 order_by='Block.order')
+    blocks     = db.relationship('Block', backref='lesson', lazy=True, cascade='all, delete-orphan', order_by='Block.order')
 
 class Block(db.Model):
     id         = db.Column(db.Integer, primary_key=True)
@@ -162,59 +232,26 @@ def init_db():
             seed_demo()
 
 def seed_demo():
-    # Dars 1: СТУДЕНТ!
     lesson1 = Lesson(title='Дарс 1: СТУДЕНТ!', subtitle='A1', order=1)
     db.session.add(lesson1)
     db.session.flush()
-
-    blocks_data_1 = [
-        (0, 'heading', {'text': 'СТУДЕНТ! Salomlashish va Tanishish', 'level': 1, 'color': '#e63946', 'bg': ''}),
-        (1, 'hr', {'color': '#e63946'}),
-        (2, 'listening', {
-            'title': '👂 Tinglash Mashqlari: Salomlashish',
-            'questions': [
-                {
-                    'audio': '',
-                    'question': '1. Odamning ismi kimdir?',
-                    'options': ['Anton', 'Natasha', 'Petr', 'Elena'],
-                    'correct': 1
-                }
-            ]
-        }),
-        (3, 'vocab', {
-            'title': 'Янги сўзлар (Новые слова)', 'bar_color': '#457b9d',
-            'items': [
-                {'ru': 'Привет!', 'uz': 'Salom!', 'audio': ''},
-                {'ru': 'Добрый день!', 'uz': 'Xayrli kun!', 'audio': ''},
-            ]
-        }),
-    ]
-    
-    for order, btype, bdata in blocks_data_1:
-        b = Block(lesson_id=lesson1.id, type=btype, order=order,
-                  data=json.dumps(bdata, ensure_ascii=False))
-        db.session.add(b)
-    
     db.session.commit()
 
-# ─── API: User Registration/Login ──────────────────────────────────────
+# ─── API: User ────────────────────────────────────────────────────────
 
 @app.route('/api/user/register', methods=['POST'])
 def register_user():
-    """Yangi foydalanuvchi ro'yxatdan o'tish"""
     d = request.json or {}
     name = d.get('name', 'Noma\'lum')
     email = d.get('email', f'user_{secrets.token_hex(4)}@example.com')
-    role = d.get('role', 'student')  # 'student' yoki 'teacher'
+    role = d.get('role', 'student')
     password = d.get('password', '')
     
-    # O'qituvchi bo'lish uchun parol tekshirish
     if role == 'teacher':
         pwd_hash = hashlib.sha256(password.encode()).hexdigest()
         if pwd_hash != TEACHER_PASS_HASH:
             return jsonify({'ok': False, 'error': 'O\'qituvchi paroli noto\'g\'ri'}), 401
     
-    # Mavjud foydalanuvchi tekshirish
     if User.query.filter_by(email=email).first():
         return jsonify({'ok': False, 'error': 'Email allaqachon ro\'yxatdan o\'tgan'}), 400
     
@@ -225,16 +262,10 @@ def register_user():
     session['user_id'] = user.id
     session['role'] = role
     
-    return jsonify({
-        'ok': True,
-        'user_id': user.id,
-        'name': user.name,
-        'role': user.role
-    })
+    return jsonify({'ok': True, 'user_id': user.id, 'name': user.name, 'role': user.role})
 
 @app.route('/api/user/login', methods=['POST'])
 def login_user():
-    """Foydalanuvchi kirish"""
     d = request.json or {}
     email = d.get('email', '')
     
@@ -248,16 +279,10 @@ def login_user():
     session['user_id'] = user.id
     session['role'] = user.role
     
-    return jsonify({
-        'ok': True,
-        'user_id': user.id,
-        'name': user.name,
-        'role': user.role
-    })
+    return jsonify({'ok': True, 'user_id': user.id, 'name': user.name, 'role': user.role})
 
 @app.route('/api/user/me', methods=['GET'])
 def get_current_user():
-    """Hozirgi foydalanuvchi ma'lumotlari"""
     user_id = session.get('user_id')
     if not user_id:
         return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
@@ -267,31 +292,23 @@ def get_current_user():
         return jsonify({'ok': False, 'error': 'Foydalanuvchi topilmadi'}), 404
     
     return jsonify({
-        'id': user.id,
-        'name': user.name,
-        'email': user.email,
-        'role': user.role,
-        'is_blocked': user.is_blocked
+        'id': user.id, 'name': user.name, 'email': user.email,
+        'role': user.role, 'is_blocked': user.is_blocked
     })
 
 # ─── API: Groups ──────────────────────────────────────────────────────
 
 @app.route('/api/groups', methods=['GET'])
 def get_groups():
-    """Barcha guruhlar"""
     groups = Group.query.all()
     return jsonify([{
-        'id': g.id,
-        'name': g.name,
-        'description': g.description,
-        'created_by': g.created_by,
-        'member_count': len(g.members),
+        'id': g.id, 'name': g.name, 'description': g.description,
+        'created_by': g.created_by, 'member_count': len(g.members),
         'created_at': g.created_at.strftime('%Y-%m-%d %H:%M')
     } for g in groups])
 
 @app.route('/api/groups', methods=['POST'])
 def create_group():
-    """Yangi guruh tashkil etish (faqat o'qituvchi)"""
     user_id = session.get('user_id')
     if not user_id:
         return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
@@ -308,23 +325,17 @@ def create_group():
     db.session.add(group)
     db.session.commit()
     
-    return jsonify({
-        'ok': True,
-        'id': group.id,
-        'name': group.name,
-        'created_at': group.created_at.strftime('%Y-%m-%d %H:%M')
-    })
+    return jsonify({'ok': True, 'id': group.id, 'name': group.name})
 
 @app.route('/api/groups/<int:gid>/add-members', methods=['POST'])
 def add_group_members(gid):
-    """Guruhga o'quvchilarni qo'shish (faqat o'qituvchi)"""
     user_id = session.get('user_id')
     if not user_id:
         return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
     
     group = Group.query.get_or_404(gid)
     if group.created_by != user_id:
-        return jsonify({'ok': False, 'error': 'Faqat guruh yaratuvchi o\'quvchilar qo\'sha oladi'}), 403
+        return jsonify({'ok': False, 'error': 'Ruxsat etilmagan'}), 403
     
     d = request.json or {}
     student_ids = d.get('student_ids', [])
@@ -335,238 +346,382 @@ def add_group_members(gid):
             group.members.append(student)
     
     db.session.commit()
-    
-    return jsonify({
-        'ok': True,
-        'member_count': len(group.members)
-    })
+    return jsonify({'ok': True, 'member_count': len(group.members)})
 
-@app.route('/api/groups/<int:gid>/members', methods=['GET'])
-def get_group_members(gid):
-    """Guruh a'zolari"""
-    group = Group.query.get_or_404(gid)
-    return jsonify([{
-        'id': m.id,
-        'name': m.name,
-        'email': m.email,
-        'role': m.role
-    } for m in group.members])
+# ─── API: Announcements ───────────────────────────────────────────────
 
-# ─── API: Chat System ──────────────────────────────────────────────────────
-
-@app.route('/api/chat/messages', methods=['GET'])
-def get_chat_messages():
-    """Chat xabarlarini olish"""
-    user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
-    
-    chat_type = request.args.get('chat_type', 'global')  # 'global', 'group', 'personal'
-    group_id = request.args.get('group_id', None)
-    receiver_id = request.args.get('receiver_id', None)
-    limit = int(request.args.get('limit', 100))
-    
-    query = ChatMessage.query
-    
-    if chat_type == 'global':
-        # Hamma uchun chat
-        query = query.filter_by(chat_type='global')
-    elif chat_type == 'group' and group_id:
-        # Guruh chati
-        query = query.filter_by(chat_type='group', group_id=int(group_id))
-    elif chat_type == 'personal' and receiver_id:
-        # Personal 1-1 chat
-        query = query.filter_by(chat_type='personal').filter(
-            or_(
-                and_(ChatMessage.user_id == user_id, ChatMessage.receiver_id == int(receiver_id)),
-                and_(ChatMessage.user_id == int(receiver_id), ChatMessage.receiver_id == user_id)
-            )
-        )
-    
-    messages = query.order_by(ChatMessage.created_at.desc()).limit(limit).all()
-    messages.reverse()  # Qadimagi xabarlar birinchi
-    
-    result = []
-    for msg in messages:
-        # Blok qilganlarni tekshirish
-        blocked_data = json.loads(msg.blocked_for_users or '{}')
-        if str(user_id) in blocked_data:
-            continue  # Bu xabar bu foydalanuvchi uchun blok qilingan
-        
-        result.append({
-            'id': msg.id,
-            'user_id': msg.user_id,
-            'user_name': msg.user.name if msg.user else 'Noma\'lum',
-            'text': msg.text,
-            'chat_type': msg.chat_type,
-            'group_id': msg.group_id,
-            'created_at': msg.created_at.strftime('%Y-%m-%d %H:%M:%S')
-        })
-    
-    return jsonify(result)
-
-@app.route('/api/chat/send', methods=['POST'])
-def send_message():
-    """Xabar yuborish"""
-    user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
-    
-    user = User.query.get(user_id)
-    if user.is_blocked:
-        return jsonify({'ok': False, 'error': 'Siz blok qilingansiz'}), 403
-    
-    d = request.json or {}
-    text = d.get('text', '').strip()
-    if not text:
-        return jsonify({'ok': False, 'error': 'Xabar boʻsh bolishi mumkin emas'}), 400
-    
-    chat_type = d.get('chat_type', 'global')  # 'global', 'group', 'personal'
-    group_id = d.get('group_id', None)
-    receiver_id = d.get('receiver_id', None)
-    
-    msg = ChatMessage(
-        user_id=user_id,
-        text=text,
-        chat_type=chat_type,
-        group_id=group_id,
-        receiver_id=receiver_id
-    )
-    db.session.add(msg)
-    db.session.commit()
-    
-    return jsonify({
-        'ok': True,
-        'id': msg.id,
-        'created_at': msg.created_at.strftime('%Y-%m-%d %H:%M:%S')
-    })
-
-@app.route('/api/chat/block/<int:msg_id>', methods=['POST'])
-def block_message(msg_id):
-    """Xabarni o'zingiz uchun yashirish"""
-    user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
-    
-    msg = ChatMessage.query.get_or_404(msg_id)
-    
-    blocked_data = json.loads(msg.blocked_for_users or '{}')
-    blocked_data[str(user_id)] = True
-    
-    msg.blocked_for_users = json.dumps(blocked_data)
-    db.session.commit()
-    
-    return jsonify({'ok': True})
-
-@app.route('/api/chat/delete/<int:msg_id>', methods=['DELETE'])
-def delete_message(msg_id):
-    """Xabarni o'chirish (faqat xabar yozuvchi yoki o'qituvchi)"""
-    user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
-    
-    msg = ChatMessage.query.get_or_404(msg_id)
-    user = User.query.get(user_id)
-    
-    # Faqat xabar yozuvchi yoki o'qituvchi o'chira oladi
-    if msg.user_id != user_id and user.role != 'teacher':
-        return jsonify({'ok': False, 'error': 'Ruxsat etilmagan'}), 403
-    
-    db.session.delete(msg)
-    db.session.commit()
-    
-    return jsonify({'ok': True})
-
-@app.route('/api/chat/user-block/<int:blocked_user_id>', methods=['POST'])
-def block_user(blocked_user_id):
-    """Foydalanuvchini blok qilish (faqat o'qituvchi)"""
+@app.route('/api/announcements', methods=['POST'])
+def create_announcement():
+    """O'qituvchi elon beradi"""
     user_id = session.get('user_id')
     if not user_id:
         return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
     
     user = User.query.get(user_id)
     if user.role != 'teacher':
-        return jsonify({'ok': False, 'error': 'Faqat o\'qituvchi foydalanuvchilarni blok qila oladi'}), 403
+        return jsonify({'ok': False, 'error': 'Faqat o\'qituvchi elon bera oladi'}), 403
     
-    blocked_user = User.query.get_or_404(blocked_user_id)
-    blocked_user.is_blocked = True
+    d = request.json or {}
+    group_id = d.get('group_id')
+    title = d.get('title', '')
+    content = d.get('content', '')
+    
+    if not title or not content:
+        return jsonify({'ok': False, 'error': 'Sarlavha va mazmun talab'}), 400
+    
+    announcement = Announcement(
+        group_id=group_id,
+        created_by=user_id,
+        title=title,
+        content=content
+    )
+    db.session.add(announcement)
     db.session.commit()
     
-    return jsonify({'ok': True, 'message': f'{blocked_user.name} blok qilingan'})
+    return jsonify({'ok': True, 'id': announcement.id})
 
-@app.route('/api/chat/users', methods=['GET'])
-def get_all_users():
-    """Barcha foydalanuvchilar"""
-    users = User.query.all()
-    return jsonify([{
-        'id': u.id,
-        'name': u.name,
-        'email': u.email,
-        'role': u.role,
-        'is_blocked': u.is_blocked
-    } for u in users])
-
-# ─── API: Lessons ────────────────────────────────────────────────────────
-
-@app.route('/api/lessons', methods=['GET'])
-def get_lessons():
-    lessons = Lesson.query.order_by(Lesson.order).all()
-    return jsonify([{
-        'id': l.id, 'title': l.title, 'subtitle': l.subtitle,
-        'order': l.order, 'block_count': len(l.blocks)
-    } for l in lessons])
-
-@app.route('/api/lessons/<int:lid>/blocks', methods=['GET'])
-def get_blocks(lid):
-    blocks = Block.query.filter_by(lesson_id=lid).order_by(Block.order).all()
-    return jsonify([b.to_dict() for b in blocks])
-
-# ─── API: Progress ────────────────────────────────────────────────────────
-
-@app.route('/api/progress/dashboard', methods=['GET'])
-def get_progress_dashboard():
-    """Progress dashboard"""
-    lessons = Lesson.query.order_by(Lesson.order).all()
-    dashboard = []
+@app.route('/api/announcements/<int:gid>', methods=['GET'])
+def get_announcements(gid):
+    """Guruh elonlarini olish"""
+    announcements = Announcement.query.filter_by(group_id=gid).order_by(
+        Announcement.is_pinned.desc(),
+        Announcement.created_at.desc()
+    ).all()
     
-    for lesson in lessons:
-        blocks = Block.query.filter_by(lesson_id=lesson.id).all()
-        total_score = 0
-        max_score = 0
-        completed = 0
+    user_id = session.get('user_id')
+    result = []
+    for ann in announcements:
+        read = AnnouncementRead.query.filter_by(
+            announcement_id=ann.id,
+            user_id=user_id
+        ).first() if user_id else None
         
-        for block in blocks:
-            prog = StudentProgress.query.filter_by(block_id=block.id).first()
-            if prog:
-                total_score += prog.score
-                max_score += prog.max_score
-                if prog.completed:
-                    completed += 1
-        
-        dashboard.append({
-            'lesson_id': lesson.id,
-            'title': lesson.title,
-            'subtitle': lesson.subtitle,
-            'total_blocks': len(blocks),
-            'completed_blocks': completed,
-            'score': total_score,
-            'max_score': max_score,
-            'percentage': round(total_score / max_score * 100) if max_score > 0 else 0
+        result.append({
+            'id': ann.id,
+            'title': ann.title,
+            'content': ann.content,
+            'created_by': ann.created_by,
+            'is_pinned': ann.is_pinned,
+            'is_read': bool(read),
+            'created_at': ann.created_at.strftime('%Y-%m-%d %H:%M')
         })
     
-    return jsonify(dashboard)
+    return jsonify(result)
 
-# ─── Upload ──────────────────────────────────────────────────────────
+@app.route('/api/announcements/<int:aid>/read', methods=['POST'])
+def mark_announcement_read(aid):
+    """Elon o'qildi deb belgilash"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
+    
+    existing = AnnouncementRead.query.filter_by(
+        announcement_id=aid,
+        user_id=user_id
+    ).first()
+    
+    if not existing:
+        read = AnnouncementRead(announcement_id=aid, user_id=user_id)
+        db.session.add(read)
+        db.session.commit()
+    
+    return jsonify({'ok': True})
 
-@app.route('/api/upload/audio', methods=['POST'])
-def upload_audio():
-    f = request.files.get('file')
-    if not f: return jsonify({'error': 'no file'}), 400
-    audio_dir = os.path.join(BASE_DIR, 'static', 'audio')
-    os.makedirs(audio_dir, exist_ok=True)
-    fname = f'{datetime.utcnow().timestamp()}_{f.filename}'
-    f.save(os.path.join(audio_dir, fname))
-    return jsonify({'url': f'/static/audio/{fname}'})
+@app.route('/api/announcements/<int:aid>/pin', methods=['POST'])
+def pin_announcement(aid):
+    """Elon qo'l bilan qo'yish"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
+    
+    ann = Announcement.query.get_or_404(aid)
+    if ann.created_by != user_id:
+        return jsonify({'ok': False, 'error': 'Ruxsat etilmagan'}), 403
+    
+    ann.is_pinned = not ann.is_pinned
+    db.session.commit()
+    
+    return jsonify({'ok': True, 'is_pinned': ann.is_pinned})
+
+# ─── API: Schedule & Calendar ─────────────────────────────────────────
+
+@app.route('/api/schedule', methods=['POST'])
+def create_schedule():
+    """Dars jadavali qo'shish"""
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    if not user or user.role != 'teacher':
+        return jsonify({'ok': False, 'error': 'Ruxsat etilmagan'}), 403
+    
+    d = request.json or {}
+    group_id = d.get('group_id')
+    title = d.get('title', '')
+    event_type = d.get('event_type', 'lesson')
+    start_time_str = d.get('start_time', '')
+    end_time_str = d.get('end_time', '')
+    
+    try:
+        start_time = datetime.fromisoformat(start_time_str)
+        end_time = datetime.fromisoformat(end_time_str) if end_time_str else None
+    except:
+        return jsonify({'ok': False, 'error': 'Vaqt formati noto\'g\'ri'}), 400
+    
+    schedule = Schedule(
+        group_id=group_id,
+        title=title,
+        event_type=event_type,
+        start_time=start_time,
+        end_time=end_time
+    )
+    db.session.add(schedule)
+    db.session.commit()
+    
+    return jsonify({'ok': True, 'id': schedule.id})
+
+@app.route('/api/schedule/<int:gid>', methods=['GET'])
+def get_schedule(gid):
+    """Jadovalini olish"""
+    schedules = Schedule.query.filter_by(group_id=gid).order_by(Schedule.start_time).all()
+    
+    return jsonify([{
+        'id': s.id,
+        'title': s.title,
+        'event_type': s.event_type,
+        'start_time': s.start_time.isoformat(),
+        'end_time': s.end_time.isoformat() if s.end_time else None
+    } for s in schedules])
+
+# ─── API: Resource Library ────────────────────────────────────────────
+
+@app.route('/api/resources', methods=['POST'])
+def create_resource():
+    """Resurs qo'shish (PDF, link, va hokazolar)"""
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    if not user or user.role != 'teacher':
+        return jsonify({'ok': False, 'error': 'Ruxsat etilmagan'}), 403
+    
+    d = request.json or {}
+    group_id = d.get('group_id')
+    title = d.get('title', '')
+    file_type = d.get('file_type', 'link')
+    file_url = d.get('file_url', '')
+    description = d.get('description', '')
+    
+    resource = Resource(
+        group_id=group_id,
+        uploaded_by=user_id,
+        title=title,
+        file_type=file_type,
+        file_url=file_url,
+        description=description
+    )
+    db.session.add(resource)
+    db.session.commit()
+    
+    return jsonify({'ok': True, 'id': resource.id})
+
+@app.route('/api/resources/<int:gid>', methods=['GET'])
+def get_resources(gid):
+    """Guruh resurslari"""
+    resources = Resource.query.filter_by(group_id=gid).order_by(Resource.created_at.desc()).all()
+    
+    return jsonify([{
+        'id': r.id,
+        'title': r.title,
+        'description': r.description,
+        'file_type': r.file_type,
+        'file_url': r.file_url,
+        'uploaded_by': r.uploaded_by,
+        'created_at': r.created_at.strftime('%Y-%m-%d %H:%M')
+    } for r in resources])
+
+# ─── API: Attendance Tracking ─────────────────────────────────────────
+
+@app.route('/api/attendance', methods=['POST'])
+def mark_attendance():
+    """Qatnashni belgilash"""
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    if not user or user.role != 'teacher':
+        return jsonify({'ok': False, 'error': 'Ruxsat etilmagan'}), 403
+    
+    d = request.json or {}
+    attendance_data = d.get('attendance', [])  # [{'user_id': 1, 'status': 'present'}, ...]
+    group_id = d.get('group_id')
+    date = d.get('date', datetime.now().date().isoformat())
+    
+    try:
+        date_obj = datetime.fromisoformat(date).date()
+    except:
+        date_obj = datetime.now().date()
+    
+    for item in attendance_data:
+        student_id = item.get('user_id')
+        status = item.get('status', 'present')
+        
+        att = Attendance.query.filter_by(
+            user_id=student_id,
+            group_id=group_id,
+            date=date_obj
+        ).first()
+        
+        if att:
+            att.status = status
+        else:
+            att = Attendance(
+                user_id=student_id,
+                group_id=group_id,
+                status=status,
+                date=date_obj
+            )
+            db.session.add(att)
+    
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/attendance/<int:gid>', methods=['GET'])
+def get_attendance(gid):
+    """Qatnash raporti"""
+    group = Group.query.get_or_404(gid)
+    
+    attendance_records = Attendance.query.filter_by(group_id=gid).order_by(Attendance.date.desc()).all()
+    
+    result = {}
+    for att in attendance_records:
+        if att.user_id not in result:
+            result[att.user_id] = {
+                'user_id': att.user_id,
+                'user_name': att.user.name,
+                'present': 0,
+                'absent': 0,
+                'late': 0
+            }
+        
+        if att.status == 'present':
+            result[att.user_id]['present'] += 1
+        elif att.status == 'absent':
+            result[att.user_id]['absent'] += 1
+        elif att.status == 'late':
+            result[att.user_id]['late'] += 1
+    
+    return jsonify(list(result.values()))
+
+# ─── API: Video Hosting & Streaming ───────────────────────────────────
+
+@app.route('/api/videos', methods=['POST'])
+def upload_video():
+    """Video yuklash"""
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    if not user or user.role != 'teacher':
+        return jsonify({'ok': False, 'error': 'Ruxsat etilmagan'}), 403
+    
+    d = request.json or {}
+    group_id = d.get('group_id')
+    title = d.get('title', '')
+    video_url = d.get('video_url', '')
+    duration = d.get('duration', 0)
+    description = d.get('description', '')
+    
+    video = Video(
+        group_id=group_id,
+        uploaded_by=user_id,
+        title=title,
+        video_url=video_url,
+        duration=duration,
+        description=description
+    )
+    db.session.add(video)
+    db.session.commit()
+    
+    return jsonify({'ok': True, 'id': video.id})
+
+@app.route('/api/videos/<int:gid>', methods=['GET'])
+def get_videos(gid):
+    """Guruh videolari"""
+    videos = Video.query.filter_by(group_id=gid).order_by(Video.created_at.desc()).all()
+    
+    user_id = session.get('user_id')
+    result = []
+    for v in videos:
+        progress = VideoProgress.query.filter_by(
+            user_id=user_id,
+            video_id=v.id
+        ).first() if user_id else None
+        
+        result.append({
+            'id': v.id,
+            'title': v.title,
+            'description': v.description,
+            'video_url': v.video_url,
+            'duration': v.duration,
+            'uploaded_by': v.uploaded_by,
+            'created_at': v.created_at.strftime('%Y-%m-%d %H:%M'),
+            'progress': {
+                'current_time': progress.current_time if progress else 0,
+                'is_completed': progress.is_completed if progress else False,
+                'watch_time': progress.watch_time if progress else 0
+            } if user_id else None
+        })
+    
+    return jsonify(result)
+
+@app.route('/api/video/<int:vid>/progress', methods=['POST'])
+def save_video_progress(vid):
+    """Video ko'rish progres saqlash"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
+    
+    d = request.json or {}
+    current_time = d.get('current_time', 0)
+    watch_time = d.get('watch_time', 0)
+    is_completed = d.get('is_completed', False)
+    
+    progress = VideoProgress.query.filter_by(
+        user_id=user_id,
+        video_id=vid
+    ).first()
+    
+    if progress:
+        progress.current_time = current_time
+        progress.watch_time = watch_time
+        progress.is_completed = is_completed
+        progress.updated_at = datetime.utcnow()
+    else:
+        progress = VideoProgress(
+            user_id=user_id,
+            video_id=vid,
+            current_time=current_time,
+            watch_time=watch_time,
+            is_completed=is_completed
+        )
+        db.session.add(progress)
+    
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/video/<int:vid>/progress', methods=['GET'])
+def get_video_progress(vid):
+    """Video progres olish"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
+    
+    progress = VideoProgress.query.filter_by(
+        user_id=user_id,
+        video_id=vid
+    ).first()
+    
+    if not progress:
+        return jsonify({'current_time': 0, 'is_completed': False, 'watch_time': 0})
+    
+    return jsonify({
+        'current_time': progress.current_time,
+        'is_completed': progress.is_completed,
+        'watch_time': progress.watch_time
+    })
 
 # ─── Pages ──────────────────────────────────────────────────────────
 
