@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, send_from_directory,
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import json, os, copy, base64, zlib, hashlib, secrets
+from sqlalchemy import or_, and_
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -41,7 +42,6 @@ def decode_urok(b64_str: str) -> dict:
         raise ValueError("Base64 decode xatosi")
     if not raw.startswith(UROK_MAGIC):
         raise ValueError("Noto'g'ri fayl formati (magic bytes mos emas)")
-    # version = raw[len(UROK_MAGIC)]  # kelajakda versiya farqlash uchun
     data       = raw[len(UROK_MAGIC) + 1:]
     key        = b'LangLearn2024xK9'
     compressed = _xor_bytes(data, key)
@@ -58,11 +58,53 @@ class User(db.Model):
     name       = db.Column(db.String(200), nullable=False)
     email      = db.Column(db.String(200), unique=True, nullable=False)
     role       = db.Column(db.String(20), default='student')  # 'student' yoki 'teacher'
+    is_blocked = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    chat_messages = db.relationship('ChatMessage', backref='user', lazy=True, cascade='all, delete-orphan')
+    groups = db.relationship('Group', secondary='group_members', backref='members')
+    created_groups = db.relationship('Group', backref='created_by_user', foreign_keys='Group.created_by')
+
+class Group(db.Model):
+    """O'quvchilar guruhi"""
+    id         = db.Column(db.Integer, primary_key=True)
+    name       = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.String(500), default='')
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    messages = db.relationship('ChatMessage', backref='group', lazy=True, cascade='all, delete-orphan')
+
+# Association table for group members
+group_members = db.Table('group_members',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('group_id', db.Integer, db.ForeignKey('group.id'), primary_key=True)
+)
+
+class ChatMessage(db.Model):
+    """Chat xabarlari"""
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    text       = db.Column(db.Text, nullable=False)
+    
+    # Chat turi: 'personal' (1-1), 'group' (guruh), 'global' (hamma)
+    chat_type  = db.Column(db.String(20), default='global')  
+    
+    # Receiver (personal chat uchun)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    
+    # Group (group chat uchun)
+    group_id   = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)
+    
+    # Blok qilganlar
+    blocked_for_users = db.Column(db.Text, default='{}')  # JSON: {user_id: True, ...}
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationship
-    chat_messages = db.relationship('ChatMessage', backref='user', lazy=True, cascade='all, delete-orphan')
-    progress = db.relationship('UserProgress', backref='user', lazy=True, cascade='all, delete-orphan')
+    receiver = db.relationship('User', foreign_keys=[receiver_id])
 
 class Lesson(db.Model):
     id         = db.Column(db.Integer, primary_key=True)
@@ -92,7 +134,6 @@ class Block(db.Model):
         }
 
 class StudentProgress(db.Model):
-    """Talabaning har bir blok uchun progres"""
     id         = db.Column(db.Integer, primary_key=True)
     user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     block_id   = db.Column(db.Integer, db.ForeignKey('block.id'), nullable=False)
@@ -101,21 +142,6 @@ class StudentProgress(db.Model):
     max_score  = db.Column(db.Float, default=100)
     completed  = db.Column(db.Boolean, default=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationship
-    user = db.relationship('User', backref='block_progress')
-    block = db.relationship('Block')
-
-class UserProgress(db.Model):
-    """Talabaning jami taraqqiyoti"""
-    id         = db.Column(db.Integer, primary_key=True)
-    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    lesson_id  = db.Column(db.Integer, db.ForeignKey('lesson.id'), nullable=False)
-    score      = db.Column(db.Float, default=0)
-    max_score  = db.Column(db.Float, default=0)
-    completed  = db.Column(db.Boolean, default=False)
-    started_at = db.Column(db.DateTime, default=datetime.utcnow)
-    completed_at = db.Column(db.DateTime, nullable=True)
 
 class StudentResult(db.Model):
     id           = db.Column(db.Integer, primary_key=True)
@@ -125,16 +151,6 @@ class StudentResult(db.Model):
     max_score    = db.Column(db.Float, default=0)
     answers_json = db.Column(db.Text, default='{}')
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-class ChatMessage(db.Model):
-    """O'qituvchi va talaba o'rtasidagi chat xabar"""
-    id         = db.Column(db.Integer, primary_key=True)
-    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    message    = db.Column(db.Text, nullable=False)
-    message_type = db.Column(db.String(20), default='text')  # 'text', 'file', 'lesson'
-    lesson_id  = db.Column(db.Integer, db.ForeignKey('lesson.id'), nullable=True)
-    is_teacher_reply = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 # ─── Init DB ──────────────────────────────────────────────────────────
 
@@ -146,7 +162,7 @@ def init_db():
             seed_demo()
 
 def seed_demo():
-    # Dars 1: СТУДЕНТ! (Greetings & Introduction - Red Kalinka A1)
+    # Dars 1: СТУДЕНТ!
     lesson1 = Lesson(title='Дарс 1: СТУДЕНТ!', subtitle='A1', order=1)
     db.session.add(lesson1)
     db.session.flush()
@@ -154,8 +170,6 @@ def seed_demo():
     blocks_data_1 = [
         (0, 'heading', {'text': 'СТУДЕНТ! Salomlashish va Tanishish', 'level': 1, 'color': '#e63946', 'bg': ''}),
         (1, 'hr', {'color': '#e63946'}),
-        
-        # Listening Comprehension - NEW
         (2, 'listening', {
             'title': '👂 Tinglash Mashqlari: Salomlashish',
             'questions': [
@@ -164,156 +178,14 @@ def seed_demo():
                     'question': '1. Odamning ismi kimdir?',
                     'options': ['Anton', 'Natasha', 'Petr', 'Elena'],
                     'correct': 1
-                },
-                {
-                    'audio': '',
-                    'question': '2. Gapda "kak dela?" ning ma\'nosi?',
-                    'options': ['Xayr', 'Qanday ekan?', 'Rahmat', 'Salom'],
-                    'correct': 1
                 }
             ]
         }),
-        
-        # Новые слова
         (3, 'vocab', {
             'title': 'Янги сўзлар (Новые слова)', 'bar_color': '#457b9d',
             'items': [
                 {'ru': 'Привет!', 'uz': 'Salom!', 'audio': ''},
-                {'ru': 'Доброе утро!', 'uz': 'Xayrli tong!', 'audio': ''},
                 {'ru': 'Добрый день!', 'uz': 'Xayrli kun!', 'audio': ''},
-                {'ru': 'Добрый вечер!', 'uz': 'Xayrli kech!', 'audio': ''},
-                {'ru': 'тоже', 'uz': 'ham', 'audio': ''},
-                {'ru': 'очень', 'uz': 'juda', 'audio': ''},
-                {'ru': 'Как дела?', 'uz': 'Qalaysan?', 'audio': ''},
-                {'ru': 'Как у тебя дела?', 'uz': 'Sening qalaying?', 'audio': ''},
-                {'ru': 'Как у вас дела?', 'uz': 'Sizning qalaying?', 'audio': ''},
-                {'ru': 'А у тебя?', 'uz': 'Seningcha?', 'audio': ''},
-                {'ru': 'А у вас?', 'uz': 'Sizingcha?', 'audio': ''},
-                {'ru': 'отлично', 'uz': 'juda yaxshi', 'audio': ''},
-                {'ru': 'хорошо - плохо', 'uz': 'yaxshi - yomon', 'audio': ''},
-                {'ru': 'нормально', 'uz': 'oddiy', 'audio': ''},
-                {'ru': 'пока', 'uz': 'xayr', 'audio': ''},
-                {'ru': 'студент', 'uz': 'talaba', 'audio': ''},
-                {'ru': 'студентка', 'uz': 'talaba (ayol)', 'audio': ''},
-                {'ru': 'спасибо', 'uz': 'rahmat', 'audio': ''},
-                {'ru': 'Как вас зовут?', 'uz': 'Ismingiz nima?', 'audio': ''},
-                {'ru': 'Меня зовут...', 'uz': 'Mening ismim...', 'audio': ''},
-                {'ru': 'я', 'uz': 'men', 'audio': ''},
-                {'ru': 'ты', 'uz': 'sen', 'audio': ''},
-                {'ru': 'он', 'uz': 'u', 'audio': ''},
-                {'ru': 'она', 'uz': 'u (ayol)', 'audio': ''},
-                {'ru': 'оно', 'uz': 'u (jansiz)', 'audio': ''},
-                {'ru': 'мы', 'uz': 'biz', 'audio': ''},
-                {'ru': 'вы', 'uz': 'siz', 'audio': ''},
-                {'ru': 'они', 'uz': 'ular', 'audio': ''},
-            ]
-        }),
-        
-        # Диалог 1
-        (4, 'dialog', {
-            'title': 'Диалог 1 (Один - Один): Salomlashish',
-            'lines': [
-                {'speaker': 'A', 'text': 'Привет, Антон!'},
-                {'speaker': 'B', 'text': 'Привёт, Наташа!'},
-                {'speaker': 'A', 'text': 'Как дела?'},
-                {'speaker': 'B', 'text': 'Спасибо, хорошо. А у тебя?'},
-                {'speaker': 'A', 'text': 'Тоже хорошо.'},
-                {'speaker': 'B', 'text': 'Пока.'},
-                {'speaker': 'A', 'text': 'Пока.'},
-            ]
-        }),
-        
-        # Диалог 2
-        (5, 'dialog', {
-            'title': 'Диалог 2 (Два): Rasmiy salomlashish',
-            'lines': [
-                {'speaker': 'A', 'text': 'Привёт, Катя!'},
-                {'speaker': 'B', 'text': 'Доброе утро, Саша!'},
-                {'speaker': 'A', 'text': 'Как дела?'},
-                {'speaker': 'B', 'text': 'Нормально. А у тебя?'},
-                {'speaker': 'A', 'text': 'Тоже нормально.'},
-                {'speaker': 'B', 'text': 'Пока!'},
-                {'speaker': 'A', 'text': 'Пока!'},
-            ]
-        }),
-        
-        # Грамматика: Таблица местоимений
-        (6, 'table', {
-            'title': 'Грамматика: Местоимения (Hamma kelishdagi)',
-            'headers': ['Именительный падеж', 'Винительный падеж (Объект)', 'Перевод на Ўзбекча'],
-            'rows': [
-                ['я', 'меня', 'men'],
-                ['ты', 'тебя', 'sen'],
-                ['он', 'его', 'u (erkak)'],
-                ['она', 'её', 'u (ayol)'],
-                ['оно', 'его', 'u (jansiz)'],
-                ['мы', 'нас', 'biz'],
-                ['вы', 'вас', 'siz'],
-                ['они', 'их', 'ular'],
-            ]
-        }),
-        
-        # Упражнение 1: Заполнение пропусков
-        (7, 'fill_blank', {
-            'title': 'Машқ 1: Сўзни то\'лдириб чиқинг',
-            'bar_color': '#2a9d8f',
-            'instruction': 'Тўғри жавобни танланг:',
-            'items': [
-                {'pre': '- Привет!', 'answer': 'Привет', 'post': '!'},
-                {'pre': '- Как дела?', 'answer': 'Хорошо', 'post': '.'},
-                {'pre': '- Спасибо,', 'answer': 'спасибо', 'post': '. А у тебя?'},
-                {'pre': '- Я студент,', 'answer': 'студентка', 'post': '.'},
-            ]
-        }),
-        
-        # Quiz
-        (8, 'quiz', {
-            'title': 'Мини-тест: Қайси варианти тўғри?',
-            'bar_color': '#6a4c93',
-            'questions': [
-                {
-                    'q': '1. "Привет" нинг маъноси қай варианты тўғри?',
-                    'options': ['Xayrli kech!', 'Salom!', 'Rahmat', 'Xayr'],
-                    'correct': 1
-                },
-                {
-                    'q': '2. Рас шахсий сўзнинг номи (личное местоимение) қайси?',
-                    'options': ['они', 'очень', 'студент', 'спасибо'],
-                    'correct': 0
-                },
-                {
-                    'q': '3. "Добрый день!" қай вақтда айтилади?',
-                    'options': ['Тонг вақтида', 'Kun o\'rtasida', 'Кеч вақтида', 'Туни'],
-                    'correct': 1
-                },
-                {
-                    'q': '4. "Как у вас дела?" - бу қайси шакли сўз?',
-                    'options': ['Rasmiy', 'Notаsmiy', 'Qimosiy', 'Ziyoiy'],
-                    'correct': 0
-                },
-                {
-                    'q': '5. "они" сўзининг маъноси?',
-                    'options': ['u (erkak)', 'biz', 'ular', 'siz'],
-                    'correct': 2
-                },
-            ]
-        }),
-        
-        # Vocab timer
-        (9, 'vocab_timer', {
-            'title': 'Луғат вақти: Сўзларни ёдлаб олинг (120 сония)',
-            'timer_sec': 120,
-            'test_order': 'random',
-            'test_dir': 'random',
-            'items': [
-                {'ru': 'Привет!', 'uz': 'Salom!'},
-                {'ru': 'Доброе утро!', 'uz': 'Xayrli tong!'},
-                {'ru': 'Добрый день!', 'uz': 'Xayrli kun!'},
-                {'ru': 'Добрый вечер!', 'uz': 'Xayrli kech!'},
-                {'ru': 'Как дела?', 'uz': 'Qalaysan?'},
-                {'ru': 'спасибо', 'uz': 'rahmat'},
-                {'ru': 'пока', 'uz': 'xayr'},
-                {'ru': 'студент', 'uz': 'talaba'},
             ]
         }),
     ]
@@ -325,28 +197,314 @@ def seed_demo():
     
     db.session.commit()
 
-# ─── API: Rol (session) ──────────────────────────────────────────────────────
+# ─── API: User Registration/Login ──────────────────────────────────────
 
-@app.route('/api/role', methods=['GET'])
-def get_role():
-    return jsonify({'role': session.get('role', None)})
-
-@app.route('/api/role/set', methods=['POST'])
-def set_role():
+@app.route('/api/user/register', methods=['POST'])
+def register_user():
+    """Yangi foydalanuvchi ro'yxatdan o'tish"""
     d = request.json or {}
-    role = d.get('role', 'student')
+    name = d.get('name', 'Noma\'lum')
+    email = d.get('email', f'user_{secrets.token_hex(4)}@example.com')
+    role = d.get('role', 'student')  # 'student' yoki 'teacher'
+    password = d.get('password', '')
+    
+    # O'qituvchi bo'lish uchun parol tekshirish
     if role == 'teacher':
-        pwd = d.get('password', '')
-        if hashlib.sha256(pwd.encode()).hexdigest() != TEACHER_PASS_HASH:
-            return jsonify({'ok': False, 'error': 'Parol noto\'g\'ri'}), 401
+        pwd_hash = hashlib.sha256(password.encode()).hexdigest()
+        if pwd_hash != TEACHER_PASS_HASH:
+            return jsonify({'ok': False, 'error': 'O\'qituvchi paroli noto\'g\'ri'}), 401
+    
+    # Mavjud foydalanuvchi tekshirish
+    if User.query.filter_by(email=email).first():
+        return jsonify({'ok': False, 'error': 'Email allaqachon ro\'yxatdan o\'tgan'}), 400
+    
+    user = User(name=name, email=email, role=role)
+    db.session.add(user)
+    db.session.commit()
+    
+    session['user_id'] = user.id
     session['role'] = role
-    session.permanent = True
-    return jsonify({'ok': True, 'role': role})
+    
+    return jsonify({
+        'ok': True,
+        'user_id': user.id,
+        'name': user.name,
+        'role': user.role
+    })
 
-@app.route('/api/role/logout', methods=['POST'])
-def logout():
-    session.pop('role', None)
+@app.route('/api/user/login', methods=['POST'])
+def login_user():
+    """Foydalanuvchi kirish"""
+    d = request.json or {}
+    email = d.get('email', '')
+    
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({'ok': False, 'error': 'Foydalanuvchi topilmadi'}), 404
+    
+    if user.is_blocked:
+        return jsonify({'ok': False, 'error': 'Bu foydalanuvchi blok qilingan'}), 403
+    
+    session['user_id'] = user.id
+    session['role'] = user.role
+    
+    return jsonify({
+        'ok': True,
+        'user_id': user.id,
+        'name': user.name,
+        'role': user.role
+    })
+
+@app.route('/api/user/me', methods=['GET'])
+def get_current_user():
+    """Hozirgi foydalanuvchi ma'lumotlari"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'ok': False, 'error': 'Foydalanuvchi topilmadi'}), 404
+    
+    return jsonify({
+        'id': user.id,
+        'name': user.name,
+        'email': user.email,
+        'role': user.role,
+        'is_blocked': user.is_blocked
+    })
+
+# ─── API: Groups ──────────────────────────────────────────────────────
+
+@app.route('/api/groups', methods=['GET'])
+def get_groups():
+    """Barcha guruhlar"""
+    groups = Group.query.all()
+    return jsonify([{
+        'id': g.id,
+        'name': g.name,
+        'description': g.description,
+        'created_by': g.created_by,
+        'member_count': len(g.members),
+        'created_at': g.created_at.strftime('%Y-%m-%d %H:%M')
+    } for g in groups])
+
+@app.route('/api/groups', methods=['POST'])
+def create_group():
+    """Yangi guruh tashkil etish (faqat o'qituvchi)"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
+    
+    user = User.query.get(user_id)
+    if user.role != 'teacher':
+        return jsonify({'ok': False, 'error': 'Faqat o\'qituvchi guruh tashkil eta oladi'}), 403
+    
+    d = request.json or {}
+    name = d.get('name', 'Yangi guruh')
+    description = d.get('description', '')
+    
+    group = Group(name=name, description=description, created_by=user_id)
+    db.session.add(group)
+    db.session.commit()
+    
+    return jsonify({
+        'ok': True,
+        'id': group.id,
+        'name': group.name,
+        'created_at': group.created_at.strftime('%Y-%m-%d %H:%M')
+    })
+
+@app.route('/api/groups/<int:gid>/add-members', methods=['POST'])
+def add_group_members(gid):
+    """Guruhga o'quvchilarni qo'shish (faqat o'qituvchi)"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
+    
+    group = Group.query.get_or_404(gid)
+    if group.created_by != user_id:
+        return jsonify({'ok': False, 'error': 'Faqat guruh yaratuvchi o\'quvchilar qo\'sha oladi'}), 403
+    
+    d = request.json or {}
+    student_ids = d.get('student_ids', [])
+    
+    for sid in student_ids:
+        student = User.query.get(sid)
+        if student and student.role == 'student' and student not in group.members:
+            group.members.append(student)
+    
+    db.session.commit()
+    
+    return jsonify({
+        'ok': True,
+        'member_count': len(group.members)
+    })
+
+@app.route('/api/groups/<int:gid>/members', methods=['GET'])
+def get_group_members(gid):
+    """Guruh a'zolari"""
+    group = Group.query.get_or_404(gid)
+    return jsonify([{
+        'id': m.id,
+        'name': m.name,
+        'email': m.email,
+        'role': m.role
+    } for m in group.members])
+
+# ─── API: Chat System ──────────────────────────────────────────────────────
+
+@app.route('/api/chat/messages', methods=['GET'])
+def get_chat_messages():
+    """Chat xabarlarini olish"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
+    
+    chat_type = request.args.get('chat_type', 'global')  # 'global', 'group', 'personal'
+    group_id = request.args.get('group_id', None)
+    receiver_id = request.args.get('receiver_id', None)
+    limit = int(request.args.get('limit', 100))
+    
+    query = ChatMessage.query
+    
+    if chat_type == 'global':
+        # Hamma uchun chat
+        query = query.filter_by(chat_type='global')
+    elif chat_type == 'group' and group_id:
+        # Guruh chati
+        query = query.filter_by(chat_type='group', group_id=int(group_id))
+    elif chat_type == 'personal' and receiver_id:
+        # Personal 1-1 chat
+        query = query.filter_by(chat_type='personal').filter(
+            or_(
+                and_(ChatMessage.user_id == user_id, ChatMessage.receiver_id == int(receiver_id)),
+                and_(ChatMessage.user_id == int(receiver_id), ChatMessage.receiver_id == user_id)
+            )
+        )
+    
+    messages = query.order_by(ChatMessage.created_at.desc()).limit(limit).all()
+    messages.reverse()  # Qadimagi xabarlar birinchi
+    
+    result = []
+    for msg in messages:
+        # Blok qilganlarni tekshirish
+        blocked_data = json.loads(msg.blocked_for_users or '{}')
+        if str(user_id) in blocked_data:
+            continue  # Bu xabar bu foydalanuvchi uchun blok qilingan
+        
+        result.append({
+            'id': msg.id,
+            'user_id': msg.user_id,
+            'user_name': msg.user.name if msg.user else 'Noma\'lum',
+            'text': msg.text,
+            'chat_type': msg.chat_type,
+            'group_id': msg.group_id,
+            'created_at': msg.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        })
+    
+    return jsonify(result)
+
+@app.route('/api/chat/send', methods=['POST'])
+def send_message():
+    """Xabar yuborish"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
+    
+    user = User.query.get(user_id)
+    if user.is_blocked:
+        return jsonify({'ok': False, 'error': 'Siz blok qilingansiz'}), 403
+    
+    d = request.json or {}
+    text = d.get('text', '').strip()
+    if not text:
+        return jsonify({'ok': False, 'error': 'Xabar boʻsh bolishi mumkin emas'}), 400
+    
+    chat_type = d.get('chat_type', 'global')  # 'global', 'group', 'personal'
+    group_id = d.get('group_id', None)
+    receiver_id = d.get('receiver_id', None)
+    
+    msg = ChatMessage(
+        user_id=user_id,
+        text=text,
+        chat_type=chat_type,
+        group_id=group_id,
+        receiver_id=receiver_id
+    )
+    db.session.add(msg)
+    db.session.commit()
+    
+    return jsonify({
+        'ok': True,
+        'id': msg.id,
+        'created_at': msg.created_at.strftime('%Y-%m-%d %H:%M:%S')
+    })
+
+@app.route('/api/chat/block/<int:msg_id>', methods=['POST'])
+def block_message(msg_id):
+    """Xabarni o'zingiz uchun yashirish"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
+    
+    msg = ChatMessage.query.get_or_404(msg_id)
+    
+    blocked_data = json.loads(msg.blocked_for_users or '{}')
+    blocked_data[str(user_id)] = True
+    
+    msg.blocked_for_users = json.dumps(blocked_data)
+    db.session.commit()
+    
     return jsonify({'ok': True})
+
+@app.route('/api/chat/delete/<int:msg_id>', methods=['DELETE'])
+def delete_message(msg_id):
+    """Xabarni o'chirish (faqat xabar yozuvchi yoki o'qituvchi)"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
+    
+    msg = ChatMessage.query.get_or_404(msg_id)
+    user = User.query.get(user_id)
+    
+    # Faqat xabar yozuvchi yoki o'qituvchi o'chira oladi
+    if msg.user_id != user_id and user.role != 'teacher':
+        return jsonify({'ok': False, 'error': 'Ruxsat etilmagan'}), 403
+    
+    db.session.delete(msg)
+    db.session.commit()
+    
+    return jsonify({'ok': True})
+
+@app.route('/api/chat/user-block/<int:blocked_user_id>', methods=['POST'])
+def block_user(blocked_user_id):
+    """Foydalanuvchini blok qilish (faqat o'qituvchi)"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Kirish zarur'}), 401
+    
+    user = User.query.get(user_id)
+    if user.role != 'teacher':
+        return jsonify({'ok': False, 'error': 'Faqat o\'qituvchi foydalanuvchilarni blok qila oladi'}), 403
+    
+    blocked_user = User.query.get_or_404(blocked_user_id)
+    blocked_user.is_blocked = True
+    db.session.commit()
+    
+    return jsonify({'ok': True, 'message': f'{blocked_user.name} blok qilingan'})
+
+@app.route('/api/chat/users', methods=['GET'])
+def get_all_users():
+    """Barcha foydalanuvchilar"""
+    users = User.query.all()
+    return jsonify([{
+        'id': u.id,
+        'name': u.name,
+        'email': u.email,
+        'role': u.role,
+        'is_blocked': u.is_blocked
+    } for u in users])
 
 # ─── API: Lessons ────────────────────────────────────────────────────────
 
@@ -358,94 +516,16 @@ def get_lessons():
         'order': l.order, 'block_count': len(l.blocks)
     } for l in lessons])
 
-@app.route('/api/lessons', methods=['POST'])
-def create_lesson():
-    d = request.json
-    max_order = db.session.query(db.func.max(Lesson.order)).scalar() or 0
-    lesson = Lesson(title=d['title'], subtitle=d.get('subtitle', ''), order=max_order + 1)
-    db.session.add(lesson)
-    db.session.commit()
-    return jsonify({'id': lesson.id, 'title': lesson.title})
-
-@app.route('/api/lessons/<int:lid>', methods=['PUT'])
-def update_lesson(lid):
-    lesson = Lesson.query.get_or_404(lid)
-    d = request.json
-    if 'title' in d:    lesson.title    = d['title']
-    if 'subtitle' in d: lesson.subtitle = d['subtitle']
-    db.session.commit()
-    return jsonify({'ok': True})
-
-@app.route('/api/lessons/<int:lid>', methods=['DELETE'])
-def delete_lesson(lid):
-    lesson = Lesson.query.get_or_404(lid)
-    db.session.delete(lesson)
-    db.session.commit()
-    return jsonify({'ok': True})
-
-@app.route('/api/lessons/<int:lid>/duplicate', methods=['POST'])
-def duplicate_lesson(lid):
-    orig = Lesson.query.get_or_404(lid)
-    max_order = db.session.query(db.func.max(Lesson.order)).scalar() or 0
-    new_l = Lesson(title=orig.title + ' (копия)', subtitle=orig.subtitle, order=max_order + 1)
-    db.session.add(new_l)
-    db.session.flush()
-    for b in orig.blocks:
-        nb = Block(lesson_id=new_l.id, type=b.type, order=b.order, data=b.data)
-        db.session.add(nb)
-    db.session.commit()
-    return jsonify({'id': new_l.id, 'title': new_l.title})
-
-# ─── API: Blocks ─────────────────────────────────────────────────────────
-
 @app.route('/api/lessons/<int:lid>/blocks', methods=['GET'])
 def get_blocks(lid):
     blocks = Block.query.filter_by(lesson_id=lid).order_by(Block.order).all()
     return jsonify([b.to_dict() for b in blocks])
 
-@app.route('/api/blocks', methods=['POST'])
-def create_block():
-    d = request.json
-    max_order = db.session.query(db.func.max(Block.order)) \
-                    .filter(Block.lesson_id == d['lesson_id']).scalar() or 0
-    block = Block(
-        lesson_id=d['lesson_id'],
-        type=d['type'],
-        order=d.get('order', max_order + 1),
-        data=json.dumps(d.get('data', {}), ensure_ascii=False)
-    )
-    db.session.add(block)
-    db.session.commit()
-    return jsonify(block.to_dict())
-
-@app.route('/api/blocks/<int:bid>', methods=['PUT'])
-def update_block(bid):
-    block = Block.query.get_or_404(bid)
-    d = request.json
-    if 'data' in d:  block.data  = json.dumps(d['data'], ensure_ascii=False)
-    if 'order' in d: block.order = d['order']
-    db.session.commit()
-    return jsonify(block.to_dict())
-
-@app.route('/api/blocks/<int:bid>', methods=['DELETE'])
-def delete_block(bid):
-    block = Block.query.get_or_404(bid)
-    db.session.delete(block)
-    db.session.commit()
-    return jsonify({'ok': True})
-
-@app.route('/api/blocks/reorder', methods=['POST'])
-def reorder_blocks():
-    for item in request.json:
-        Block.query.filter_by(id=item['id']).update({'order': item['order']})
-    db.session.commit()
-    return jsonify({'ok': True})
-
-# ─── API: Progress Dashboard ────────────────────────────────────────────────
+# ─── API: Progress ────────────────────────────────────────────────────────
 
 @app.route('/api/progress/dashboard', methods=['GET'])
 def get_progress_dashboard():
-    """Talabaning taraqqiyot paneli - barchaga ko'rinadi"""
+    """Progress dashboard"""
     lessons = Lesson.query.order_by(Lesson.order).all()
     dashboard = []
     
@@ -476,142 +556,6 @@ def get_progress_dashboard():
     
     return jsonify(dashboard)
 
-@app.route('/api/progress/lesson/<int:lid>', methods=['GET'])
-def get_lesson_progress(lid):
-    """Bitta dars uchun detailed progress"""
-    lesson = Lesson.query.get_or_404(lid)
-    blocks = Block.query.filter_by(lesson_id=lid).order_by(Block.order).all()
-    
-    blocks_progress = []
-    for block in blocks:
-        prog = StudentProgress.query.filter_by(block_id=block.id).first()
-        blocks_progress.append({
-            'block_id': block.id,
-            'block_type': block.type,
-            'order': block.order,
-            'score': prog.score if prog else 0,
-            'max_score': prog.max_score if prog else 100,
-            'completed': prog.completed if prog else False,
-            'percentage': round(prog.score / prog.max_score * 100) if prog and prog.max_score > 0 else 0
-        })
-    
-    return jsonify({
-        'lesson': {'id': lesson.id, 'title': lesson.title},
-        'blocks': blocks_progress
-    })
-
-@app.route('/api/progress/<int:bid>', methods=['GET'])
-def get_progress(bid):
-    """Bitta blok uchun progress"""
-    p = StudentProgress.query.filter_by(block_id=bid).first()
-    if not p: 
-        return jsonify({'answers': {}, 'score': 0, 'max_score': 100, 'completed': False})
-    return jsonify({
-        'answers': json.loads(p.answers),
-        'score': p.score,
-        'max_score': p.max_score,
-        'completed': p.completed
-    })
-
-@app.route('/api/progress/<int:bid>', methods=['POST'])
-def save_progress(bid):
-    """Blok natija saqlash"""
-    d = request.json
-    p = StudentProgress.query.filter_by(block_id=bid).first()
-    if not p:
-        p = StudentProgress(block_id=bid)
-        db.session.add(p)
-    
-    p.answers = json.dumps(d.get('answers', {}), ensure_ascii=False)
-    p.score = d.get('score', 0)
-    p.max_score = d.get('max_score', 100)
-    p.completed = d.get('completed', False)
-    
-    db.session.commit()
-    return jsonify({'ok': True})
-
-# ─── API: Chat (O'qituvchi va Talaba o'rtasidagi) ────────────────────────────
-
-@app.route('/api/chat/messages', methods=['GET'])
-def get_chat_messages():
-    """Barcha chat xabarlarini olish"""
-    messages = ChatMessage.query.order_by(ChatMessage.created_at).all()
-    return jsonify([{
-        'id': m.id,
-        'user_name': m.user.name if m.user else 'Noma\'lum',
-        'message': m.message,
-        'message_type': m.message_type,
-        'lesson_id': m.lesson_id,
-        'is_teacher_reply': m.is_teacher_reply,
-        'created_at': m.created_at.strftime('%Y-%m-%d %H:%M')
-    } for m in messages])
-
-@app.route('/api/chat/send', methods=['POST'])
-def send_chat_message():
-    """Yangi chat xabari yuborish"""
-    d = request.json or {}
-    
-    # User yaratish yoki olish
-    user_name = d.get('user_name', 'Noma\'lum')
-    user_email = d.get('user_email', f'user_{secrets.token_hex(4)}@example.com')
-    
-    user = User.query.filter_by(email=user_email).first()
-    if not user:
-        user = User(name=user_name, email=user_email, role='student')
-        db.session.add(user)
-        db.session.flush()
-    
-    # Chat xabari saqlash
-    msg = ChatMessage(
-        user_id=user.id,
-        message=d.get('message', ''),
-        message_type=d.get('message_type', 'text'),
-        lesson_id=d.get('lesson_id', None),
-        is_teacher_reply=False
-    )
-    db.session.add(msg)
-    db.session.commit()
-    
-    return jsonify({'ok': True, 'id': msg.id})
-
-@app.route('/api/chat/reply/<int:msg_id>', methods=['POST'])
-def reply_to_message(msg_id):
-    """O'qituvchi javob berish"""
-    d = request.json or {}
-    
-    # Parol tekshirish
-    pwd = d.get('password', '')
-    if hashlib.sha256(pwd.encode()).hexdigest() != TEACHER_PASS_HASH:
-        return jsonify({'ok': False, 'error': 'Parol noto\'g\'ri'}), 401
-    
-    orig_msg = ChatMessage.query.get_or_404(msg_id)
-    
-    # O'qituvchi xabari
-    reply_msg = ChatMessage(
-        user_id=orig_msg.user_id,
-        message=d.get('reply', ''),
-        message_type='text',
-        lesson_id=orig_msg.lesson_id,
-        is_teacher_reply=True
-    )
-    db.session.add(reply_msg)
-    db.session.commit()
-    
-    return jsonify({'ok': True, 'id': reply_msg.id})
-
-@app.route('/api/chat/delete/<int:msg_id>', methods=['DELETE'])
-def delete_chat_message(msg_id):
-    """Chat xabarni o'chirish (faqat o'qituvchi)"""
-    d = request.json or {}
-    pwd = d.get('password', '')
-    if hashlib.sha256(pwd.encode()).hexdigest() != TEACHER_PASS_HASH:
-        return jsonify({'ok': False, 'error': 'Parol noto\'g\'ri'}), 401
-    
-    msg = ChatMessage.query.get_or_404(msg_id)
-    db.session.delete(msg)
-    db.session.commit()
-    return jsonify({'ok': True})
-
 # ─── Upload ──────────────────────────────────────────────────────────
 
 @app.route('/api/upload/audio', methods=['POST'])
@@ -623,166 +567,6 @@ def upload_audio():
     fname = f'{datetime.utcnow().timestamp()}_{f.filename}'
     f.save(os.path.join(audio_dir, fname))
     return jsonify({'url': f'/static/audio/{fname}'})
-
-@app.route('/api/upload/image', methods=['POST'])
-def upload_image():
-    f = request.files.get('file')
-    if not f: return jsonify({'error': 'no file'}), 400
-    img_dir = os.path.join(BASE_DIR, 'static', 'img')
-    os.makedirs(img_dir, exist_ok=True)
-    fname = f'{datetime.utcnow().timestamp()}_{f.filename}'
-    f.save(os.path.join(img_dir, fname))
-    return jsonify({'url': f'/static/img/{fname}'})
-
-@app.route('/api/upload/video', methods=['POST'])
-def upload_video():
-    f = request.files.get('file')
-    if not f: return jsonify({'error': 'no file'}), 400
-    vid_dir = os.path.join(BASE_DIR, 'static', 'video')
-    os.makedirs(vid_dir, exist_ok=True)
-    fname = f'{datetime.utcnow().timestamp()}_{f.filename}'
-    f.save(os.path.join(vid_dir, fname))
-    return jsonify({'url': f'/static/video/{fname}'})
-
-# ─── API: .urok Export ───────────────────────────────────────────────────────
-
-@app.route('/api/lessons/<int:lid>/export', methods=['GET'])
-def export_lesson(lid):
-    """Darsni shifrlangan .urok fayl sifatida qaytaradi"""
-    lesson = Lesson.query.get_or_404(lid)
-    blocks = Block.query.filter_by(lesson_id=lid).order_by(Block.order).all()
-
-    payload = {
-        'format':    'urok',
-        'version':   UROK_VERSION,
-        'exported':  datetime.utcnow().isoformat(),
-        'lesson': {
-            'title':    lesson.title,
-            'subtitle': lesson.subtitle,
-        },
-        'blocks': [
-            {'type': b.type, 'order': b.order, 'data': json.loads(b.data or '{}')}
-            for b in blocks
-        ]
-    }
-
-    encoded = encode_urok(payload)
-    safe_title = ''.join(c if c.isalnum() or c in '-_ ' else '_' for c in lesson.title)[:40]
-    fname = f"{safe_title}.urok"
-
-    from flask import Response
-    return Response(
-        encoded,
-        mimetype='application/octet-stream',
-        headers={'Content-Disposition': f'attachment; filename="{fname}"'}
-    )
-
-# ─── API: .urok Import (o'quvchi uchun) ─────────────────────────────────────
-
-@app.route('/api/urok/decode', methods=['POST'])
-def decode_urok_api():
-    """Frontend .urok faylni yuboradi, JSON payload qaytaradi (o'quvchi rejimi)"""
-    f = request.files.get('file')
-    if not f:
-        d = request.json or {}
-        b64 = d.get('data', '')
-    else:
-        b64 = f.read().decode('ascii').strip()
-
-    try:
-        payload = decode_urok(b64)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
-
-    return jsonify({'ok': True, 'payload': payload})
-
-@app.route('/api/urok/decode-teacher', methods=['POST'])
-def decode_urok_teacher():
-    """O'qituvchi uchun: parol tekshirib, keyin decode qiladi"""
-    d = request.json or {}
-    pwd = d.get('password', '')
-    if hashlib.sha256(pwd.encode()).hexdigest() != TEACHER_PASS_HASH:
-        return jsonify({'ok': False, 'error': 'Parol noto\'g\'ri'}), 401
-
-    b64 = d.get('data', '')
-    try:
-        payload = decode_urok(b64)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
-
-    return jsonify({'ok': True, 'payload': payload})
-
-# ─── API: Results ─────────────────────────────────────────────────────────
-
-@app.route('/api/results', methods=['POST'])
-def save_result():
-    """O'quvchi .urok natija faylini serverga yuboradi"""
-    d = request.json or {}
-    result = StudentResult(
-        student_name = d.get('student_name', 'O\'quvchi'),
-        lesson_title = d.get('lesson_title', ''),
-        total_score  = d.get('total_score', 0),
-        max_score    = d.get('max_score', 0),
-        answers_json = json.dumps(d.get('answers', {}), ensure_ascii=False),
-    )
-    db.session.add(result)
-    db.session.commit()
-    return jsonify({'ok': True, 'id': result.id})
-
-@app.route('/api/results', methods=['GET'])
-def get_results():
-    """O'qituvchi barcha natijalarni ko'radi"""
-    results = StudentResult.query.order_by(StudentResult.submitted_at.desc()).all()
-    data = []
-    for r in results:
-        answers_raw = json.loads(r.answers_json or '{}')
-        processed = {}
-        for block_id, block_data in answers_raw.items():
-            if isinstance(block_data, dict):
-                b_type  = block_data.get('type', '')
-                b_title = block_data.get('title', '')
-                b_ans   = block_data.get('answers', {})
-                b_score = block_data.get('score', 0)
-                b_max   = block_data.get('max', 0)
-                if b_type in ('vocab_timer', 'gen_test'):
-                    rows = []
-                    for q, v in b_ans.items():
-                        if isinstance(v, dict):
-                            rows.append({
-                                'question':  q,
-                                'given':     v.get('given', ''),
-                                'correct':   v.get('correct', ''),
-                                'is_correct':v.get('isCorrect', v.get('correct', '') == v.get('given', '')),
-                            })
-                    processed[block_id] = {
-                        'type': b_type, 'title': b_title,
-                        'score': b_score, 'max': b_max,
-                        'rows': rows,
-                        'answers': b_ans,
-                    }
-                else:
-                    processed[block_id] = block_data
-            else:
-                processed[block_id] = block_data
-
-        data.append({
-            'id':           r.id,
-            'student_name': r.student_name,
-            'lesson_title': r.lesson_title,
-            'total_score':  r.total_score,
-            'max_score':    r.max_score,
-            'pct':          round(r.total_score / r.max_score * 100) if r.max_score else 0,
-            'answers':      processed,
-            'submitted_at': r.submitted_at.strftime('%Y-%m-%d %H:%M'),
-        })
-    return jsonify(data)
-
-@app.route('/api/results/<int:rid>', methods=['DELETE'])
-def delete_result(rid):
-    r = StudentResult.query.get_or_404(rid)
-    db.session.delete(r)
-    db.session.commit()
-    return jsonify({'ok': True})
 
 # ─── Pages ──────────────────────────────────────────────────────────
 
